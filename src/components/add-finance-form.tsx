@@ -1,5 +1,6 @@
+"use client"
+
 import {Dialog, DialogContent, DialogHeader, DialogTitle} from "@/components/ui/dialog";
-import {Input} from "@/components/ui/input";
 import {Button} from "@/components/ui/button";
 import {Label} from "@/components/ui/label";
 import {Select, SelectContent, SelectItem, SelectTrigger, SelectValue} from "@/components/ui/select";
@@ -11,8 +12,8 @@ import {useCategories} from "@/hooks/useCategories.ts";
 import {useToast} from "@/hooks/use-toast.ts";
 import {NumericFormat} from "react-number-format";
 import {HelpCircle} from "lucide-react";
-import {Tooltip, TooltipContent, TooltipTrigger} from "@/components/ui/tooltip.tsx";
-
+import {Tooltip, TooltipContent, TooltipTrigger, TooltipProvider} from "@/components/ui/tooltip.tsx";
+import {Input} from "@/components/ui/input.tsx";
 
 export const AddFinanceForm = () => {
     const { activeDialog, setActiveDialog } = useDialogManager();
@@ -99,7 +100,6 @@ export const AddFinanceForm = () => {
         }
     };
 
-
     const resetForm = () => {
         setDescription("");
         setAmount("");
@@ -128,11 +128,13 @@ export const AddFinanceForm = () => {
                 </DialogHeader>
 
                 <div className="space-y-4 py-2">
+                    {/* Descrição */}
                     <div className="grid w-full items-center gap-1.5">
                         <Label>Descrição</Label>
                         <Input value={description} onChange={(e) => setDescription(e.target.value)} required />
                     </div>
 
+                    {/* Valor, Mês e Ano */}
                     <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
                         <div className="sm:col-span-2 grid gap-1.5">
                             <Label>Valor</Label>
@@ -161,9 +163,7 @@ export const AddFinanceForm = () => {
                                 </SelectTrigger>
                                 <SelectContent>
                                     {IMes.map((mes, index) => (
-                                        <SelectItem key={index} value={mes}>
-                                            {mes}
-                                        </SelectItem>
+                                        <SelectItem key={index} value={mes}>{mes}</SelectItem>
                                     ))}
                                 </SelectContent>
                             </Select>
@@ -176,15 +176,14 @@ export const AddFinanceForm = () => {
                                 </SelectTrigger>
                                 <SelectContent>
                                     {generateYears(new Date().getFullYear() - 5, new Date().getFullYear() + 5).map((year) => (
-                                        <SelectItem key={year} value={year.toString()}>
-                                            {year}
-                                        </SelectItem>
+                                        <SelectItem key={year} value={year.toString()}>{year}</SelectItem>
                                     ))}
                                 </SelectContent>
                             </Select>
                         </div>
                     </div>
 
+                    {/* Categoria e Tipo */}
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div className="grid gap-1.5">
                             <Label>Categoria</Label>
@@ -194,9 +193,7 @@ export const AddFinanceForm = () => {
                                 </SelectTrigger>
                                 <SelectContent>
                                     {categories?.map((category) => (
-                                        <SelectItem key={category.id} value={category.id!}>
-                                            {category.name}
-                                        </SelectItem>
+                                        <SelectItem key={category.id} value={category.id!}>{category.name}</SelectItem>
                                     ))}
                                 </SelectContent>
                             </Select>
@@ -216,6 +213,7 @@ export const AddFinanceForm = () => {
                         </div>
                     </div>
 
+                    {/* Recorrência e Parcelas */}
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div className="grid gap-1.5">
                             <Label>Recorrência</Label>
@@ -234,36 +232,47 @@ export const AddFinanceForm = () => {
                                         <SelectItem value="FIXO">Fixo</SelectItem>
                                     </SelectContent>
                                 </Select>
-                                <Tooltip>
-                                    <TooltipTrigger type="button" className="h-full shrink-0">
-                                        <HelpCircle className="h-5 w-5 text-gray-500 cursor-pointer" />
-                                    </TooltipTrigger>
-                                    <TooltipContent className="bg-gray-200 text-black">
-                                        <b>Único:</b> Transação única no mês selecionado, não se repete.<br />
-                                        <b>Parcelado:</b> Transação dividida em parcelas.<br />
-                                        <b>Fixo:</b> Transação que se repete mensalmente no ano selecionado.
-                                    </TooltipContent>
-                                </Tooltip>
+
+                                <TooltipProvider>
+                                    <Tooltip delayDuration={0}>
+                                        <TooltipTrigger asChild>
+                                            <button type="button" className="shrink-0 p-1 focus:outline-none focus:ring-2 focus:ring-ring rounded-full">
+                                                <HelpCircle className="h-5 w-5 text-gray-400" />
+                                            </button>
+                                        </TooltipTrigger>
+                                        <TooltipContent side="top" className="bg-gray-800 text-white p-3 max-w-[280px] shadow-lg">
+                                            <p className="text-xs"><b>Único:</b> Ocorre apenas uma vez.</p>
+                                            <p className="text-xs"><b>Parcelado:</b> Dividido em parcelas.</p>
+                                            <p className="text-xs"><b>Fixo:</b> Repete todo mês automaticamente.</p>
+                                        </TooltipContent>
+                                    </Tooltip>
+                                </TooltipProvider>
                             </div>
                         </div>
+
                         {recurrence === "PARCELADO" && (
-                            <div className="grid gap-1.5 animate-in fade-in">
+                            <div className="grid gap-1.5 animate-in slide-in-from-left-2 duration-300">
                                 <Label>Parcelas</Label>
                                 <div className="flex items-center gap-2">
                                     <Input
                                         type="number"
+                                        min={2}
                                         value={numInstallments}
                                         onChange={(e) => setNumInstallments(parseInt(e.target.value))}
                                         required
                                     />
-                                    <Tooltip>
-                                        <TooltipTrigger type="button" className="h-full shrink-0">
-                                            <HelpCircle className="h-5 w-5 text-gray-500 cursor-pointer" />
-                                        </TooltipTrigger>
-                                        <TooltipContent className="bg-gray-200 text-black">
-                                            O valor total da transação será dividido igualmente entre as parcelas.
-                                        </TooltipContent>
-                                    </Tooltip>
+                                    <TooltipProvider>
+                                        <Tooltip delayDuration={0}>
+                                            <TooltipTrigger asChild>
+                                                <button type="button" className="shrink-0 p-1 focus:outline-none focus:ring-2 focus:ring-ring rounded-full">
+                                                    <HelpCircle className="h-5 w-5 text-gray-400" />
+                                                </button>
+                                            </TooltipTrigger>
+                                            <TooltipContent side="top" className="bg-gray-800 text-white p-3 max-w-[200px] shadow-lg">
+                                                <p className="text-xs">O valor total será dividido pelo número de parcelas.</p>
+                                            </TooltipContent>
+                                        </Tooltip>
+                                    </TooltipProvider>
                                 </div>
                             </div>
                         )}
