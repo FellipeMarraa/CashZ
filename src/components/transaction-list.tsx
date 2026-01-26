@@ -4,7 +4,7 @@ import {Transaction} from "@/model/types/Transaction.ts";
 import {useDialogManager} from "@/context/DialogManagerContext.tsx";
 import {EditFinanceForm} from "@/components/edit-finance-form.tsx";
 import {useToast} from "@/hooks/use-toast.ts";
-import React, {useState} from "react";
+import {useState} from "react";
 import {DeleteFinanceDialog} from "@/components/delete-finance-dialog.tsx";
 import {Tooltip, TooltipContent, TooltipTrigger} from "@/components/ui/tooltip.tsx";
 

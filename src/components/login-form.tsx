@@ -1,12 +1,12 @@
 "use client"
 
-import React, { useEffect, useState } from "react"
-import { Eye, EyeOff, Loader2 } from "lucide-react"
-import { Button } from "./ui/button"
-import { Input } from "./ui/input"
-import { Label } from "./ui/label"
-import { Checkbox } from "./ui/checkbox"
-import { RegisterForm } from "@/components/register-form.tsx";
+import React, {useEffect, useState} from "react"
+import {Eye, EyeOff, Loader2} from "lucide-react"
+import {Button} from "./ui/button"
+import {Input} from "./ui/input"
+import {Label} from "./ui/label"
+import {Checkbox} from "./ui/checkbox"
+import {RegisterForm} from "@/components/register-form.tsx";
 import {
   Dialog,
   DialogContent,
@@ -15,9 +15,8 @@ import {
   DialogTitle,
   DialogTrigger
 } from "@/components/ui/dialog.tsx";
-import { useDialogManager } from "@/context/DialogManagerContext.tsx";
-import { useToast } from "@/hooks/use-toast.ts";
-import { login, loginWithGoogle } from "../../firebase"; // Ajuste o caminho conforme necessário
+import {useDialogManager} from "@/context/DialogManagerContext.tsx";
+import {login, loginWithGoogle} from "../../firebase"; // Ajuste o caminho conforme necessário
 
 interface LoginFormProps {
   dialogTrigger: React.ReactNode;
@@ -27,8 +26,6 @@ interface LoginFormProps {
 export const LoginForm: React.FC<LoginFormProps> = ({ dialogTrigger, onNavigateToDashboard }) => {
   const [isLoading, setIsLoading] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
-  const { toast } = useToast();
-  // Não precisamos mais do setUser aqui, o AuthContext gerencia isso automaticamente ao detectar o login do Firebase
 
   const [formData, setFormData] = useState({
     email: "",

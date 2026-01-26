@@ -1,6 +1,5 @@
 import {Button} from '@/components/ui/button';
 import {UserMenu} from '@/components/dashboard/user-menu';
-import {NotificationsPopover} from '@/components/dashboard/notifications-popover';
 import {Search} from 'lucide-react';
 import {AnimatePresence, motion} from 'framer-motion';
 

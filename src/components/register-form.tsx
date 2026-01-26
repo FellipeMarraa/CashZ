@@ -1,11 +1,11 @@
 "use client"
 
-import React, { useEffect, useState } from "react"
-import { Eye, EyeOff, Loader2 } from "lucide-react"
-import { Button } from "./ui/button"
-import { Input } from "./ui/input"
-import { Label } from "./ui/label"
-import { Checkbox } from "./ui/checkbox"
+import React, {useEffect, useState} from "react"
+import {Eye, EyeOff, Loader2} from "lucide-react"
+import {Button} from "./ui/button"
+import {Input} from "./ui/input"
+import {Label} from "./ui/label"
+import {Checkbox} from "./ui/checkbox"
 import {
   Dialog,
   DialogContent,
@@ -14,11 +14,10 @@ import {
   DialogTitle,
   DialogTrigger
 } from "@/components/ui/dialog.tsx";
-import { LoginForm } from "@/components/login-form.tsx";
-import { useDialogManager } from "@/context/DialogManagerContext.tsx";
-import { useToast } from "@/hooks/use-toast.ts";
-import { register, auth } from "../../firebase"; // Ajuste o caminho
-import { updateProfile } from "firebase/auth";
+import {LoginForm} from "@/components/login-form.tsx";
+import {useDialogManager} from "@/context/DialogManagerContext.tsx";
+import {auth, register} from "../../firebase"; // Ajuste o caminho
+import {updateProfile} from "firebase/auth";
 
 interface RegisterFormProps {
   dialogTrigger: React.ReactNode;
@@ -28,7 +27,6 @@ interface RegisterFormProps {
 export const RegisterForm: React.FC<RegisterFormProps> = ({ dialogTrigger, onNavigateToDashboard }) => {
   const [isLoading, setIsLoading] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
-  const { toast } = useToast();
 
   const [formData, setFormData] = useState({
     name: "",

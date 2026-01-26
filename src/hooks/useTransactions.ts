@@ -1,19 +1,18 @@
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { IMes } from "@/model/IMes";
-import { Transaction } from "@/model/types/Transaction";
-import { db, auth } from "../../firebase";
-import { useAuth } from "@/context/AuthContext";
+import {useMutation, useQuery, useQueryClient} from "@tanstack/react-query";
+import {IMes} from "@/model/IMes";
+import {Transaction} from "@/model/types/Transaction";
+import {auth, db} from "../../firebase";
+import {useAuth} from "@/context/AuthContext";
 import {
     collection,
-    query,
-    where,
-    getDocs,
-    getDoc,
-    addDoc,
-    doc,
-    updateDoc,
     deleteDoc,
+    doc,
+    getDoc,
+    getDocs,
     orderBy,
+    query,
+    updateDoc,
+    where,
     writeBatch
 } from 'firebase/firestore/lite';
 
@@ -96,10 +95,6 @@ const api = {
         );
         const querySnapshot = await getDocs(q);
         return querySnapshot.docs.map(doc => this.mapDocumentToTransaction(doc));
-    },
-
-    async getTransactionById(id: string): Promise<Transaction> {
-        return {} as Transaction;
     },
 
     // --- CRIAR TRANSAÇÃO ---
@@ -316,16 +311,6 @@ export const useAllTransactions = () => {
         queryFn: () => api.getAllTransactions(),
         staleTime: 5 * 60 * 1000,
         enabled: !!user?.id
-    });
-};
-
-export const useTransactionById = (id: string) => {
-    const { user } = useAuth();
-    return useQuery({
-        queryKey: ['transaction', id, user?.id],
-        queryFn: () => api.getTransactionById(id),
-        enabled: !!id && !!user?.id,
-        staleTime: 5 * 60 * 1000
     });
 };
 
