@@ -1,6 +1,5 @@
 "use client"
 
-import {Button} from '@/components/ui/button';
 import {UserMenu} from '@/components/dashboard/user-menu';
 import {AnimatePresence, motion} from 'framer-motion';
 

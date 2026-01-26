@@ -103,7 +103,6 @@ export const Dashboard = ({ onNavigateToLanding }: DashboardProps) => {
             onSectionChange={setActiveSection}
             onNavigateToLanding={onNavigateToLanding}
             onToggleSidebar={() => setCollapsed(!collapsed)}
-            sectionMeta={sectionMeta}
         />
 
         {/* REMOVIDO: ml-16 e ml-64.
