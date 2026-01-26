@@ -84,34 +84,34 @@
   animation: spin-slow 3s linear infinite;
 }
 
-@media screen and (orientation: portrait) {
-  html, body {
-    overflow: hidden;
-    height: 100vh;
-  }
+/*@media screen and (orientation: portrait) {*/
+/*  html, body {*/
+/*    overflow: hidden;*/
+/*    height: 100vh;*/
+/*  }*/
 
-  #orientation-warning {
-    display: flex !important;
-  }
+/*  #orientation-warning {*/
+/*    display: flex !important;*/
+/*  }*/
 
-  #root {
-    display: none !important;
-  }
-}
+/*  #root {*/
+/*    display: none !important;*/
+/*  }*/
+/*}*/
 
-#orientation-warning {
-  display: none;
-  position: fixed;
-  inset: 0;
-  background: white;
-  color: black;
-  z-index: 9999;
-  justify-content: center;
-  align-items: center;
-  padding: 2rem;
-  text-align: center;
-  font-size: 1.25rem;
-}
+/*#orientation-warning {*/
+/*  display: none;*/
+/*  position: fixed;*/
+/*  inset: 0;*/
+/*  background: white;*/
+/*  color: black;*/
+/*  z-index: 9999;*/
+/*  justify-content: center;*/
+/*  align-items: center;*/
+/*  padding: 2rem;*/
+/*  text-align: center;*/
+/*  font-size: 1.25rem;*/
+/*}*/
 
 @keyframes shake {
   0%, 100% { transform: translateX(0); }

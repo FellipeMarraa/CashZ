@@ -73,7 +73,7 @@ export const LandingPage = ({ onNavigateToDashboard }: LandingPageProps) => {
     ]
 
     return (
-        <div className="min-h-screen bg-white">
+        <div className="min-h-screen bg-white overflow-x-hidden">
             {/* Header */}
             <header className="fixed top-0 left-0 right-0 bg-white/80 backdrop-blur-md z-50 border-b border-gray-100">
                 <div className="container mx-auto px-4 py-4 flex justify-between items-center">
@@ -83,7 +83,7 @@ export const LandingPage = ({ onNavigateToDashboard }: LandingPageProps) => {
                         transition={{ duration: 0.5 }}
                         className="flex items-center"
                     >
-                        <div className="h-8 w-8 rounded-md mr-2"><img src="/cashz.svg"/></div>
+                        <div className="h-8 w-8 rounded-md mr-2"><img src="/cashz.svg" alt="Logo"/></div>
                         <span className="text-xl font-bold text-gray-900">CashZ</span>
                     </motion.div>
 
@@ -100,7 +100,7 @@ export const LandingPage = ({ onNavigateToDashboard }: LandingPageProps) => {
                         </a>
                         <LoginForm onNavigateToDashboard={onNavigateToDashboard} dialogTrigger={
                             <>
-                                <Button variant="outline" className="mr-2 bg-gradient-to-r from-emerald-500 to-teal-500 border-none cursor-pointer px-2 text-white ">
+                                <Button variant="outline" className="mr-2 bg-gradient-to-r from-emerald-500 to-teal-500 border-none cursor-pointer px-4 py-2 text-white">
                                     <LogInIcon className="w-4 h-4 mr-2"/> Login
                                 </Button>
                             </>
@@ -122,25 +122,25 @@ export const LandingPage = ({ onNavigateToDashboard }: LandingPageProps) => {
                             initial={{ opacity: 0, height: 0 }}
                             animate={{ opacity: 1, height: "auto" }}
                             exit={{ opacity: 0, height: 0 }}
-                            className="md:hidden bg-white border-t border-gray-100"
+                            className="md:hidden bg-white border-t border-gray-100 overflow-hidden"
                         >
                             <div className="container mx-auto px-4 py-4 flex flex-col space-y-4">
-                                <a href="#features" className="text-gray-600 hover:text-emerald-500 transition-colors py-2">
+                                <a href="#features" className="text-gray-600 hover:text-emerald-500 transition-colors py-2" onClick={() => setIsMenuOpen(false)}>
                                     Recursos
                                 </a>
-                                <a href="#testimonials" className="text-gray-600 hover:text-emerald-500 transition-colors py-2">
+                                <a href="#testimonials" className="text-gray-600 hover:text-emerald-500 transition-colors py-2" onClick={() => setIsMenuOpen(false)}>
                                     Depoimentos
                                 </a>
-                                <a href="#pricing" className="text-gray-600 hover:text-emerald-500 transition-colors py-2">
+                                <a href="#pricing" className="text-gray-600 hover:text-emerald-500 transition-colors py-2" onClick={() => setIsMenuOpen(false)}>
                                     Preços
                                 </a>
-                                <LoginForm onNavigateToDashboard={onNavigateToDashboard} dialogTrigger={
-                                    <>
-                                        <Button variant="outline" className="mr-2 bg-gradient-to-r from-emerald-500 to-teal-500 border-none cursor-pointer px-2 text-white ">
+                                <div className="pt-2">
+                                    <LoginForm onNavigateToDashboard={onNavigateToDashboard} dialogTrigger={
+                                        <Button variant="outline" className="w-full bg-gradient-to-r from-emerald-500 to-teal-500 border-none cursor-pointer text-white justify-center">
                                             <LogInIcon className="w-4 h-4 mr-2"/> Login
                                         </Button>
-                                    </>
-                                } />
+                                    } />
+                                </div>
                             </div>
                         </motion.div>
                     )}
@@ -148,28 +148,28 @@ export const LandingPage = ({ onNavigateToDashboard }: LandingPageProps) => {
             </header>
 
             {/* Hero Section */}
-            <section className="pt-24 pb-20 md:pb-28 p-8">
+            <section className="pt-28 pb-16 md:pb-28 px-4 md:px-8">
                 <div className="container mx-auto px-4">
                     <div className="flex flex-col md:flex-row items-center">
                         <motion.div
                             initial={{ opacity: 0, y: 20 }}
                             animate={{ opacity: 1, y: 0 }}
                             transition={{ duration: 0.6 }}
-                            className="md:w-1/2 mb-10 md:mb-0"
+                            className="w-full md:w-1/2 mb-10 md:mb-0 text-center md:text-left"
                         >
-                            <h1 className="text-4xl lg:text-6xl font-bold text-gray-900 leading-tight mb-6 md:text-2xl">
+                            <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-gray-900 leading-tight mb-6">
                                 Transforme suas <span className="text-emerald-500">finanças</span> com inteligência
                             </h1>
-                            <p className="text-xl text-gray-600 mb-8 max-w-lg">
+                            <p className="text-lg md:text-xl text-gray-600 mb-8 max-w-lg mx-auto md:mx-0">
                                 Plataforma completa para análise financeira, gestão de gastos e tomada de decisões inteligentes.
                             </p>
-                            <div className="flex flex-col sm:flex-row gap-4">
-                                <Button size="lg" variant="outline" className="cursor-pointer hover:text-emerald-500 transition-colors dark:hover:text-emerald-500 dark:transition-colors dark:bg-white dark:border-gray-300 dark:hover:bg-gray-100">
+                            <div className="flex flex-col sm:flex-row gap-4 justify-center md:justify-start">
+                                <Button size="lg" variant="outline" className="w-full sm:w-auto cursor-pointer hover:text-emerald-500 transition-colors dark:hover:text-emerald-500 dark:transition-colors dark:bg-white dark:border-gray-300 dark:hover:bg-gray-100">
                                     <RegisterForm onNavigateToDashboard={onNavigateToDashboard} dialogTrigger={
-                                        <>
+                                        <span className="flex items-center justify-center w-full">
                                             Começar Agora
                                             <ChevronRight className="ml-2 h-4 w-4" />
-                                        </>
+                                        </span>
                                     }/>
                                 </Button>
                             </div>
@@ -178,7 +178,7 @@ export const LandingPage = ({ onNavigateToDashboard }: LandingPageProps) => {
                             initial={{ opacity: 0, scale: 0.9 }}
                             animate={{ opacity: 1, scale: 1 }}
                             transition={{ duration: 0.6, delay: 0.2 }}
-                            className="md:w-1/2 ml-10"
+                            className="w-full md:w-1/2 mt-8 md:mt-0 md:ml-10"
                         >
                             <div className="relative">
                                 <div className="absolute -inset-1 bg-gradient-to-r from-emerald-500 to-teal-500 rounded-lg blur-lg opacity-30"></div>
@@ -187,7 +187,7 @@ export const LandingPage = ({ onNavigateToDashboard }: LandingPageProps) => {
                                         autoplay
                                         loop
                                         src="/animationLandingPage.json"
-                                        className="w-full h-auto"
+                                        className="w-full h-auto max-h-[400px] md:max-h-full"
                                     />
                                 </div>
                             </div>
@@ -197,7 +197,7 @@ export const LandingPage = ({ onNavigateToDashboard }: LandingPageProps) => {
             </section>
 
             {/* Stats Section */}
-            <section className="py-16 bg-gray-50 p-8">
+            <section className="py-12 md:py-16 bg-gray-50 px-4 md:px-8">
                 <div className="container mx-auto px-4">
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
                         <motion.div
@@ -207,8 +207,8 @@ export const LandingPage = ({ onNavigateToDashboard }: LandingPageProps) => {
                             transition={{ duration: 0.5 }}
                             className="text-center"
                         >
-                            <p className="text-4xl font-bold text-emerald-500 mb-2">+500K</p>
-                            <p className="text-gray-600">Usuários Ativos</p>
+                            <p className="text-3xl md:text-4xl font-bold text-emerald-500 mb-2">+500K</p>
+                            <p className="text-sm md:text-base text-gray-600">Usuários Ativos</p>
                         </motion.div>
                         <motion.div
                             initial={{ opacity: 0, y: 20 }}
@@ -217,8 +217,8 @@ export const LandingPage = ({ onNavigateToDashboard }: LandingPageProps) => {
                             transition={{ duration: 0.5, delay: 0.1 }}
                             className="text-center"
                         >
-                            <p className="text-4xl font-bold text-emerald-500 mb-2">R$10B+</p>
-                            <p className="text-gray-600">Ativos Gerenciados</p>
+                            <p className="text-3xl md:text-4xl font-bold text-emerald-500 mb-2">R$10B+</p>
+                            <p className="text-sm md:text-base text-gray-600">Ativos Gerenciados</p>
                         </motion.div>
                         <motion.div
                             initial={{ opacity: 0, y: 20 }}
@@ -227,8 +227,8 @@ export const LandingPage = ({ onNavigateToDashboard }: LandingPageProps) => {
                             transition={{ duration: 0.5, delay: 0.2 }}
                             className="text-center"
                         >
-                            <p className="text-4xl font-bold text-emerald-500 mb-2">98%</p>
-                            <p className="text-gray-600">Satisfação</p>
+                            <p className="text-3xl md:text-4xl font-bold text-emerald-500 mb-2">98%</p>
+                            <p className="text-sm md:text-base text-gray-600">Satisfação</p>
                         </motion.div>
                         <motion.div
                             initial={{ opacity: 0, y: 20 }}
@@ -237,30 +237,30 @@ export const LandingPage = ({ onNavigateToDashboard }: LandingPageProps) => {
                             transition={{ duration: 0.5, delay: 0.3 }}
                             className="text-center"
                         >
-                            <p className="text-4xl font-bold text-emerald-500 mb-2">24/7</p>
-                            <p className="text-gray-600">Suporte</p>
+                            <p className="text-3xl md:text-4xl font-bold text-emerald-500 mb-2">24/7</p>
+                            <p className="text-sm md:text-base text-gray-600">Suporte</p>
                         </motion.div>
                     </div>
                 </div>
             </section>
 
             {/* Features Section */}
-            <section id="features" className="py-20 md:py-28 p-8">
+            <section id="features" className="py-16 md:py-28 px-4 md:px-8">
                 <div className="container mx-auto px-4">
                     <motion.div
                         initial={{ opacity: 0, y: 20 }}
                         whileInView={{ opacity: 1, y: 0 }}
                         viewport={{ once: true }}
                         transition={{ duration: 0.5 }}
-                        className="text-center mb-16"
+                        className="text-center mb-12 md:mb-16"
                     >
-                        <h2 className="text-2xl md:text-2xl font-bold text-gray-900 mb-4">Recursos Poderosos</h2>
-                        <p className="text-xl text-gray-600 max-w-2xl mx-auto">
+                        <h2 className="text-2xl md:text-3xl font-bold text-gray-900 mb-4">Recursos Poderosos</h2>
+                        <p className="text-lg md:text-xl text-gray-600 max-w-2xl mx-auto">
                             Ferramentas avançadas para impulsionar seu sucesso financeiro
                         </p>
                     </motion.div>
 
-                    <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
+                    <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 md:gap-8">
                         {features.map((feature, index) => (
                             <motion.div
                                 key={index}
@@ -275,7 +275,7 @@ export const LandingPage = ({ onNavigateToDashboard }: LandingPageProps) => {
                                         <CardTitle className="dark:text-gray-600">{feature.title}</CardTitle>
                                     </CardHeader>
                                     <CardContent>
-                                        <p className="text-gray-600">{feature.description}</p>
+                                        <p className="text-gray-600 text-sm md:text-base">{feature.description}</p>
                                     </CardContent>
                                 </Card>
                             </motion.div>
@@ -284,15 +284,15 @@ export const LandingPage = ({ onNavigateToDashboard }: LandingPageProps) => {
                 </div>
             </section>
 
-            {/* Hero Section */}
-            <section className="pt-24 pb-20 md:pb-28 p-8">
+            {/* Sharing Section */}
+            <section className="py-16 md:py-28 px-4 md:px-8 bg-white">
                 <div className="container mx-auto px-4">
-                    <div className="flex flex-col md:flex-row items-center">
+                    <div className="flex flex-col-reverse md:flex-row items-center">
                         <motion.div
                             initial={{ opacity: 0, scale: 0.9 }}
                             animate={{ opacity: 1, scale: 1 }}
                             transition={{ duration: 0.6, delay: 0.2 }}
-                            className="md:w-1/2 mb-10 md:mb-0"
+                            className="w-full md:w-1/2 mt-10 md:mt-0"
                         >
                             <div className="relative">
                                 <div className="absolute -inset-1 bg-gradient-to-r from-emerald-500 to-teal-500 rounded-lg blur-lg opacity-30"></div>
@@ -301,7 +301,7 @@ export const LandingPage = ({ onNavigateToDashboard }: LandingPageProps) => {
                                         autoplay
                                         loop
                                         src="/sharedAnimationLandingPage.json"
-                                        className="w-full h-96"
+                                        className="w-full h-auto max-h-[300px] md:max-h-[400px]"
                                     />
                                 </div>
                             </div>
@@ -310,22 +310,20 @@ export const LandingPage = ({ onNavigateToDashboard }: LandingPageProps) => {
                             initial={{ opacity: 0, y: 20 }}
                             animate={{ opacity: 1, y: 0 }}
                             transition={{ duration: 0.6 }}
-                            className="md:w-1/2 ml-10"
+                            className="w-full md:w-1/2 md:ml-10 text-center md:text-left"
                         >
-                            <h1 className="text-3xl md:text-3xl lg:text-6xl font-bold text-gray-900 leading-tight mb-6">
+                            <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold text-gray-900 leading-tight mb-6">
                                 <span className="text-emerald-500">Compartilhe</span> suas finanças com seus amigos e familiares
                             </h1>
-                            <p className="text-xl text-gray-600 mb-8 max-w-lg">
+                            <p className="text-lg md:text-xl text-gray-600 mb-8 max-w-lg mx-auto md:mx-0">
                                 A partir do plano Básico Mensal você pode compartilhar suas finanças.
                             </p>
-                            <div className="flex flex-col sm:flex-row gap-4 ">
+                            <div className="flex flex-col sm:flex-row gap-4 justify-center md:justify-start">
                                 <RegisterForm onNavigateToDashboard={onNavigateToDashboard} dialogTrigger={
-                                    <>
-                                        <Button variant="outline" className="cursor-pointer dark:hover:text-emerald-500 dark:transition-colors dark:bg-white dark:border-gray-300 dark:hover:bg-gray-100">
-                                            Começar a compartilhar
-                                            <ChevronRight className="ml-2 h-4 w-4" />
-                                        </Button>
-                                    </>
+                                    <Button variant="outline" className="w-full sm:w-auto cursor-pointer dark:hover:text-emerald-500 dark:transition-colors dark:bg-white dark:border-gray-300 dark:hover:bg-gray-100">
+                                        Começar a compartilhar
+                                        <ChevronRight className="ml-2 h-4 w-4" />
+                                    </Button>
                                 } />
                             </div>
                         </motion.div>
@@ -334,23 +332,24 @@ export const LandingPage = ({ onNavigateToDashboard }: LandingPageProps) => {
             </section>
 
             {/* Testimonials Section */}
-            <section id="testimonials" className="py-20 bg-gray-50 p-8">
+            <section id="testimonials" className="py-16 md:py-20 bg-gray-50 px-4 md:px-8">
                 <div className="container mx-auto px-4">
                     <motion.div
                         initial={{ opacity: 0, y: 20 }}
                         whileInView={{ opacity: 1, y: 0 }}
                         viewport={{ once: true }}
                         transition={{ duration: 0.5 }}
-                        className="text-center mb-16"
+                        className="text-center mb-12 md:mb-16"
                     >
                         <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">O Que Nossos Clientes Dizem</h2>
-                        <p className="text-xl text-gray-600 max-w-2xl mx-auto">
+                        <p className="text-lg md:text-xl text-gray-600 max-w-2xl mx-auto">
                             Histórias de sucesso de quem transformou suas finanças com nossa plataforma
                         </p>
                     </motion.div>
 
                     <div className="max-w-3xl mx-auto">
-                        <div className="relative h-64 md:h-48">
+                        {/* Aumentei a altura no mobile para evitar cortes no texto */}
+                        <div className="relative h-80 sm:h-64 md:h-52">
                             {testimonials.map((testimonial, index) => (
                                 <AnimatePresence key={index} initial={false}>
                                     {activeTestimonial === index && (
@@ -361,9 +360,9 @@ export const LandingPage = ({ onNavigateToDashboard }: LandingPageProps) => {
                                             transition={{ duration: 0.5 }}
                                             className="absolute inset-0"
                                         >
-                                            <Card className="h-full border-none shadow-lg dark:bg-white">
+                                            <Card className="h-full border-none shadow-lg dark:bg-white flex flex-col justify-center">
                                                 <CardContent className="pt-6">
-                                                    <p className="text-gray-600 italic mb-6">"{testimonial.content}"</p>
+                                                    <p className="text-gray-600 italic mb-6 text-sm md:text-base">"{testimonial.content}"</p>
                                                     <div className="flex items-center">
                                                         <Avatar className="h-10 w-10 mr-4">
                                                             <AvatarImage src={testimonial.avatar || "/placeholder.svg"} alt={testimonial.name} />
@@ -381,7 +380,7 @@ export const LandingPage = ({ onNavigateToDashboard }: LandingPageProps) => {
                                 </AnimatePresence>
                             ))}
                         </div>
-                        <div className="flex justify-center mt-8">
+                        <div className="flex justify-center mt-6">
                             {testimonials.map((_, index) => (
                                 <button
                                     key={index}
@@ -398,22 +397,22 @@ export const LandingPage = ({ onNavigateToDashboard }: LandingPageProps) => {
             </section>
 
             {/* Pricing Section */}
-            <section id="pricing" className="py-20 md:py-28 p-8">
+            <section id="pricing" className="py-16 md:py-28 px-4 md:px-8">
                 <div className="container mx-auto px-4">
                     <motion.div
                         initial={{ opacity: 0, y: 20 }}
                         whileInView={{ opacity: 1, y: 0 }}
                         viewport={{ once: true }}
                         transition={{ duration: 0.5 }}
-                        className="text-center mb-16"
+                        className="text-center mb-12 md:mb-16"
                     >
                         <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">Planos Simples e Transparentes</h2>
-                        <p className="text-xl text-gray-600 max-w-2xl mx-auto">
+                        <p className="text-lg md:text-xl text-gray-600 max-w-2xl mx-auto">
                             Escolha o plano ideal para suas necessidades financeiras
                         </p>
                     </motion.div>
 
-                    <div className="grid md:grid-cols-3 gap-8 max-w-5xl mx-auto h-full">
+                    <div className="grid md:grid-cols-3 gap-8 max-w-5xl mx-auto">
                         <motion.div
                             initial={{ opacity: 0, y: 20 }}
                             whileInView={{ opacity: 1, y: 0 }}
@@ -430,34 +429,25 @@ export const LandingPage = ({ onNavigateToDashboard }: LandingPageProps) => {
                                     </div>
                                 </CardHeader>
                                 <CardContent className="h-full w-full">
-                                    <ul className="space-y-2">
+                                    <ul className="space-y-3">
                                         <li className="flex items-center">
-                                            <ChevronRight className="h-4 w-4 text-white mr-2" />
+                                            <ChevronRight className="h-4 w-4 text-white mr-2 shrink-0" />
                                             <span>Análises básicas de mercado</span>
                                         </li>
                                         <li className="flex items-center">
-                                            <ChevronRight className="h-4 w-4 text-white mr-2" />
+                                            <ChevronRight className="h-4 w-4 text-white mr-2 shrink-0" />
                                             <span>Gestão de até 5 investimentos</span>
                                         </li>
                                         <li className="flex items-center">
-                                            <ChevronRight className="h-4 w-4 text-white mr-2" />
+                                            <ChevronRight className="h-4 w-4 text-white mr-2 shrink-0" />
                                             <span>Relatórios mensais</span>
                                         </li>
                                         <li className="flex items-center">
-                                            <ChevronRight className="h-4 w-4 text-white mr-2" />
+                                            <ChevronRight className="h-4 w-4 text-white mr-2 shrink-0" />
                                             <span>Suporte por email</span>
                                         </li>
                                     </ul>
                                 </CardContent>
-                                {/*<CardFooter className="w-full flex items-center justify-center">*/}
-                                {/*    <RegisterForm dialogTrigger={*/}
-                                {/*        <>*/}
-                                {/*            <Button variant="outline" className="w-full text-white cursor-pointer">*/}
-                                {/*                Começar Grátis*/}
-                                {/*            </Button>*/}
-                                {/*        </>*/}
-                                {/*    } />*/}
-                                {/*</CardFooter>*/}
                             </Card>
                         </motion.div>
 
@@ -477,34 +467,25 @@ export const LandingPage = ({ onNavigateToDashboard }: LandingPageProps) => {
                                     </div>
                                 </CardHeader>
                                 <CardContent className="h-full w-full">
-                                    <ul className="space-y-2">
+                                    <ul className="space-y-3">
                                         <li className="flex items-center">
-                                            <ChevronRight className="h-4 w-4 text-white mr-2" />
+                                            <ChevronRight className="h-4 w-4 text-white mr-2 shrink-0" />
                                             <span>Análises básicas de mercado</span>
                                         </li>
                                         <li className="flex items-center">
-                                            <ChevronRight className="h-4 w-4 text-white mr-2" />
+                                            <ChevronRight className="h-4 w-4 text-white mr-2 shrink-0" />
                                             <span>Gestão de até 5 investimentos</span>
                                         </li>
                                         <li className="flex items-center">
-                                            <ChevronRight className="h-4 w-4 text-white mr-2" />
+                                            <ChevronRight className="h-4 w-4 text-white mr-2 shrink-0" />
                                             <span>Relatórios mensais</span>
                                         </li>
                                         <li className="flex items-center">
-                                            <ChevronRight className="h-4 w-4 text-white mr-2" />
+                                            <ChevronRight className="h-4 w-4 text-white mr-2 shrink-0" />
                                             <span>Suporte por email</span>
                                         </li>
                                     </ul>
                                 </CardContent>
-                                {/*<CardFooter className="w-full flex items-center justify-center">*/}
-                                {/*    <RegisterForm dialogTrigger={*/}
-                                {/*        <>*/}
-                                {/*            <Button variant="outline" className="w-full text-white cursor-pointer">*/}
-                                {/*                Começar Grátis*/}
-                                {/*            </Button>*/}
-                                {/*        </>*/}
-                                {/*    } />*/}
-                                {/*</CardFooter>*/}
                             </Card>
                         </motion.div>
 
@@ -524,42 +505,32 @@ export const LandingPage = ({ onNavigateToDashboard }: LandingPageProps) => {
                                     </div>
                                 </CardHeader>
                                 <CardContent className="h-full w-full">
-                                    <ul className="space-y-2">
+                                    <ul className="space-y-3">
                                         <li className="flex items-center">
-                                            <ChevronRight className="h-4 w-4 text-white mr-2" />
+                                            <ChevronRight className="h-4 w-4 text-white mr-2 shrink-0" />
                                             <span>Análises básicas de mercado</span>
                                         </li>
                                         <li className="flex items-center">
-                                            <ChevronRight className="h-4 w-4 text-white mr-2" />
+                                            <ChevronRight className="h-4 w-4 text-white mr-2 shrink-0" />
                                             <span>Gestão de até 5 investimentos</span>
                                         </li>
                                         <li className="flex items-center">
-                                            <ChevronRight className="h-4 w-4 text-white mr-2" />
+                                            <ChevronRight className="h-4 w-4 text-white mr-2 shrink-0" />
                                             <span>Relatórios mensais</span>
                                         </li>
                                         <li className="flex items-center">
-                                            <ChevronRight className="h-4 w-4 text-white mr-2" />
+                                            <ChevronRight className="h-4 w-4 text-white mr-2 shrink-0" />
                                             <span>Suporte por email</span>
                                         </li>
                                     </ul>
                                 </CardContent>
-                                {/*<CardFooter className="w-full flex items-center justify-center">*/}
-                                {/*    <RegisterForm dialogTrigger={*/}
-                                {/*        <>*/}
-                                {/*            <Button variant="outline" className="w-full text-white cursor-pointer">*/}
-                                {/*                Começar Grátis*/}
-                                {/*            </Button>*/}
-                                {/*        </>*/}
-                                {/*    } />*/}
-                                {/*</CardFooter>*/}
                             </Card>
                         </motion.div>
                     </div>
                 </div>
             </section>
 
-            <section className="py-20 p-8">
-
+            <section className="py-20 px-4 md:px-8">
                 <motion.div
                     initial={{ opacity: 0, y: 20 }}
                     whileInView={{ opacity: 1, y: 0 }}
@@ -568,7 +539,7 @@ export const LandingPage = ({ onNavigateToDashboard }: LandingPageProps) => {
                 >
                     <div className="text-center mb-16">
                         <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">Pronto para começar?</h2>
-                        <p className="text-xl text-gray-600 max-w-2xl mx-auto">
+                        <p className="text-lg md:text-xl text-gray-600 max-w-2xl mx-auto">
                             Junte-se a milhares de usuários satisfeitos e comece a transformar suas finanças hoje mesmo!
                         </p>
                     </div>
@@ -576,7 +547,7 @@ export const LandingPage = ({ onNavigateToDashboard }: LandingPageProps) => {
                     <div className="flex justify-center">
                         <RegisterForm onNavigateToDashboard={onNavigateToDashboard} dialogTrigger={
                             <>
-                                <Button variant="outline" className="cursor-pointer dark:hover:text-emerald-500 dark:transition-colors dark:bg-white dark:border-gray-300 dark:hover:bg-gray-100">
+                                <Button variant="outline" className="w-full sm:w-auto cursor-pointer dark:hover:text-emerald-500 dark:transition-colors dark:bg-white dark:border-gray-300 dark:hover:bg-gray-100">
                                     Começar Agora
                                     <ChevronRight className="ml-2 h-4 w-4" />
                                 </Button>
@@ -584,12 +555,11 @@ export const LandingPage = ({ onNavigateToDashboard }: LandingPageProps) => {
                         } />
                     </div>
                 </motion.div>
-
             </section>
 
             {/* Footer */}
-            <footer className="bg-gray-900 text-gray-300 py-12">
-                <div className="container mx-auto px-12 flex flex-col justify-between">
+            <footer className="bg-gray-900 text-gray-300 py-12 px-6 md:px-12">
+                <div className="container mx-auto flex flex-col justify-between">
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-8 mb-8">
                         <div>
                             <h3 className="text-white font-semibold mb-4">Produto</h3>
@@ -694,10 +664,10 @@ export const LandingPage = ({ onNavigateToDashboard }: LandingPageProps) => {
                     </div>
                     <div className="pt-8 mt-8 border-t border-gray-800 flex flex-col md:flex-row justify-between items-center">
                         <div className="flex items-center mb-4 md:mb-0">
-                            <div className="h-8 w-8 rounded-md mr-2"><img src="/cashz.svg"/></div>
+                            <div className="h-8 w-8 rounded-md mr-2"><img src="/cashz.svg" alt="CashZ"/></div>
                             <span className="text-xl font-bold text-white">CashZ</span>
                         </div>
-                        <p className="text-sm">© {new Date().getFullYear()} CashZ. Todos os direitos reservados.</p>
+                        <p className="text-sm text-center md:text-left">© {new Date().getFullYear()} CashZ. Todos os direitos reservados.</p>
                     </div>
                 </div>
             </footer>

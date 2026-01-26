@@ -122,18 +122,19 @@ export const AddFinanceForm = () => {
 
     return (
         <Dialog open={isOpen} onOpenChange={(open) => !open && setActiveDialog(null)}>
-            <DialogContent>
+            <DialogContent className="max-w-[95vw] sm:max-w-[550px] max-h-[95vh] overflow-y-auto rounded-lg">
                 <DialogHeader>
                     <DialogTitle>Adicionar Transação</DialogTitle>
                 </DialogHeader>
 
-                <div className="space-y-4">
-                    <div>
+                <div className="space-y-4 py-2">
+                    <div className="grid w-full items-center gap-1.5">
                         <Label>Descrição</Label>
                         <Input value={description} onChange={(e) => setDescription(e.target.value)} required />
                     </div>
-                    <div className="flex gap-4 justify-between">
-                        <div className="flex-1 w-full">
+
+                    <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
+                        <div className="sm:col-span-2 grid gap-1.5">
                             <Label>Valor</Label>
                             <NumericFormat
                                 customInput={Input}
@@ -152,11 +153,11 @@ export const AddFinanceForm = () => {
                             />
                         </div>
 
-                        <div>
+                        <div className="grid gap-1.5">
                             <Label>Mês</Label>
                             <Select value={month} onValueChange={(value) => setMonth(value)} required>
-                                <SelectTrigger className="w-28">
-                                    <SelectValue placeholder="Selecionar Mês" />
+                                <SelectTrigger className="w-full">
+                                    <SelectValue placeholder="Mês" />
                                 </SelectTrigger>
                                 <SelectContent>
                                     {IMes.map((mes, index) => (
@@ -167,11 +168,11 @@ export const AddFinanceForm = () => {
                                 </SelectContent>
                             </Select>
                         </div>
-                        <div>
+                        <div className="grid gap-1.5">
                             <Label>Ano</Label>
                             <Select value={year.toString()} onValueChange={(value) => setYear(Number(value))} required>
-                                <SelectTrigger className="w-20">
-                                    <SelectValue placeholder="Selecionar Ano" />
+                                <SelectTrigger className="w-full">
+                                    <SelectValue placeholder="Ano" />
                                 </SelectTrigger>
                                 <SelectContent>
                                     {generateYears(new Date().getFullYear() - 5, new Date().getFullYear() + 5).map((year) => (
@@ -184,11 +185,11 @@ export const AddFinanceForm = () => {
                         </div>
                     </div>
 
-                    <div className="flex gap-4 justify-between">
-                        <div className="flex-1 w-full">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div className="grid gap-1.5">
                             <Label>Categoria</Label>
                             <Select value={categoryId} onValueChange={setCategoryId} required>
-                                <SelectTrigger>
+                                <SelectTrigger className="w-full">
                                     <SelectValue placeholder="Selecione uma categoria" />
                                 </SelectTrigger>
                                 <SelectContent>
@@ -201,11 +202,10 @@ export const AddFinanceForm = () => {
                             </Select>
                         </div>
 
-
-                        <div className="flex-1 w-full">
+                        <div className="grid gap-1.5">
                             <Label>Tipo</Label>
                             <Select value={type} onValueChange={(value) => setType(value as any)} required>
-                                <SelectTrigger>
+                                <SelectTrigger className="w-full">
                                     <SelectValue placeholder="Tipo" />
                                 </SelectTrigger>
                                 <SelectContent>
@@ -216,17 +216,16 @@ export const AddFinanceForm = () => {
                         </div>
                     </div>
 
-                    <div className="flex gap-4">
-                        <div className="flex-1">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div className="grid gap-1.5">
                             <Label>Recorrência</Label>
                             <div className="flex items-center gap-2">
-
                                 <Select
                                     value={recurrence}
                                     onValueChange={(value) => setRecurrence(value as any)}
                                     required
                                 >
-                                    <SelectTrigger>
+                                    <SelectTrigger className="w-full">
                                         <SelectValue placeholder="Recorrência" />
                                     </SelectTrigger>
                                     <SelectContent>
@@ -236,7 +235,7 @@ export const AddFinanceForm = () => {
                                     </SelectContent>
                                 </Select>
                                 <Tooltip>
-                                    <TooltipTrigger className="h-full">
+                                    <TooltipTrigger type="button" className="h-full shrink-0">
                                         <HelpCircle className="h-5 w-5 text-gray-500 cursor-pointer" />
                                     </TooltipTrigger>
                                     <TooltipContent className="bg-gray-200 text-black">
@@ -246,10 +245,9 @@ export const AddFinanceForm = () => {
                                     </TooltipContent>
                                 </Tooltip>
                             </div>
-
                         </div>
                         {recurrence === "PARCELADO" && (
-                            <div className="flex-1 items-center gap-2 justify-center h-full">
+                            <div className="grid gap-1.5 animate-in fade-in">
                                 <Label>Parcelas</Label>
                                 <div className="flex items-center gap-2">
                                     <Input
@@ -259,7 +257,7 @@ export const AddFinanceForm = () => {
                                         required
                                     />
                                     <Tooltip>
-                                        <TooltipTrigger className="h-full">
+                                        <TooltipTrigger type="button" className="h-full shrink-0">
                                             <HelpCircle className="h-5 w-5 text-gray-500 cursor-pointer" />
                                         </TooltipTrigger>
                                         <TooltipContent className="bg-gray-200 text-black">
@@ -267,13 +265,12 @@ export const AddFinanceForm = () => {
                                         </TooltipContent>
                                     </Tooltip>
                                 </div>
-
                             </div>
                         )}
                     </div>
 
                     <div className="flex justify-end pt-4">
-                        <Button onClick={handleSubmit}>Salvar Transação</Button>
+                        <Button className="w-full sm:w-auto" onClick={handleSubmit}>Salvar Transação</Button>
                     </div>
                 </div>
             </DialogContent>

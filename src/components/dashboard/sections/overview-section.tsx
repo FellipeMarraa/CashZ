@@ -17,7 +17,6 @@ export const OverviewSection = () => {
     const [selectedYear, setSelectedYear] = useState(currentDate.getFullYear());
     const [selectedView, setSelectedView] = useState<'month' | 'year'>('month');
 
-
     const {
         data: monthlyTransactions,
         isLoading: isLoadingMonthly
@@ -47,83 +46,89 @@ export const OverviewSection = () => {
                 className="space-y-4"
                 onValueChange={(value) => handleViewChange(value as 'month' | 'year')}
             >
-                <div className="flex items-center justify-between">
-                    <TabsList>
-                        <TabsTrigger value="month">
+                {/* FILTROS RESPONSIVOS:
+                    - Empilha em coluna no mobile (flex-col)
+                    - Linha no desktop (md:flex-row)
+                */}
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                    <TabsList className="w-full md:w-auto">
+                        <TabsTrigger value="month" className="flex-1 md:flex-none">
                             <Tooltip>
-                                <TooltipTrigger className="h-full">
-                                    Mês
-                                </TooltipTrigger>
+                                <TooltipTrigger className="h-full w-full">Mês</TooltipTrigger>
                                 <TooltipContent className="bg-gray-200 text-black">
                                     Visualizar dados por mês
                                 </TooltipContent>
                             </Tooltip>
                         </TabsTrigger>
-                        <TabsTrigger value="year">
+                        <TabsTrigger value="year" className="flex-1 md:flex-none">
                             <Tooltip>
-                                <TooltipTrigger className="h-full">
-                                    Ano
-                                </TooltipTrigger>
+                                <TooltipTrigger className="h-full w-full">Ano</TooltipTrigger>
                                 <TooltipContent className="bg-gray-200 text-black">
                                     Visualizar dados por ano
                                 </TooltipContent>
                             </Tooltip>
                         </TabsTrigger>
                     </TabsList>
-                    <div className="flex gap-2">
+
+                    {/* SELETORES RESPONSIVOS:
+                        - Ocupam largura total no mobile (w-full)
+                        - Ficam um ao lado do outro a partir de telas pequenas (sm:flex-row)
+                    */}
+                    <div className="flex flex-col sm:flex-row gap-2 w-full md:w-auto">
                         {selectedView === 'month' && (
+                            <div className="w-full md:w-[180px]">
+                                <Tooltip>
+                                    <TooltipTrigger className="w-full">
+                                        <Select
+                                            value={selectedMonth}
+                                            onValueChange={setSelectedMonth}
+                                        >
+                                            <SelectTrigger className="w-full">
+                                                <SelectValue placeholder="Selecione o mês" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                {IMes.map((mes, index) => (
+                                                    <SelectItem key={index} value={mes}>
+                                                        {mes}
+                                                    </SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
+                                    </TooltipTrigger>
+                                    <TooltipContent className="bg-gray-200 text-black">
+                                        Selecionar mês de visualização
+                                    </TooltipContent>
+                                </Tooltip>
+                            </div>
+                        )}
+                        <div className="w-full md:w-[120px]">
                             <Tooltip>
-                                <TooltipTrigger className="h-full">
+                                <TooltipTrigger className="w-full">
                                     <Select
-                                        value={selectedMonth}
-                                        onValueChange={setSelectedMonth}
+                                        value={selectedYear.toString()}
+                                        onValueChange={(value) => setSelectedYear(Number(value))}
                                     >
-                                        <SelectTrigger className="w-[180px]">
-                                            <SelectValue placeholder="Selecione o mês" />
+                                        <SelectTrigger className="w-full">
+                                            <SelectValue placeholder="Ano" />
                                         </SelectTrigger>
                                         <SelectContent>
-                                            {IMes.map((mes, index) => (
-                                                <SelectItem key={index} value={mes}>
-                                                    {mes}
+                                            {years.map((year) => (
+                                                <SelectItem key={year} value={year.toString()}>
+                                                    {year}
                                                 </SelectItem>
                                             ))}
                                         </SelectContent>
                                     </Select>
                                 </TooltipTrigger>
                                 <TooltipContent className="bg-gray-200 text-black">
-                                    Selecionar mês de visualização
+                                    Selecionar ano de visualização
                                 </TooltipContent>
                             </Tooltip>
-
-                        )}
-                        <Tooltip>
-                            <TooltipTrigger className="h-full">
-                                <Select
-                                    value={selectedYear.toString()}
-                                    onValueChange={(value) => setSelectedYear(Number(value))}
-                                >
-                                    <SelectTrigger className="w-[120px]">
-                                        <SelectValue placeholder="Ano" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        {years.map((year) => (
-                                            <SelectItem key={year} value={year.toString()}>
-                                                {year}
-                                            </SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
-                            </TooltipTrigger>
-                            <TooltipContent className="bg-gray-200 text-black">
-                                Selecionar ano de visualização
-                            </TooltipContent>
-                        </Tooltip>
-
+                        </div>
                     </div>
                 </div>
 
                 <TabsContent value="month" className="space-y-4">
-                    {/* Aqui passamos as transações, e o StatsGrid filtra as pendentes */}
                     <StatsGrid transactions={transactions} />
                     <ChartSection
                         transactions={transactions}
@@ -154,7 +159,6 @@ export const OverviewSection = () => {
                         </CardDescription>
                     </CardHeader>
                     <CardContent>
-                        {/* A lista de recentes continua mostrando TUDO (pago e não pago) para histórico */}
                         <RecentTransactionsList
                             transactions={transactions}
                             isLoading={isLoading}
@@ -176,17 +180,13 @@ export const OverviewSection = () => {
                     </CardContent>
                 </Card>
             </div>
-
         </div>
     );
 };
 
-// --- COMPONENTE ALTERADO ---
 const StatsGrid = ({ transactions }: { transactions?: Transaction[] }) => {
     if (!transactions) return null;
 
-    // REGRA APLICADA: Filtra apenas o que é PENDENTE.
-    // Se está PAGA ou RECEBIDA, não entra na conta do balanço deste painel.
     const pendingTransactions = transactions.filter(t => t.status === 'PENDENTE');
 
     const income = pendingTransactions
@@ -197,52 +197,42 @@ const StatsGrid = ({ transactions }: { transactions?: Transaction[] }) => {
         .filter(t => t.type === 'DESPESA')
         .reduce((acc, curr) => acc + curr.amount, 0);
 
-    // O balanço agora reflete: (Receita Pendente) - (Despesa Pendente)
     const balance = income - expenses;
-
-    // Para o card de "Despesas Pendentes", usamos o valor calculado acima
-    // (que já é somente pendente)
     const expensesRemain = expenses;
 
     return (
         <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
             <StatCard
-                title="Balanço Previsto" // Ajustei o título para refletir melhor que é uma previsão do pendente
+                title="Balanço Previsto"
                 value={formatTransactionAmount(balance)}
                 description="Saldo das pendências"
-                icon={<Wallet className="h-4 w-4 text-muted-foreground text-blue-400" />}
+                icon={<Wallet className="h-4 w-4 text-blue-400" />}
                 trend={balance >= 0 ? "up" : "down"}
             />
             <StatCard
                 title="A Receber"
                 value={formatTransactionAmount(income)}
                 description="Receitas pendentes"
-                icon={<ArrowUpRight className="h-4 w-4 text-muted-foreground text-green-400" />}
+                icon={<ArrowUpRight className="h-4 w-4 text-green-400" />}
                 trend="up"
             />
             <StatCard
                 title="A Pagar"
                 value={formatTransactionAmount(expenses)}
                 description="Despesas pendentes"
-                icon={<ArrowDownRight className="h-4 w-4 text-muted-foreground text-red-500" />}
+                icon={<ArrowDownRight className="h-4 w-4 text-red-500" />}
                 trend="down"
             />
-            {/* Nota: O card "Despesas Pendentes" agora exibe o mesmo valor que "A Pagar".
-               Você pode querer manter para consistência visual ou remover se achar redundante.
-               Mantive para não quebrar seu layout.
-            */}
             <StatCard
                 title="Total Pendente"
                 value={formatTransactionAmount(expensesRemain)}
                 description="Saídas futuras"
-                icon={<DollarSign className="h-4 w-4 text-muted-foreground text-yellow-500" />}
+                icon={<DollarSign className="h-4 w-4 text-yellow-500" />}
                 trend="warning"
             />
         </div>
     );
 };
-
-// --- RESTANTE DOS COMPONENTES (Mantidos iguais, apenas ajustando imports se necessário) ---
 
 const ChartSection = ({
                           transactions,
@@ -280,35 +270,31 @@ const ChartSection = ({
 };
 
 const RecentTransactionsList = ({ transactions, isLoading }: { transactions?: Transaction[], isLoading: boolean }) => {
-    if (isLoading) return <div>Carregando...</div>;
-    if (!transactions?.length) return <div>Nenhuma transação encontrada.</div>;
+    if (isLoading) return <div className="py-4 text-center text-sm text-muted-foreground">Carregando...</div>;
+    if (!transactions?.length) return <div className="py-4 text-center text-sm text-muted-foreground">Nenhuma transação encontrada.</div>;
 
-    // A lista de recentes continua mostrando TUDO para histórico
     return (
         <div className="space-y-4">
             {transactions.slice(0, 4).map((transaction) => (
                 <div key={transaction.id} className="flex items-center justify-between space-x-4">
-                    <div className="flex items-center space-x-4">
-                        <div className={`rounded-full p-2 bg-muted ${transaction.status === 'PAGA' || transaction.status === 'RECEBIDA' ? 'opacity-50' : ''}`}>
+                    <div className="flex items-center space-x-3 overflow-hidden">
+                        <div className={`rounded-full p-2 bg-muted shrink-0 ${transaction.status === 'PAGA' || transaction.status === 'RECEBIDA' ? 'opacity-50' : ''}`}>
                             <CreditCard className="h-4 w-4" />
                         </div>
-                        <div>
-                            <p className="text-sm font-medium leading-none">{transaction.description}</p>
-                            <p className="text-sm text-muted-foreground">
-                                {transaction.date ? new Date(transaction.date).toLocaleDateString() : new Date().toLocaleDateString()}
+                        <div className="min-w-0">
+                            <p className="text-sm font-medium leading-none truncate">{transaction.description}</p>
+                            <p className="text-xs text-muted-foreground mt-1">
                                 { (transaction.status === 'PAGA' || transaction.status === 'RECEBIDA') &&
-                                    <span className="ml-2 text-xs text-green-600 font-bold">(Pago)</span>
+                                    <span className="text-green-600 font-bold mr-1">Pago</span>
                                 }
+                                {transaction.category.name}
                             </p>
                         </div>
                     </div>
-                    <div className="flex items-center space-x-4">
-                        <div className="text-right">
-                            <p className={`text-sm font-medium leading-none ${transaction.type === 'RECEITA' ? 'text-success' : ''}`}>
-                                {formatTransactionAmount(transaction.amount)}
-                            </p>
-                            <p className="text-xs text-muted-foreground">{transaction.category.name}</p>
-                        </div>
+                    <div className="text-right shrink-0">
+                        <p className={`text-sm font-medium ${transaction.type === 'RECEITA' ? 'text-green-600' : 'text-red-600'}`}>
+                            {transaction.type === 'RECEITA' ? '+' : '-'}{formatTransactionAmount(transaction.amount)}
+                        </p>
                     </div>
                 </div>
             ))}
@@ -317,12 +303,8 @@ const RecentTransactionsList = ({ transactions, isLoading }: { transactions?: Tr
 };
 
 const BudgetProgress = ({ transactions }: { transactions?: Transaction[] }) => {
-    if (!transactions?.length) return null;
+    if (!transactions?.length) return <div className="py-4 text-center text-sm text-muted-foreground">Sem dados de orçamento.</div>;
 
-    // Nota: O Budget geralmente contabiliza o GASTO total (pago ou não).
-    // Se quiseres que o Budget também ignore o que já foi pago (mostrando "quanto ainda falta pagar do orçamento"),
-    // adiciona .filter(t => t.status === 'PENDENTE') aqui também.
-    // Por padrão de orçamentos, mantivemos o total.
     const categoryExpenses = transactions
         .filter(t => t.type === 'DESPESA')
         .reduce((acc, curr) => {
@@ -344,14 +326,14 @@ const BudgetProgress = ({ transactions }: { transactions?: Transaction[] }) => {
         <div className="space-y-6">
             {categories.map((category) => (
                 <div key={category.name} className="space-y-2">
-                    <div className="flex items-center justify-between">
-                        <div className="flex items-center space-x-2">
-                            <PiggyBank className="h-4 w-4 text-muted-foreground" />
-                            <span className="text-sm font-medium">{category.name}</span>
+                    <div className="flex items-center justify-between gap-2">
+                        <div className="flex items-center space-x-2 overflow-hidden">
+                            <PiggyBank className="h-4 w-4 text-muted-foreground shrink-0" />
+                            <span className="text-sm font-medium truncate">{category.name}</span>
                         </div>
-                        <span className="text-sm text-muted-foreground">
-              {formatTransactionAmount(category.spent)} / {formatTransactionAmount(category.budget)}
-            </span>
+                        <span className="text-xs text-muted-foreground whitespace-nowrap">
+                             {formatTransactionAmount(category.spent)}
+                        </span>
                     </div>
                     <Progress value={category.percent} className="h-2" />
                 </div>
