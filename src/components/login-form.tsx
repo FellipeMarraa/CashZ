@@ -1,11 +1,10 @@
 "use client"
 
-import React, {useEffect, useState} from "react"
+import React, {useState} from "react"
 import {Eye, EyeOff, Loader2} from "lucide-react"
 import {Button} from "./ui/button"
 import {Input} from "./ui/input"
 import {Label} from "./ui/label"
-import {Checkbox} from "./ui/checkbox"
 import {
   Dialog,
   DialogContent,
@@ -38,9 +37,9 @@ export const LoginForm: React.FC<LoginFormProps> = ({ dialogTrigger, onNavigateT
     setFormData((prev) => ({ ...prev, [name]: value }))
   }
 
-  const handleCheckboxChange = (checked: boolean) => {
-    setFormData((prev) => ({ ...prev, rememberMe: checked }))
-  }
+  // const handleCheckboxChange = (checked: boolean) => {
+  //   setFormData((prev) => ({ ...prev, rememberMe: checked }))
+  // }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
