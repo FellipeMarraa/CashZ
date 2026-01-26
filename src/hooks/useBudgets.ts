@@ -8,7 +8,8 @@ import {
     getDocs,
     addDoc,
     setDoc,
-    doc
+    doc,
+    deleteDoc // Importar deleteDoc
 } from "firebase/firestore/lite";
 import { useToast } from "@/hooks/use-toast";
 
@@ -18,89 +19,65 @@ export const useBudgets = (month?: number, year?: number) => {
     const user = auth.currentUser;
 
     const budgetsQuery = useQuery({
-        // A chave da query permanece sensível ao mês e ano
         queryKey: ["budgets", month, year, user?.uid],
         queryFn: async () => {
-            // Se não houver usuário ou ano, não há o que buscar
             if (!user || !year || !db) return [];
-
             const budgetsRef = collection(db, "budgets");
             let q;
-
-            // LÓGICA CORRIGIDA: Se houver mês, filtra por mês. Caso contrário, traz o ano todo.
             if (month !== undefined && month !== null) {
-                q = query(
-                    budgetsRef,
-                    where("userId", "==", user.uid),
-                    where("month", "==", month),
-                    where("year", "==", year)
-                );
+                q = query(budgetsRef, where("userId", "==", user.uid), where("month", "==", month), where("year", "==", year));
             } else {
-                q = query(
-                    budgetsRef,
-                    where("userId", "==", user.uid),
-                    where("year", "==", year)
-                );
+                q = query(budgetsRef, where("userId", "==", user.uid), where("year", "==", year));
             }
-
             const querySnapshot = await getDocs(q);
             return querySnapshot.docs.map(document => ({
                 id: document.id,
                 ...document.data()
             } as Budget));
         },
-        // Habilitado se houver usuário e ano (mês agora é opcional)
         enabled: !!user && !!year && !!db,
     });
 
     const saveBudgetMutation = useMutation({
         mutationFn: async (payload: Omit<Budget, 'id' | 'userId'>) => {
-            if (!user || !db) throw new Error("Usuário não autenticado ou DB offline");
-
+            if (!user || !db) throw new Error("Usuário não autenticado");
             const budgetsRef = collection(db, "budgets");
-
-            const q = query(
-                budgetsRef,
-                where("userId", "==", user.uid),
-                where("categoryId", "==", payload.categoryId),
-                where("month", "==", payload.month),
-                where("year", "==", payload.year)
-            );
-
+            const q = query(budgetsRef, where("userId", "==", user.uid), where("categoryId", "==", payload.categoryId), where("month", "==", payload.month), where("year", "==", payload.year));
             const querySnapshot = await getDocs(q);
-
             if (!querySnapshot.empty) {
                 const existingDoc = querySnapshot.docs[0];
                 const docRef = doc(db, "budgets", existingDoc.id);
                 return await setDoc(docRef, { amount: payload.amount }, { merge: true });
             } else {
-                return await addDoc(budgetsRef, {
-                    ...payload,
-                    userId: user.uid
-                });
+                return await addDoc(budgetsRef, { ...payload, userId: user.uid });
             }
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ["budgets"] });
-            toast({
-                variant: "success",
-                title: "Sucesso!",
-                description: "Limite de orçamento atualizado.",
-                duration: 2000,
-            });
+            toast({ title: "Sucesso!", description: "Orçamento salvo." });
+        }
+    });
+
+    // NOVA MUTAÇÃO PARA DELETAR
+    const deleteBudgetMutation = useMutation({
+        mutationFn: async (budgetId: string) => {
+            if (!db) throw new Error("DB offline");
+            const docRef = doc(db, "budgets", budgetId);
+            await deleteDoc(docRef);
         },
-        onError: (error: any) => {
-            toast({
-                variant: "destructive",
-                title: "Erro ao salvar",
-                description: error.message || "Erro de conexão",
-            });
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ["budgets"] });
+            toast({ title: "Removido!", description: "Meta excluída com sucesso." });
+        },
+        onError: () => {
+            toast({ variant: "destructive", title: "Erro", description: "Não foi possível remover a meta." });
         }
     });
 
     return {
         budgets: budgetsQuery.data ?? [],
         isLoading: budgetsQuery.isLoading,
-        saveBudget: saveBudgetMutation
+        saveBudget: saveBudgetMutation,
+        deleteBudget: deleteBudgetMutation // Exportar deleteBudget
     };
 };

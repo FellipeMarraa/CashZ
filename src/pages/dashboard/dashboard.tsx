@@ -14,7 +14,7 @@ interface DashboardProps {
 }
 
 export const Dashboard = ({ onNavigateToLanding }: DashboardProps) => {
-  const [activeSection, setActiveSection] = useState<'overview' | 'transactions' | 'accounts' | 'budget' | 'investments' | 'profile'>('overview');
+  const [activeSection, setActiveSection] = useState<'overview' | 'transactions' | 'budget' | 'accounts' | 'investments' | 'profile'>('overview');
   const [collapsed, setCollapsed] = useState(false);
   const sidebarRef = useRef<HTMLDivElement>(null);
 
@@ -27,13 +27,13 @@ export const Dashboard = ({ onNavigateToLanding }: DashboardProps) => {
       title: "Transações",
       subtitle: "Histórico de entradas e saídas",
     },
-    accounts: {
-      title: "Carteira",
-      subtitle: "Gerencie suas contas e saldos",
-    },
     budget: {
       title: "Orçamentos",
       subtitle: "Acompanhe seus limites de gastos",
+    },
+    accounts: {
+      title: "Carteira",
+      subtitle: "Gerencie suas contas e saldos",
     },
     investments: {
       title: "Investimentos",
