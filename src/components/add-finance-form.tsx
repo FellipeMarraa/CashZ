@@ -1,0 +1,282 @@
+import {Dialog, DialogContent, DialogHeader, DialogTitle} from "@/components/ui/dialog";
+import {Input} from "@/components/ui/input";
+import {Button} from "@/components/ui/button";
+import {Label} from "@/components/ui/label";
+import {Select, SelectContent, SelectItem, SelectTrigger, SelectValue} from "@/components/ui/select";
+import {useDialogManager} from "@/context/DialogManagerContext";
+import {useEffect, useState} from "react";
+import {IMes} from "@/model/IMes.ts";
+import {useCreateTransaction} from "@/hooks/useTransactions";
+import {useCategories} from "@/hooks/useCategories.ts";
+import {useToast} from "@/hooks/use-toast.ts";
+import {NumericFormat} from "react-number-format";
+import {HelpCircle} from "lucide-react";
+import {Tooltip, TooltipContent, TooltipTrigger} from "@/components/ui/tooltip.tsx";
+
+
+export const AddFinanceForm = () => {
+    const { activeDialog, setActiveDialog } = useDialogManager();
+    const isOpen = activeDialog === "add-finance";
+
+    const [description, setDescription] = useState("");
+    const [amount, setAmount] = useState("");
+    const [month, setMonth] = useState(IMes[new Date().getMonth()]);
+    const [year, setYear] = useState(new Date().getFullYear());
+    const [categoryId, setCategoryId] = useState<string>("");
+    const [type, setType] = useState<"RECEITA" | "DESPESA">("RECEITA");
+    const [recurrence, setRecurrence] = useState<"UNICO" | "PARCELADO" | "FIXO">("UNICO");
+    const [status, setStatus] = useState<"PAGA" | "PENDENTE">("PENDENTE");
+    const [numInstallments, setNumInstallments] = useState(1);
+
+    const { mutate: createTransaction } = useCreateTransaction();
+    const { data: categories} = useCategories();
+    const {toast} = useToast();
+
+    const handleSubmit = async () => {
+        try {
+            if (!description || !amount || !month || !year || !categoryId || !type || !recurrence) {
+                toast({
+                    variant: "destructive",
+                    title: "Erro ao atualizar transação",
+                    description: "Todos os campos obrigatórios devem ser preenchidos.",
+                    duration: 3000,
+                });
+                return;
+            }
+
+            if (recurrence === "PARCELADO" && (!numInstallments || numInstallments < 2)) {
+                toast({
+                    variant: "destructive",
+                    title: "Erro ao atualizar transação",
+                    description: "Se a transação é parcelada o número de parcelas deve ser maior que 1.",
+                    duration: 3000,
+                });
+                return;
+            }
+
+            const selectedCategory = categories?.find(cat => cat.id === categoryId);
+
+            const payload = {
+                description: description.trim(),
+                amount: parseFloat(amount),
+                month: IMes.indexOf(month) + 1,
+                year,
+                category: selectedCategory,
+                type,
+                recurrence,
+                status,
+                numInstallments: numInstallments,
+            };
+
+            // @ts-ignore
+            createTransaction(payload, {
+                onSuccess: () => {
+                    toast({
+                        variant: "success",
+                        title: "Transação adicionada com sucesso",
+                        duration: 3000,
+                    });
+                    setActiveDialog(null);
+                    resetForm();
+                },
+                onError: (error) => {
+                    toast({
+                        variant: "destructive",
+                        title: "Erro ao adicionar transação",
+                        description: `${error instanceof Error ? error.message : String(error)}`,
+                        duration: 3000,
+                    });
+                }
+            });
+
+        } catch (error: any) {
+            toast({
+                variant: "destructive",
+                title: "Erro ao adicionar transação",
+                description: `${error instanceof Error ? error.message : String(error)}`,
+                duration: 3000,
+            });
+        }
+    };
+
+
+    const resetForm = () => {
+        setDescription("");
+        setAmount("");
+        setMonth(IMes[new Date().getMonth()]);
+        setYear(new Date().getFullYear());
+        setCategoryId("");
+        setType("RECEITA");
+        setRecurrence("UNICO");
+        setStatus("PENDENTE");
+        setNumInstallments(1);
+    };
+
+    useEffect(() => {
+        if (!isOpen) resetForm();
+    }, [isOpen]);
+
+    function generateYears(startYear: number, endYear: number) {
+        return Array.from({ length: endYear - startYear + 1 }, (_, i) => startYear + i);
+    }
+
+    return (
+        <Dialog open={isOpen} onOpenChange={(open) => !open && setActiveDialog(null)}>
+            <DialogContent>
+                <DialogHeader>
+                    <DialogTitle>Adicionar Transação</DialogTitle>
+                </DialogHeader>
+
+                <div className="space-y-4">
+                    <div>
+                        <Label>Descrição</Label>
+                        <Input value={description} onChange={(e) => setDescription(e.target.value)} required />
+                    </div>
+                    <div className="flex gap-4 justify-between">
+                        <div className="flex-1 w-full">
+                            <Label>Valor</Label>
+                            <NumericFormat
+                                customInput={Input}
+                                value={amount}
+                                onValueChange={(values) => {
+                                    setAmount(values.floatValue?.toString() || '');
+                                }}
+                                thousandSeparator="."
+                                decimalSeparator=","
+                                decimalScale={2}
+                                fixedDecimalScale
+                                prefix="R$ "
+                                placeholder="R$ 0,00"
+                                className="w-full"
+                                required
+                            />
+                        </div>
+
+                        <div>
+                            <Label>Mês</Label>
+                            <Select value={month} onValueChange={(value) => setMonth(value)} required>
+                                <SelectTrigger className="w-28">
+                                    <SelectValue placeholder="Selecionar Mês" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {IMes.map((mes, index) => (
+                                        <SelectItem key={index} value={mes}>
+                                            {mes}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        </div>
+                        <div>
+                            <Label>Ano</Label>
+                            <Select value={year.toString()} onValueChange={(value) => setYear(Number(value))} required>
+                                <SelectTrigger className="w-20">
+                                    <SelectValue placeholder="Selecionar Ano" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {generateYears(new Date().getFullYear() - 5, new Date().getFullYear() + 5).map((year) => (
+                                        <SelectItem key={year} value={year.toString()}>
+                                            {year}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        </div>
+                    </div>
+
+                    <div className="flex gap-4 justify-between">
+                        <div className="flex-1 w-full">
+                            <Label>Categoria</Label>
+                            <Select value={categoryId} onValueChange={setCategoryId} required>
+                                <SelectTrigger>
+                                    <SelectValue placeholder="Selecione uma categoria" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {categories?.map((category) => (
+                                        <SelectItem key={category.id} value={category.id!}>
+                                            {category.name}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        </div>
+
+
+                        <div className="flex-1 w-full">
+                            <Label>Tipo</Label>
+                            <Select value={type} onValueChange={(value) => setType(value as any)} required>
+                                <SelectTrigger>
+                                    <SelectValue placeholder="Tipo" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="RECEITA">Receita</SelectItem>
+                                    <SelectItem value="DESPESA">Despesa</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+                    </div>
+
+                    <div className="flex gap-4">
+                        <div className="flex-1">
+                            <Label>Recorrência</Label>
+                            <div className="flex items-center gap-2">
+
+                                <Select
+                                    value={recurrence}
+                                    onValueChange={(value) => setRecurrence(value as any)}
+                                    required
+                                >
+                                    <SelectTrigger>
+                                        <SelectValue placeholder="Recorrência" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="UNICO">Único</SelectItem>
+                                        <SelectItem value="PARCELADO">Parcelado</SelectItem>
+                                        <SelectItem value="FIXO">Fixo</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                                <Tooltip>
+                                    <TooltipTrigger className="h-full">
+                                        <HelpCircle className="h-5 w-5 text-gray-500 cursor-pointer" />
+                                    </TooltipTrigger>
+                                    <TooltipContent className="bg-gray-200 text-black">
+                                        <b>Único:</b> Transação única no mês selecionado, não se repete.<br />
+                                        <b>Parcelado:</b> Transação dividida em parcelas.<br />
+                                        <b>Fixo:</b> Transação que se repete mensalmente no ano selecionado.
+                                    </TooltipContent>
+                                </Tooltip>
+                            </div>
+
+                        </div>
+                        {recurrence === "PARCELADO" && (
+                            <div className="flex-1 items-center gap-2 justify-center h-full">
+                                <Label>Parcelas</Label>
+                                <div className="flex items-center gap-2">
+                                    <Input
+                                        type="number"
+                                        value={numInstallments}
+                                        onChange={(e) => setNumInstallments(parseInt(e.target.value))}
+                                        required
+                                    />
+                                    <Tooltip>
+                                        <TooltipTrigger className="h-full">
+                                            <HelpCircle className="h-5 w-5 text-gray-500 cursor-pointer" />
+                                        </TooltipTrigger>
+                                        <TooltipContent className="bg-gray-200 text-black">
+                                            O valor total da transação será dividido igualmente entre as parcelas.
+                                        </TooltipContent>
+                                    </Tooltip>
+                                </div>
+
+                            </div>
+                        )}
+                    </div>
+
+                    <div className="flex justify-end pt-4">
+                        <Button onClick={handleSubmit}>Salvar Transação</Button>
+                    </div>
+                </div>
+            </DialogContent>
+        </Dialog>
+    );
+};

@@ -1,0 +1,17 @@
+<svg width="64" height="64" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <rect width="64" height="64" rx="14" fill="#0F172A"/>
+
+    <!-- C angular e aberto, com visual harmônico ao Z -->
+    <path d="M26 22L20 32L26 42" stroke="#22C55E" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+
+    <!-- Z com o mesmo estilo do C -->
+    <path d="M30 22H44L30 42H46" stroke="#22C55E" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+
+    <!-- F subentendida (traço oculto lateral) -->
+    <path d="M16 22L16 34" stroke="#1E293B" stroke-width="2"/>
+    <path d="M16 22H20" stroke="#1E293B" stroke-width="2"/>
+
+    <!-- A subentendida com linhas triangulares sutis -->
+    <path d="M48 44L50 38L52 44" stroke="#1E293B" stroke-width="2"/>
+    <path d="M49.5 41H50.5" stroke="#1E293B" stroke-width="2"/>
+</svg>
