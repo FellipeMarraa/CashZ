@@ -1,11 +1,11 @@
 "use client"
 
-import React, {useEffect, useState} from "react"
-import {Eye, EyeOff, Loader2} from "lucide-react"
-import {Button} from "./ui/button"
-import {Input} from "./ui/input"
-import {Label} from "./ui/label"
-import {Checkbox} from "./ui/checkbox"
+import React, { useEffect, useState } from "react"
+import { Eye, EyeOff, Loader2 } from "lucide-react"
+import { Button } from "./ui/button"
+import { Input } from "./ui/input"
+import { Label } from "./ui/label"
+import { Checkbox } from "./ui/checkbox"
 import {
   Dialog,
   DialogContent,
@@ -14,12 +14,11 @@ import {
   DialogTitle,
   DialogTrigger
 } from "@/components/ui/dialog.tsx";
-import {LoginForm} from "@/components/login-form.tsx";
-import {useDialogManager} from "@/context/DialogManagerContext.tsx";
-import {useToast} from "@/hooks/use-toast.ts";
-import { LoginResponse } from "@/model/LoginResponse"
-import {jwtDecode} from "jwt-decode";
-import {useAuth} from "@/context/AuthContext.tsx";
+import { LoginForm } from "@/components/login-form.tsx";
+import { useDialogManager } from "@/context/DialogManagerContext.tsx";
+import { useToast } from "@/hooks/use-toast.ts";
+import { register, auth } from "../../firebase"; // Ajuste o caminho
+import { updateProfile } from "firebase/auth";
 
 interface RegisterFormProps {
   dialogTrigger: React.ReactNode;
@@ -29,17 +28,14 @@ interface RegisterFormProps {
 export const RegisterForm: React.FC<RegisterFormProps> = ({ dialogTrigger, onNavigateToDashboard }) => {
   const [isLoading, setIsLoading] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
-  const {toast} = useToast();
+  const { toast } = useToast();
+
   const [formData, setFormData] = useState({
     name: "",
     email: "",
     password: "",
     agreeTerms: false,
   });
-
-  const { setUser } = useAuth();
-
-  // const [registeredEmail, setRegisteredEmail] = useState<string>(formData.email);
 
   useEffect(() => {
     setFormData({
@@ -51,8 +47,6 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({ dialogTrigger, onNav
   }, []);
 
   const { activeDialog, setActiveDialog } = useDialogManager();
-
-  // const [registeredEmail, setRegisteredEmail] = useState<string>(formData.email);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target
@@ -68,70 +62,24 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({ dialogTrigger, onNav
     setIsLoading(true);
 
     try {
-      // Primeiro: cadastrar usuário
-      const registerResponse = await fetch("http://localhost:8080/auth/register", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          name: formData.name,
-          email: formData.email,
-          password: formData.password,
-        }),
-      });
+      // 1. Cria a conta no Firebase
+      await register(formData.email, formData.password);
 
-      if (!registerResponse.ok) {
-        const errorResponse = await registerResponse.json();
-        toast({
-          variant: "destructive",
-          title: "Erro ao registrar usuário",
-          description: errorResponse.message || "Ocorreu um erro inesperado.",
+      // 2. Atualiza o perfil com o nome digitado (Opcional, mas recomendado)
+      // O register faz login automático, então auth.currentUser já deve estar disponível
+      if (auth.currentUser) {
+        await updateProfile(auth.currentUser, {
+          displayName: formData.name
         });
-        return;
       }
 
-      const loginResponse = await fetch("http://localhost:8080/auth/login", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          email: formData.email,
-          password: formData.password,
-        }),
-      });
-
-      if (!loginResponse.ok) {
-        const errorText = await loginResponse.text();
-        toast({
-          variant: "destructive",
-          title: "Erro ao fazer login automático",
-          description: errorText,
-        });
-        return;
-      }
-
-      const data: LoginResponse = await loginResponse.json();
-
-      const decoded: any = jwtDecode(data.token);
-      setUser({
-        id: decoded.id,
-        email: decoded.email,
-        name: decoded.name,
-        photo: decoded.photo || "",
-        roles: decoded.roles || [],
-      });
-
-      localStorage.setItem("token", data.token);
-
+      // 3. Sucesso! Navega para a dashboard
+      setActiveDialog(null);
       onNavigateToDashboard();
-    } catch (error) {
-      toast({
-        variant: "destructive",
-        title: "Erro ao registrar usuário",
-        description: error instanceof Error ? error.message : String(error),
-      });
+
+    } catch (error: any) {
+      // Erros são tratados no firebase.ts (toast), mas se falhar o updateProfile pode cair aqui
+      console.error("Erro no fluxo de registro:", error);
     } finally {
       setIsLoading(false);
     }
@@ -139,7 +87,6 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({ dialogTrigger, onNav
 
 
   return (
-<>
       <Dialog open={activeDialog === "register"} onOpenChange={(open) => setActiveDialog(open ? "register" : null)}>
         <DialogTrigger asChild>
           <div className="text-emerald-600 hover:text-emerald-500 font-medium cursor-pointer flex items-center justify-center dark:text-emerald-600 dark:hover:text-emerald-500" onClick={() => setActiveDialog("register")}>{dialogTrigger}</div>
@@ -196,7 +143,7 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({ dialogTrigger, onNav
                   {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                 </Button>
               </div>
-              <p className="text-xs text-gray-500">A senha deve ter pelo menos 8 caracteres e incluir letras e números.</p>
+              <p className="text-xs text-gray-500">A senha deve ter pelo menos 6 caracteres.</p>
             </div>
             <div className="flex items-center space-x-2 dark:text-gray-600">
               <Checkbox id="terms" className="cursor-pointer dark:text-gray-600 dark:border-gray-600" checked={formData.agreeTerms} onCheckedChange={handleCheckboxChange} required />
@@ -224,19 +171,11 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({ dialogTrigger, onNav
             <div className="text-center text-sm">
               <span className="text-gray-500">Já tem uma conta? </span>
               <span className="text-emerald-600 hover:text-emerald-500 font-medium cursor-pointer" onClick={() => setActiveDialog("login")}>
-                <LoginForm onNavigateToDashboard={onNavigateToDashboard} dialogTrigger="Faça o Login"/>
-              </span>
+              <LoginForm onNavigateToDashboard={onNavigateToDashboard} dialogTrigger="Faça o Login"/>
+            </span>
             </div>
           </form>
         </DialogContent>
       </Dialog>
-      {/*<ConfirmAccount*/}
-      {/*    email={registeredEmail}*/}
-      {/*    onNavigateToDashboard={onNavigateToDashboard}*/}
-      {/*    autoSendCode={false}*/}
-      {/*    dialogTrigger={<></>}*/}
-      {/*/>*/}
-
-</>
   )
 }

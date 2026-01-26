@@ -4,7 +4,7 @@ import {Transaction} from "@/model/types/Transaction.ts";
 import {useDialogManager} from "@/context/DialogManagerContext.tsx";
 import {EditFinanceForm} from "@/components/edit-finance-form.tsx";
 import {useToast} from "@/hooks/use-toast.ts";
-import {useState} from "react";
+import React, {useState} from "react";
 import {DeleteFinanceDialog} from "@/components/delete-finance-dialog.tsx";
 import {Tooltip, TooltipContent, TooltipTrigger} from "@/components/ui/tooltip.tsx";
 
@@ -13,6 +13,7 @@ interface TransactionListProps {
 }
 
 export const TransactionList = ({ transactions }: TransactionListProps) => {
+
     const { activeDialog, setActiveDialog } = useDialogManager();
     const { mutate: deleteTransaction, isPending: isDeleting } = useDeleteTransaction();
     const { mutate: updateTransaction } = useUpdateTransaction();
@@ -106,6 +107,7 @@ export const TransactionList = ({ transactions }: TransactionListProps) => {
     }
 
     return (
+
         <div className="rounded-md border divide-y">
             <div className="hidden md:grid grid-cols-[1fr_1fr_1fr_120px] gap-4 p-4 font-medium">
                 <div>Descrição</div>

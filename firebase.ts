@@ -1,13 +1,16 @@
-import {initializeApp} from "firebase/app";
-import {getFirestore} from 'firebase/firestore/lite';
+import { initializeApp } from "firebase/app";
+import { getFirestore } from 'firebase/firestore/lite';
 import {
-    createUserWithEmailAndPassword,
     getAuth,
-    onAuthStateChanged,
+    createUserWithEmailAndPassword,
     signInWithEmailAndPassword,
-    signOut
+    signOut,
+    onAuthStateChanged,
+    GoogleAuthProvider,
+    signInWithPopup,
+    User
 } from "firebase/auth";
-import {toast} from "@/components/ui/use-toast";
+import { toast } from "./src/hooks/use-toast";
 
 const firebaseConfig = {
     apiKey: "AIzaSyCRFilxwocJcaTGyK2oNf8yYPYm-1PVGNs",
@@ -22,6 +25,7 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 const auth = getAuth(app);
+const googleProvider = new GoogleAuthProvider();
 
 export async function register(email: string, password: string) {
     try {
@@ -31,56 +35,72 @@ export async function register(email: string, password: string) {
             description: "Conta criada e logada com sucesso.",
             duration: 2000
         });
-    } catch (error) {
+    } catch (error: any) {
         toast({
             variant: "destructive",
             title: "Erro ao registrar!",
-            description: "Erro: " + error,
-            duration: 1000
+            description: "Erro: " + (error.message || error),
+            duration: 3000
         });
     }
 }
 
-// Função para logar um usuário existente
 export async function login(email: string, password: string) {
     try {
         await signInWithEmailAndPassword(auth, email, password);
         toast({
             title: "Login bem-sucedido!",
-            description: "Você foi logado com sucesso.",
+            description: "VocÃª foi logado com sucesso.",
             duration: 1000
         });
-    } catch (error) {
+    } catch (error: any) {
         toast({
             variant: "destructive",
             title: "Erro ao fazer login!",
-            description: "Erro: " + error,
+            description: "Erro: " + (error.message || error),
             duration: 3000
         });
     }
 }
 
-// Função para deslogar o usuário
+export async function loginWithGoogle() {
+    try {
+        await signInWithPopup(auth, googleProvider);
+        toast({
+            title: "Login Google bem-sucedido!",
+            description: "VocÃª entrou com sua conta Google.",
+            duration: 1000
+        });
+    } catch (error: any) {
+        toast({
+            variant: "destructive",
+            title: "Erro no login Google!",
+            description: "Erro: " + (error.message || error),
+            duration: 3000
+        });
+    }
+}
+
 export async function logout() {
     try {
         await signOut(auth);
         toast({
             title: "Logout realizado!",
-            description: "Você foi desconectado com sucesso.",
+            description: "VocÃª foi desconectado com sucesso.",
             duration: 1000
         });
-    } catch (error) {
+    } catch (error: any) {
         toast({
             variant: "destructive",
             title: "Erro ao deslogar!",
-            description: "Erro: " + error,
+            description: "Erro: " + (error.message || error),
             duration: 3000
         });
     }
 }
 
-export function onAuthChange(callback: (user: any) => void) {
-    onAuthStateChanged(auth, user => {
+export function onAuthChange(callback: (user: User | null) => void) {
+    return onAuthStateChanged(auth, (user) => {
         callback(user);
     });
 }

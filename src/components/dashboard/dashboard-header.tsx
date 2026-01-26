@@ -49,7 +49,7 @@ export const DashboardHeader = ({
         >
           <Search className="h-5 w-5" />
         </Button>
-        <NotificationsPopover />
+        {/*<NotificationsPopover />*/}
         {/*<ThemeToggle />*/}
             <UserMenu
                 onNavigateToLanding={onNavigateToLanding}

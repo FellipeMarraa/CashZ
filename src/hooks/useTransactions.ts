@@ -1,121 +1,351 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { IMes } from "@/model/IMes";
 import { Transaction } from "@/model/types/Transaction";
+import { db, auth } from "../../firebase";
+import { useAuth } from "@/context/AuthContext";
+import {
+    collection,
+    query,
+    where,
+    getDocs,
+    getDoc,
+    addDoc,
+    doc,
+    updateDoc,
+    deleteDoc,
+    orderBy,
+    writeBatch
+} from 'firebase/firestore/lite';
 
-const API_BASE_URL = 'http://localhost:8080/api/finances';
+const COLLECTION_NAME = 'transactions';
+
+type TransactionInput = Omit<Transaction, 'id' | 'owner'>;
+
+// --- FUNÇÃO DE LIMPEZA ---
+const sanitizeData = (data: any) => {
+    const cleanData = { ...data };
+    Object.keys(cleanData).forEach(key => {
+        if (cleanData[key] === undefined) {
+            delete cleanData[key];
+        }
+    });
+    return cleanData;
+};
+
 const api = {
-    async fetchWithAuth(endpoint: string, options?: RequestInit) {
-        const token = localStorage.getItem("token");
-        if (!token) throw new Error("Token de autenticação não encontrado.");
-
-        const response = await fetch(`${API_BASE_URL}${endpoint}`, {
-            ...options,
-            headers: {
-                "Authorization": `Bearer ${token}`,
-                "Content-Type": "application/json",
-                ...(options?.headers || {})
-            },
-        });
-
-        if (!response.ok) {
-            throw new Error(`Erro HTTP: ${response.status}`);
+    mapDocumentToTransaction(docSnapshot: any): Transaction {
+        const data = docSnapshot.data();
+        let dateObj = new Date();
+        if (data.date) {
+            dateObj = data.date.toDate ? data.date.toDate() : new Date(data.date);
         }
 
-        return response;
+        return {
+            id: docSnapshot.id,
+            description: data.description,
+            amount: data.amount,
+            month: data.month,
+            year: data.year,
+            type: data.type,
+            recurrence: data.recurrence,
+            status: data.status,
+            numInstallments: data.numInstallments,
+            currentInstallment: data.currentInstallment,
+            reference: data.reference,
+            category: data.category,
+            sharedWith: data.sharedWith,
+            owner: data.owner || { id: data.userId || 'unknown', name: 'Usuário', email: '' },
+            date: dateObj
+        } as Transaction;
     },
 
     async getTransactions(month: string, year: number): Promise<Transaction[]> {
-        const monthNumber = IMes.indexOf(month) + 1;
-        const response = await this.fetchWithAuth(`/byMonthAndYear?mes=${monthNumber}&ano=${year}`);
-        const data = await response.json();
+        const user = auth.currentUser;
+        if (!user) return [];
 
-        return data.map((transaction: any) => ({
-            ...transaction,
-            date: transaction.date ? new Date(transaction.date) : null,
-        }));
+        const monthIndex = IMes.indexOf(month);
+        if (monthIndex === -1) return [];
+
+        const startDate = new Date(year, monthIndex, 1);
+        const endDate = new Date(year, monthIndex + 1, 0, 23, 59, 59, 999);
+
+        try {
+            const q = query(
+                collection(db, COLLECTION_NAME),
+                where("userId", "==", user.uid),
+                where("date", ">=", startDate.toISOString()),
+                where("date", "<=", endDate.toISOString()),
+                orderBy("date", "desc")
+            );
+
+            const querySnapshot = await getDocs(q);
+            return querySnapshot.docs.map(doc => this.mapDocumentToTransaction(doc));
+        } catch (error) {
+            console.error("Erro ao buscar transações:", error);
+            throw error;
+        }
     },
 
     async getAllTransactions(): Promise<Transaction[]> {
-        const response = await this.fetchWithAuth('/list');
-        return response.json();
+        const user = auth.currentUser;
+        if (!user) return [];
+        const q = query(
+            collection(db, COLLECTION_NAME),
+            where("userId", "==", user.uid),
+            orderBy("date", "desc")
+        );
+        const querySnapshot = await getDocs(q);
+        return querySnapshot.docs.map(doc => this.mapDocumentToTransaction(doc));
     },
 
     async getTransactionById(id: string): Promise<Transaction> {
-        const response = await this.fetchWithAuth(`/${id}`);
-        return response.json();
+        return {} as Transaction;
     },
 
-    async createTransaction(data: Omit<Transaction, 'id'>): Promise<Transaction> {
-        const response = await this.fetchWithAuth('/create', {
-            method: 'POST',
-            body: JSON.stringify(data)
-        });
-        return response.json();
+    // --- CRIAR TRANSAÇÃO ---
+    async createTransaction(data: TransactionInput): Promise<Transaction> {
+        const user = auth.currentUser;
+        if (!user) throw new Error("Usuário não autenticado");
+
+        const ownerData = {
+            id: user.uid,
+            name: user.displayName || "Usuário",
+            email: user.email || ""
+        };
+
+        const batch = writeBatch(db);
+        const collectionRef = collection(db, COLLECTION_NAME);
+
+        const firstDocRef = doc(collectionRef);
+        const referenceId = firstDocRef.id;
+
+        const basePayload = {
+            description: data.description,
+            type: data.type,
+            category: data.category,
+            recurrence: data.recurrence,
+            status: data.status,
+            userId: user.uid,
+            owner: ownerData,
+            reference: referenceId
+        };
+
+        // --- LÓGICA 1: PARCELADO ---
+        if (data.recurrence === 'PARCELADO' && data.numInstallments && data.numInstallments > 1) {
+            const installmentValue = parseFloat((data.amount / data.numInstallments).toFixed(2));
+
+            for (let i = 0; i < data.numInstallments; i++) {
+                const targetMonthIndex = (data.month - 1) + i;
+                const targetYear = data.year + Math.floor(targetMonthIndex / 12);
+                const targetMonth = (targetMonthIndex % 12) + 1;
+
+                const dateObj = new Date(targetYear, targetMonth - 1, 1, new Date().getHours(), new Date().getMinutes());
+
+                const payload = {
+                    ...basePayload,
+                    amount: installmentValue,
+                    month: targetMonth,
+                    year: targetYear,
+                    numInstallments: data.numInstallments,
+                    currentInstallment: i + 1,
+                    date: dateObj.toISOString()
+                };
+
+                const currentDocRef = i === 0 ? firstDocRef : doc(collectionRef);
+                batch.set(currentDocRef, sanitizeData(payload));
+            }
+        }
+        // --- LÓGICA 2: FIXO ---
+        else if (data.recurrence === 'FIXO') {
+            const startMonth = data.month;
+            const endMonth = 12;
+
+            for (let m = startMonth; m <= endMonth; m++) {
+                const targetYear = data.year;
+                const dateObj = new Date(targetYear, m - 1, 1, new Date().getHours(), new Date().getMinutes());
+
+                const payload = {
+                    ...basePayload,
+                    amount: data.amount,
+                    month: m,
+                    year: targetYear,
+                    date: dateObj.toISOString()
+                };
+
+                const currentDocRef = m === startMonth ? firstDocRef : doc(collectionRef);
+                batch.set(currentDocRef, sanitizeData(payload));
+            }
+        }
+        // --- LÓGICA 3: ÚNICO ---
+        else {
+            const dateObj = new Date(data.year, data.month - 1, 1, new Date().getHours(), new Date().getMinutes());
+
+            const payload = {
+                ...basePayload,
+                amount: data.amount,
+                month: data.month,
+                year: data.year,
+                date: dateObj.toISOString()
+            };
+
+            batch.set(firstDocRef, sanitizeData(payload));
+        }
+
+        await batch.commit();
+
+        return {
+            id: referenceId,
+            ...data,
+            owner: ownerData
+        } as Transaction;
     },
 
+    // --- ATUALIZAR TRANSAÇÃO ---
     async updateTransaction(id: string, data: Partial<Transaction>): Promise<Transaction> {
-        const response = await this.fetchWithAuth(`/${id}`, {
-            method: 'PUT',
-            body: JSON.stringify(data)
-        });
-        return response.json();
+        const transactionRef = doc(db, COLLECTION_NAME, id);
+        let updateData: any = { ...data };
+
+        if (data.month !== undefined && data.year !== undefined) {
+            const newDate = new Date(data.year, data.month - 1, 1);
+            updateData.date = newDate.toISOString();
+        }
+
+        updateData = sanitizeData(updateData);
+        await updateDoc(transactionRef, updateData);
+        return { id, ...data } as Transaction;
     },
 
+    // --- DELETAR TRANSAÇÃO (LÓGICA ALTERADA: DELETAR DESTA PARA FRENTE) ---
     async deleteTransaction(id: string, deleteAll: boolean = false): Promise<void> {
-        await this.fetchWithAuth(`/${id}?deleteAll=${deleteAll}`, {
-            method: 'DELETE'
+        const user = auth.currentUser;
+        if (!user) throw new Error("Usuário não autenticado");
+
+        // 1. Deleção Simples (Apenas o item selecionado)
+        if (!deleteAll) {
+            const transactionRef = doc(db, COLLECTION_NAME, id);
+            await deleteDoc(transactionRef);
+            return;
+        }
+
+        // 2. Deleção Recorrente (Desta para frente)
+        // Primeiro, precisamos pegar a transação "Pivô" para saber a data e a referência dela
+        const pivotDocRef = doc(db, COLLECTION_NAME, id);
+        const pivotSnap = await getDoc(pivotDocRef);
+
+        if (!pivotSnap.exists()) return;
+
+        const pivotData = pivotSnap.data();
+        const groupReferenceId = pivotData.reference || id;
+
+        // A data de corte é a data da transação selecionada
+        const pivotDateISO = pivotData.date;
+
+        // Busca todas as transações que pertencem a este grupo (Reference ID igual)
+        // Nota: Não usamos filtro de data na query do Firestore para evitar criar índices complexos compostos.
+        // Como um parcelamento tem no maximo 12-60 itens, filtrar no cliente é rápido e barato.
+        const qChildren = query(
+            collection(db, COLLECTION_NAME),
+            where("userId", "==", user.uid),
+            where("reference", "==", groupReferenceId)
+        );
+
+        const childrenSnaps = await getDocs(qChildren);
+        const batch = writeBatch(db);
+
+        childrenSnaps.forEach((childDoc) => {
+            const childData = childDoc.data();
+
+            // LÓGICA DE CORTE:
+            // Comparamos as datas (Strings ISO funcionam bem com >=)
+            // Se a data do item for MAIOR ou IGUAL à data do pivô, deletamos.
+            if (childData.date >= pivotDateISO) {
+                batch.delete(childDoc.ref);
+            }
         });
+
+        // Executa a exclusão em lote
+        await batch.commit();
     },
 
+    // --- FILTROS EXTRAS ---
     async getTransactionsByMonth(month: number): Promise<Transaction[]> {
-        const response = await this.fetchWithAuth(`/byMonth?mes=${month}`);
-        return response.json();
+        const user = auth.currentUser;
+        if (!user) return [];
+        const q = query(
+            collection(db, COLLECTION_NAME),
+            where("userId", "==", user.uid),
+            where("month", "==", month)
+        );
+        const querySnapshot = await getDocs(q);
+        return querySnapshot.docs.map(doc => this.mapDocumentToTransaction(doc));
     },
 
     async getTransactionsByYear(year: number): Promise<Transaction[]> {
-        const response = await this.fetchWithAuth(`/byYear?ano=${year}`);
-        return response.json();
+        const user = auth.currentUser;
+        if (!user) return [];
+        const startDate = new Date(year, 0, 1);
+        const endDate = new Date(year, 11, 31, 23, 59, 59);
+        const q = query(
+            collection(db, COLLECTION_NAME),
+            where("userId", "==", user.uid),
+            where("date", ">=", startDate.toISOString()),
+            where("date", "<=", endDate.toISOString()),
+            orderBy("date", "desc")
+        );
+        const querySnapshot = await getDocs(q);
+        return querySnapshot.docs.map(doc => this.mapDocumentToTransaction(doc));
     }
 };
 
+// --- HOOKS ---
+
 export const useTransactions = (month: string, year: number) => {
+    const { user } = useAuth();
     return useQuery({
-        queryKey: ['transactions', month, year],
+        queryKey: ['transactions', month, year, user?.id],
         queryFn: () => api.getTransactions(month, year),
         staleTime: 5 * 60 * 1000,
+        enabled: !!month && !!year && !!user?.id
     });
 };
 
 export const useAllTransactions = () => {
+    const { user } = useAuth();
     return useQuery({
-        queryKey: ['transactions'],
+        queryKey: ['transactions', 'all', user?.id],
         queryFn: () => api.getAllTransactions(),
-        staleTime: 5 * 60 * 1000
+        staleTime: 5 * 60 * 1000,
+        enabled: !!user?.id
     });
 };
 
 export const useTransactionById = (id: string) => {
+    const { user } = useAuth();
     return useQuery({
-        queryKey: ['transaction', id],
+        queryKey: ['transaction', id, user?.id],
         queryFn: () => api.getTransactionById(id),
-        enabled: !!id,
+        enabled: !!id && !!user?.id,
         staleTime: 5 * 60 * 1000
     });
 };
 
 export const useTransactionsByMonth = (month: number) => {
+    const { user } = useAuth();
     return useQuery({
-        queryKey: ['transactions', 'month', month],
+        queryKey: ['transactions', 'month', month, user?.id],
         queryFn: () => api.getTransactionsByMonth(month),
-        staleTime: 5 * 60 * 1000
+        staleTime: 5 * 60 * 1000,
+        enabled: !!user?.id
     });
 };
 
 export const useTransactionsByYear = (year: number) => {
+    const { user } = useAuth();
     return useQuery({
-        queryKey: ['transactions', 'year', year],
+        queryKey: ['transactions', 'year', year, user?.id],
         queryFn: () => api.getTransactionsByYear(year),
-        staleTime: 5 * 60 * 1000
+        staleTime: 5 * 60 * 1000,
+        enabled: !!user?.id
     });
 };
 
@@ -123,11 +353,9 @@ export const useCreateTransaction = () => {
     const queryClient = useQueryClient();
 
     return useMutation({
-        mutationFn: (data: Omit<Transaction, 'id'>) => api.createTransaction(data),
+        mutationFn: (data: TransactionInput) => api.createTransaction(data),
         onSuccess: () => {
-            queryClient.invalidateQueries({
-                queryKey: ['transactions']
-            });
+            queryClient.invalidateQueries({ queryKey: ['transactions'] });
         }
     });
 };
@@ -139,9 +367,7 @@ export const useUpdateTransaction = () => {
         mutationFn: ({ id, data }: { id: string; data: Partial<Transaction> }) =>
             api.updateTransaction(id, data),
         onSuccess: () => {
-            queryClient.invalidateQueries({
-                queryKey: ['transactions']
-            });
+            queryClient.invalidateQueries({ queryKey: ['transactions'] });
         }
     });
 };
@@ -153,26 +379,11 @@ export const useDeleteTransaction = () => {
         mutationFn: ({ id, deleteAll = false }: { id: string; deleteAll?: boolean }) =>
             api.deleteTransaction(id, deleteAll),
         onSuccess: () => {
-            queryClient.invalidateQueries({
-                queryKey: ['transactions']
-            });
+            queryClient.invalidateQueries({ queryKey: ['transactions'] });
         }
     });
 };
 
-// Tipos de erro personalizados
-export class ApiError extends Error {
-    constructor(
-        message: string,
-        public status?: number,
-        public data?: any
-    ) {
-        super(message);
-        this.name = 'ApiError';
-    }
-}
-
-// Utilitários para formatação
 export const formatTransactionAmount = (amount: number): string => {
     return new Intl.NumberFormat('pt-BR', {
         style: 'currency',
@@ -181,5 +392,6 @@ export const formatTransactionAmount = (amount: number): string => {
 };
 
 export const formatTransactionDate = (date: Date): string => {
-    return new Intl.DateTimeFormat('pt-BR').format(date);
+    if (!date) return "";
+    return new Intl.DateTimeFormat('pt-BR').format(new Date(date));
 };

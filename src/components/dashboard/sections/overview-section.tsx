@@ -40,8 +40,6 @@ export const OverviewSection = () => {
         setSelectedView(view);
     };
 
-
-
     return (
         <div className="space-y-6 animate-in fade-in duration-700">
             <Tabs
@@ -125,6 +123,7 @@ export const OverviewSection = () => {
                 </div>
 
                 <TabsContent value="month" className="space-y-4">
+                    {/* Aqui passamos as transações, e o StatsGrid filtra as pendentes */}
                     <StatsGrid transactions={transactions} />
                     <ChartSection
                         transactions={transactions}
@@ -155,6 +154,7 @@ export const OverviewSection = () => {
                         </CardDescription>
                     </CardHeader>
                     <CardContent>
+                        {/* A lista de recentes continua mostrando TUDO (pago e não pago) para histórico */}
                         <RecentTransactionsList
                             transactions={transactions}
                             isLoading={isLoading}
@@ -181,56 +181,68 @@ export const OverviewSection = () => {
     );
 };
 
+// --- COMPONENTE ALTERADO ---
 const StatsGrid = ({ transactions }: { transactions?: Transaction[] }) => {
     if (!transactions) return null;
 
-    const income = transactions
+    // REGRA APLICADA: Filtra apenas o que é PENDENTE.
+    // Se está PAGA ou RECEBIDA, não entra na conta do balanço deste painel.
+    const pendingTransactions = transactions.filter(t => t.status === 'PENDENTE');
+
+    const income = pendingTransactions
         .filter(t => t.type === 'RECEITA')
         .reduce((acc, curr) => acc + curr.amount, 0);
 
-    const expenses = transactions
+    const expenses = pendingTransactions
         .filter(t => t.type === 'DESPESA')
         .reduce((acc, curr) => acc + curr.amount, 0);
 
-    const expensesRemain = transactions
-        .filter(t => t.type === 'DESPESA' && t.status === 'PENDENTE')
-        .reduce((acc, curr) => acc + curr.amount, 0);
-
+    // O balanço agora reflete: (Receita Pendente) - (Despesa Pendente)
     const balance = income - expenses;
+
+    // Para o card de "Despesas Pendentes", usamos o valor calculado acima
+    // (que já é somente pendente)
+    const expensesRemain = expenses;
 
     return (
         <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
             <StatCard
-                title="Balanço total"
+                title="Balanço Previsto" // Ajustei o título para refletir melhor que é uma previsão do pendente
                 value={formatTransactionAmount(balance)}
-                description="Saldo atual"
+                description="Saldo das pendências"
                 icon={<Wallet className="h-4 w-4 text-muted-foreground text-blue-400" />}
                 trend={balance >= 0 ? "up" : "down"}
             />
             <StatCard
-                title="Receitas"
+                title="A Receber"
                 value={formatTransactionAmount(income)}
-                description="Total de receitas"
+                description="Receitas pendentes"
                 icon={<ArrowUpRight className="h-4 w-4 text-muted-foreground text-green-400" />}
                 trend="up"
             />
             <StatCard
-                title="Despesas"
+                title="A Pagar"
                 value={formatTransactionAmount(expenses)}
-                description="Total de despesas"
+                description="Despesas pendentes"
                 icon={<ArrowDownRight className="h-4 w-4 text-muted-foreground text-red-500" />}
                 trend="down"
             />
+            {/* Nota: O card "Despesas Pendentes" agora exibe o mesmo valor que "A Pagar".
+               Você pode querer manter para consistência visual ou remover se achar redundante.
+               Mantive para não quebrar seu layout.
+            */}
             <StatCard
-                title="Despesas pendentes"
+                title="Total Pendente"
                 value={formatTransactionAmount(expensesRemain)}
-                description="Pendentes para pagamento"
+                description="Saídas futuras"
                 icon={<DollarSign className="h-4 w-4 text-muted-foreground text-yellow-500" />}
                 trend="warning"
             />
         </div>
     );
 };
+
+// --- RESTANTE DOS COMPONENTES (Mantidos iguais, apenas ajustando imports se necessário) ---
 
 const ChartSection = ({
                           transactions,
@@ -267,22 +279,27 @@ const ChartSection = ({
     );
 };
 
-
 const RecentTransactionsList = ({ transactions, isLoading }: { transactions?: Transaction[], isLoading: boolean }) => {
     if (isLoading) return <div>Carregando...</div>;
     if (!transactions?.length) return <div>Nenhuma transação encontrada.</div>;
 
+    // A lista de recentes continua mostrando TUDO para histórico
     return (
         <div className="space-y-4">
             {transactions.slice(0, 4).map((transaction) => (
                 <div key={transaction.id} className="flex items-center justify-between space-x-4">
                     <div className="flex items-center space-x-4">
-                        <div className="rounded-full p-2 bg-muted">
+                        <div className={`rounded-full p-2 bg-muted ${transaction.status === 'PAGA' || transaction.status === 'RECEBIDA' ? 'opacity-50' : ''}`}>
                             <CreditCard className="h-4 w-4" />
                         </div>
                         <div>
                             <p className="text-sm font-medium leading-none">{transaction.description}</p>
-                            <p className="text-sm text-muted-foreground">{new Date().toLocaleDateString()}</p>
+                            <p className="text-sm text-muted-foreground">
+                                {transaction.date ? new Date(transaction.date).toLocaleDateString() : new Date().toLocaleDateString()}
+                                { (transaction.status === 'PAGA' || transaction.status === 'RECEBIDA') &&
+                                    <span className="ml-2 text-xs text-green-600 font-bold">(Pago)</span>
+                                }
+                            </p>
                         </div>
                     </div>
                     <div className="flex items-center space-x-4">
@@ -302,6 +319,10 @@ const RecentTransactionsList = ({ transactions, isLoading }: { transactions?: Tr
 const BudgetProgress = ({ transactions }: { transactions?: Transaction[] }) => {
     if (!transactions?.length) return null;
 
+    // Nota: O Budget geralmente contabiliza o GASTO total (pago ou não).
+    // Se quiseres que o Budget também ignore o que já foi pago (mostrando "quanto ainda falta pagar do orçamento"),
+    // adiciona .filter(t => t.status === 'PENDENTE') aqui também.
+    // Por padrão de orçamentos, mantivemos o total.
     const categoryExpenses = transactions
         .filter(t => t.type === 'DESPESA')
         .reduce((acc, curr) => {
@@ -315,8 +336,8 @@ const BudgetProgress = ({ transactions }: { transactions?: Transaction[] }) => {
         .map(([name, spent]) => ({
             name,
             spent,
-            budget: spent * 1.2, // Define um orçamento 20% maior que o gasto atual
-            percent: 83 // Valor fixo temporário, ajustar conforme necessidade
+            budget: spent * 1.2,
+            percent: 83
         }));
 
     return (

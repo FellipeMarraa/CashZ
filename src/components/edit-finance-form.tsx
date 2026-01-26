@@ -143,7 +143,6 @@ export const EditFinanceForm = ({ transaction, onClose }: EditFinanceFormProps) 
 
                     <div className="flex gap-4 justify-between">
                         <div className="flex-1 w-full">
-                            <Label>Valor</Label>
                             <div className="flex-1 w-full">
                                 <Label>Valor</Label>
                                 <NumericFormat
