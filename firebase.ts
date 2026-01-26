@@ -1,5 +1,6 @@
 import { initializeApp } from "firebase/app";
 import { getFirestore } from 'firebase/firestore/lite';
+import { sendPasswordResetEmail } from "firebase/auth";
 import {
     getAuth,
     createUserWithEmailAndPassword,
@@ -10,7 +11,7 @@ import {
     signInWithPopup,
     User
 } from "firebase/auth";
-import { toast } from "./src/hooks/use-toast";
+import { toast } from "@/hooks/use-toast.ts";
 
 const firebaseConfig = {
     apiKey: "AIzaSyCRFilxwocJcaTGyK2oNf8yYPYm-1PVGNs",
@@ -98,6 +99,27 @@ export async function logout() {
         });
     }
 }
+
+export const resetPassword = async (email: string) => {
+    try {
+        await sendPasswordResetEmail(auth, email);
+        toast({
+            title: "Email enviado!",
+            description: "Verifique sua caixa de entrada para redefinir a senha.",
+        });
+    } catch (error: any) {
+        let message = "Ocorreu um erro ao tentar enviar o email.";
+        if (error.code === "auth/user-not-found") message = "Este email não está cadastrado.";
+        if (error.code === "auth/invalid-email") message = "Email inválido.";
+
+        toast({
+            variant: "destructive",
+            title: "Erro ao redefinir senha",
+            description: message,
+        });
+        throw error;
+    }
+};
 
 export function onAuthChange(callback: (user: User | null) => void) {
     return onAuthStateChanged(auth, (user) => {

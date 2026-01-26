@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState } from "react";
 
-type ActiveDialog = "login" | "register" | "confirm-account" | "add-finance" | "edit-finance" | "delete-finance" | "all-notifications" | null;
+type ActiveDialog = "login" | "register" | "confirm-account" | "add-finance" | "edit-finance" | "delete-finance" | "forgot-password" | null;
 interface DialogManagerContextProps {
     activeDialog: ActiveDialog;
     setActiveDialog: (dialog: ActiveDialog, source?: string) => void;

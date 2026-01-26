@@ -6,7 +6,6 @@ import {Button} from "./ui/button"
 import {Input} from "./ui/input"
 import {Label} from "./ui/label"
 import {Checkbox} from "./ui/checkbox"
-import {RegisterForm} from "@/components/register-form.tsx";
 import {
   Dialog,
   DialogContent,
@@ -16,7 +15,7 @@ import {
   DialogTrigger
 } from "@/components/ui/dialog.tsx";
 import {useDialogManager} from "@/context/DialogManagerContext.tsx";
-import {login, loginWithGoogle} from "../../firebase"; // Ajuste o caminho conforme necessário
+import {login, loginWithGoogle} from "../../firebase"; // Importação restaurada
 
 interface LoginFormProps {
   dialogTrigger: React.ReactNode;
@@ -26,22 +25,13 @@ interface LoginFormProps {
 export const LoginForm: React.FC<LoginFormProps> = ({ dialogTrigger, onNavigateToDashboard }) => {
   const [isLoading, setIsLoading] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
+  const { activeDialog, setActiveDialog } = useDialogManager();
 
   const [formData, setFormData] = useState({
     email: "",
     password: "",
-    rememberMe: false,
+    rememberMe: true,
   })
-
-  useEffect(() => {
-    setFormData({
-      email: "",
-      password: "",
-      rememberMe: true,
-    })
-  }, []);
-
-  const { activeDialog, setActiveDialog } = useDialogManager();
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target
@@ -55,19 +45,12 @@ export const LoginForm: React.FC<LoginFormProps> = ({ dialogTrigger, onNavigateT
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsLoading(true)
-
     try {
-      // Chama a função de login do Firebase
       await login(formData.email, formData.password);
-
-      // Se não der erro, fechamos o modal e navegamos
       setActiveDialog(null);
       onNavigateToDashboard();
-
     } catch (error: any) {
-      // O tratamento de erro (toast) já é feito dentro do firebase.ts,
-      // mas podemos reforçar aqui se necessário, ou apenas deixar o catch pegar.
-      // Como o firebase.ts já lança toast, aqui garantimos apenas que o loading pare.
+      // Erro tratado no firebase.ts
     } finally {
       setIsLoading(false)
     }
@@ -88,14 +71,14 @@ export const LoginForm: React.FC<LoginFormProps> = ({ dialogTrigger, onNavigateT
         <DialogTrigger asChild>
           <div className="cursor-pointer" onClick={() => setActiveDialog("login")}>{dialogTrigger}</div>
         </DialogTrigger>
-        <DialogContent className="sm:max-w-[425px] overscroll-y-auto bg-white">
+        <DialogContent className="w-[calc(100%-2rem)] sm:max-w-[425px] max-h-[95vh] overflow-y-auto bg-white rounded-lg">
           <DialogHeader>
             <DialogTitle className="dark:text-gray-600">Entrar</DialogTitle>
             <DialogDescription className="dark:text-gray-600">Acesse sua conta para gerenciar suas finanças</DialogDescription>
           </DialogHeader>
-          <form onSubmit={handleSubmit} className="space-y-4 py-4">
-            <div className="space-y-2 dark:text-gray-600">
-              <Label htmlFor="email" className="dark:text-gray-600">Email</Label>
+          <form onSubmit={handleSubmit} className="space-y-2 py-2">
+            <div className="space-y-1 dark:text-gray-600">
+              <Label htmlFor="email">Email</Label>
               <Input
                   id="email"
                   name="email"
@@ -106,14 +89,18 @@ export const LoginForm: React.FC<LoginFormProps> = ({ dialogTrigger, onNavigateT
                   required
               />
             </div>
-            <div className="space-y-2 dark:text-gray-600">
+            <div className="space-y-2 dark:text-gray-600 pb-2">
               <div className="flex justify-between items-center">
                 <Label htmlFor="password">Senha</Label>
-                <a href="#" className="text-sm text-emerald-600 hover:text-emerald-500">
+                <button
+                    type="button"
+                    onClick={() => setActiveDialog("forgot-password")}
+                    className="text-sm text-emerald-600 hover:text-emerald-500 font-medium bg-transparent border-none p-0 cursor-pointer"
+                >
                   Esqueceu a senha?
-                </a>
+                </button>
               </div>
-              <div className="relative dark:text-gray-600">
+              <div className="relative">
                 <Input
                     id="password"
                     name="password"
@@ -127,7 +114,7 @@ export const LoginForm: React.FC<LoginFormProps> = ({ dialogTrigger, onNavigateT
                     type="button"
                     variant="ghost"
                     size="icon"
-                    className="absolute right-0 top-0 h-full px-3 py-2 text-gray-400 dark:hover:bg-transparent hover:text-gray-600"
+                    className="absolute right-0 top-0 h-full px-3 py-2 text-gray-400 hover:text-gray-600"
                     onClick={() => setShowPassword(!showPassword)}
                 >
                   {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
@@ -135,29 +122,30 @@ export const LoginForm: React.FC<LoginFormProps> = ({ dialogTrigger, onNavigateT
               </div>
             </div>
 
-            <div className="flex items-center space-x-2 ">
-              <Checkbox className="cursor-pointer dark:text-gray-600 dark:border-gray-600" id="remember" checked={formData.rememberMe} onCheckedChange={handleCheckboxChange} />
-              <Label htmlFor="remember" className="text-sm font-normal dark:text-gray-600">
-                Lembrar de mim
-              </Label>
-            </div>
+            {/*<div className="flex items-center space-x-2 py-1">*/}
+            {/*  <Checkbox id="remember" checked={formData.rememberMe} onCheckedChange={handleCheckboxChange} />*/}
+            {/*  <Label htmlFor="remember" className="text-sm font-normal dark:text-gray-600 cursor-pointer">*/}
+            {/*    Lembrar de mim*/}
+            {/*  </Label>*/}
+            {/*</div>*/}
 
-            <Button variant="outline" type="submit" className="w-full cursor-pointer bg-gradient-to-r from-emerald-500 to-teal-500 mt-2 text-white" disabled={isLoading}>
-              {isLoading ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Entrando...
-                  </>
-              ) : (
-                  "Entrar"
-              )}
+            <Button variant="outline" type="submit" className="w-full bg-gradient-to-r from-emerald-500 to-teal-500 py-6 text-white font-semibold" disabled={isLoading}>
+              {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : "Entrar"}
             </Button>
 
-            {/* Botão Google Adicionado (Opcional, mas recomendado) */}
+            <div className="relative py-2">
+              <div className="absolute inset-0 flex items-center">
+                <span className="w-full border-t" />
+              </div>
+              <div className="relative flex justify-center text-xs uppercase">
+                <span className="bg-white px-2 text-muted-foreground font-medium italic">Ou</span>
+              </div>
+            </div>
+
             <Button
                 type="button"
                 variant="outline"
-                className="w-full mt-2"
+                className="w-full py-6 font-medium"
                 onClick={handleGoogleLogin}
             >
               <svg className="mr-2 h-4 w-4" viewBox="0 0 24 24">
@@ -169,11 +157,11 @@ export const LoginForm: React.FC<LoginFormProps> = ({ dialogTrigger, onNavigateT
               Entrar com Google
             </Button>
 
-            <div className="text-center text-sm">
+            <div className="text-center text-sm pt-4">
               <span className="text-gray-500">Não tem uma conta? </span>
-              <span onClick={() => setActiveDialog("register")}>
-              <RegisterForm onNavigateToDashboard={onNavigateToDashboard} dialogTrigger="Registre-se" />
-            </span>
+              <span onClick={() => setActiveDialog("register")} className="inline-block font-medium text-emerald-600 cursor-pointer">
+                Registre-se
+              </span>
             </div>
           </form>
         </DialogContent>

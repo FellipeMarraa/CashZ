@@ -126,13 +126,13 @@ export const EditFinanceForm = ({ transaction, onClose }: EditFinanceFormProps) 
 
     return (
         <Dialog open={isOpen} onOpenChange={(open) => !open && setActiveDialog(null)}>
-            <DialogContent>
+            <DialogContent className="w-[calc(100%-2rem)] sm:max-w-[550px] max-h-[95vh] overflow-y-auto rounded-lg">
                 <DialogHeader>
                     <DialogTitle>Editar Transação</DialogTitle>
                 </DialogHeader>
 
-                <div className="space-y-4">
-                    <div>
+                <div className="space-y-4 py-2">
+                    <div className="grid gap-1.5">
                         <Label>Descrição</Label>
                         <Input
                             value={description}
@@ -141,32 +141,30 @@ export const EditFinanceForm = ({ transaction, onClose }: EditFinanceFormProps) 
                         />
                     </div>
 
-                    <div className="flex gap-4 justify-between">
-                        <div className="flex-1 w-full">
-                            <div className="flex-1 w-full">
-                                <Label>Valor</Label>
-                                <NumericFormat
-                                    customInput={Input}
-                                    value={amount}
-                                    onValueChange={(values) => {
-                                        setAmount(values.floatValue?.toString() || '');
-                                    }}
-                                    thousandSeparator="."
-                                    decimalSeparator=","
-                                    decimalScale={2}
-                                    fixedDecimalScale
-                                    prefix="R$ "
-                                    placeholder="R$ 0,00"
-                                    className="w-full"
-                                    required
-                                />
-                            </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
+                        <div className="sm:col-span-2 grid gap-1.5">
+                            <Label>Valor</Label>
+                            <NumericFormat
+                                customInput={Input}
+                                value={amount}
+                                onValueChange={(values) => {
+                                    setAmount(values.floatValue?.toString() || '');
+                                }}
+                                thousandSeparator="."
+                                decimalSeparator=","
+                                decimalScale={2}
+                                fixedDecimalScale
+                                prefix="R$ "
+                                placeholder="R$ 0,00"
+                                className="w-full"
+                                required
+                            />
                         </div>
-                        <div>
+                        <div className="grid gap-1.5">
                             <Label>Mês</Label>
                             <Select value={month} onValueChange={(value) => setMonth(value)} required>
-                                <SelectTrigger className="w-28">
-                                    <SelectValue placeholder="Selecionar Mês" />
+                                <SelectTrigger className="w-full">
+                                    <SelectValue placeholder="Mês" />
                                 </SelectTrigger>
                                 <SelectContent>
                                     {IMes.map((mes, index) => (
@@ -177,15 +175,15 @@ export const EditFinanceForm = ({ transaction, onClose }: EditFinanceFormProps) 
                                 </SelectContent>
                             </Select>
                         </div>
-                        <div>
+                        <div className="grid gap-1.5">
                             <Label>Ano</Label>
                             <Select
                                 value={year.toString()}
                                 onValueChange={(value) => setYear(Number(value))}
                                 required
                             >
-                                <SelectTrigger className="w-20">
-                                    <SelectValue placeholder="Selecionar Ano" />
+                                <SelectTrigger className="w-full">
+                                    <SelectValue placeholder="Ano" />
                                 </SelectTrigger>
                                 <SelectContent>
                                     {generateYears(new Date().getFullYear() - 5, new Date().getFullYear() + 5).map((year) => (
@@ -198,11 +196,11 @@ export const EditFinanceForm = ({ transaction, onClose }: EditFinanceFormProps) 
                         </div>
                     </div>
 
-                    <div className="flex gap-4 justify-between">
-                        <div className="flex-1 w-full">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div className="grid gap-1.5">
                             <Label>Categoria</Label>
                             <Select value={categoryId} onValueChange={setCategoryId} required>
-                                <SelectTrigger>
+                                <SelectTrigger className="w-full">
                                     <SelectValue placeholder="Selecione uma categoria" />
                                 </SelectTrigger>
                                 <SelectContent>
@@ -215,14 +213,14 @@ export const EditFinanceForm = ({ transaction, onClose }: EditFinanceFormProps) 
                             </Select>
                         </div>
 
-                        <div className="flex-1 w-full">
+                        <div className="grid gap-1.5">
                             <Label>Tipo</Label>
                             <Select
                                 value={type}
                                 onValueChange={(value: "RECEITA" | "DESPESA") => setType(value)}
                                 required
                             >
-                                <SelectTrigger>
+                                <SelectTrigger className="w-full">
                                     <SelectValue placeholder="Tipo" />
                                 </SelectTrigger>
                                 <SelectContent>
@@ -233,15 +231,15 @@ export const EditFinanceForm = ({ transaction, onClose }: EditFinanceFormProps) 
                         </div>
                     </div>
 
-                    <div className="flex gap-4">
-                        <div className="flex-1">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div className="grid gap-1.5">
                             <Label>Recorrência</Label>
                             <Select
                                 value={recurrence}
                                 onValueChange={(value: "UNICO" | "PARCELADO" | "FIXO") => setRecurrence(value)}
                                 required
                             >
-                                <SelectTrigger>
+                                <SelectTrigger className="w-full">
                                     <SelectValue placeholder="Recorrência" />
                                 </SelectTrigger>
                                 <SelectContent>
@@ -253,7 +251,7 @@ export const EditFinanceForm = ({ transaction, onClose }: EditFinanceFormProps) 
                         </div>
 
                         {recurrence === "PARCELADO" && (
-                            <div className="flex-1">
+                            <div className="grid gap-1.5 animate-in fade-in">
                                 <Label>Parcelas</Label>
                                 <Input
                                     type="number"
@@ -265,29 +263,8 @@ export const EditFinanceForm = ({ transaction, onClose }: EditFinanceFormProps) 
                         )}
                     </div>
 
-                    {/*<div className="flex-1">*/}
-                    {/*    <Label>Status</Label>*/}
-                    {/*    <Select*/}
-                    {/*        value={status}*/}
-                    {/*        onValueChange={(value: "PAGA" | "PENDENTE" | "RECEBIDA") => setStatus(value)}*/}
-                    {/*        required*/}
-                    {/*    >*/}
-                    {/*        <SelectTrigger>*/}
-                    {/*            <SelectValue placeholder="Status" />*/}
-                    {/*        </SelectTrigger>*/}
-                    {/*        <SelectContent>*/}
-                    {/*            <SelectItem value="PENDENTE">Pendente</SelectItem>*/}
-                    {/*            {type === "RECEITA" ? (*/}
-                    {/*                <SelectItem value="RECEBIDA">Recebida</SelectItem>*/}
-                    {/*            ) : (*/}
-                    {/*                <SelectItem value="PAGA">Paga</SelectItem>*/}
-                    {/*            )}*/}
-                    {/*        </SelectContent>*/}
-                    {/*    </Select>*/}
-                    {/*</div>*/}
-
                     <div className="flex justify-end pt-4">
-                        <Button onClick={handleSubmit}>Atualizar Transação</Button>
+                        <Button className="w-full sm:w-auto" onClick={handleSubmit}>Atualizar Transação</Button>
                     </div>
                 </div>
             </DialogContent>

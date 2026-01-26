@@ -6,9 +6,10 @@ import {BarChart3, ChevronRight, LogInIcon, Menu, PieChart, Shield, TrendingUp, 
 import {Player} from "@lottiefiles/react-lottie-player";
 import {LoginForm} from "./login-form";
 import {Button} from "./ui/button";
-import {Card, CardContent, CardDescription, CardHeader, CardTitle} from "./ui/card";
+import {Card, CardContent, CardHeader, CardTitle} from "./ui/card";
 import {RegisterForm} from "./register-form";
 import {Avatar, AvatarFallback, AvatarImage} from "@/components/ui/avatar.tsx";
+import {ForgotPasswordForm} from "@/components/forgot-password-form.tsx";
 
 interface LandingPageProps {
     onNavigateToDashboard: () => void;
@@ -95,9 +96,9 @@ export const LandingPage = ({ onNavigateToDashboard }: LandingPageProps) => {
                         <a href="#testimonials" className="text-gray-600 hover:text-emerald-500 transition-colors">
                             Depoimentos
                         </a>
-                        <a href="#pricing" className="text-gray-600 hover:text-emerald-500 transition-colors">
-                            Preços
-                        </a>
+                        {/*<a href="#pricing" className="text-gray-600 hover:text-emerald-500 transition-colors">*/}
+                        {/*    Preços*/}
+                        {/*</a>*/}
                         <LoginForm onNavigateToDashboard={onNavigateToDashboard} dialogTrigger={
                             <>
                                 <Button variant="outline" className="mr-2 bg-gradient-to-r from-emerald-500 to-teal-500 border-none cursor-pointer px-4 py-2 text-white">
@@ -397,138 +398,138 @@ export const LandingPage = ({ onNavigateToDashboard }: LandingPageProps) => {
             </section>
 
             {/* Pricing Section */}
-            <section id="pricing" className="py-16 md:py-28 px-4 md:px-8">
-                <div className="container mx-auto px-4">
-                    <motion.div
-                        initial={{ opacity: 0, y: 20 }}
-                        whileInView={{ opacity: 1, y: 0 }}
-                        viewport={{ once: true }}
-                        transition={{ duration: 0.5 }}
-                        className="text-center mb-12 md:mb-16"
-                    >
-                        <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">Planos Simples e Transparentes</h2>
-                        <p className="text-lg md:text-xl text-gray-600 max-w-2xl mx-auto">
-                            Escolha o plano ideal para suas necessidades financeiras
-                        </p>
-                    </motion.div>
+            {/*<section id="pricing" className="py-16 md:py-28 px-4 md:px-8">*/}
+            {/*    <div className="container mx-auto px-4">*/}
+            {/*        <motion.div*/}
+            {/*            initial={{ opacity: 0, y: 20 }}*/}
+            {/*            whileInView={{ opacity: 1, y: 0 }}*/}
+            {/*            viewport={{ once: true }}*/}
+            {/*            transition={{ duration: 0.5 }}*/}
+            {/*            className="text-center mb-12 md:mb-16"*/}
+            {/*        >*/}
+            {/*            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">Planos Simples e Transparentes</h2>*/}
+            {/*            <p className="text-lg md:text-xl text-gray-600 max-w-2xl mx-auto">*/}
+            {/*                Escolha o plano ideal para suas necessidades financeiras*/}
+            {/*            </p>*/}
+            {/*        </motion.div>*/}
 
-                    <div className="grid md:grid-cols-3 gap-8 max-w-5xl mx-auto">
-                        <motion.div
-                            initial={{ opacity: 0, y: 20 }}
-                            whileInView={{ opacity: 1, y: 0 }}
-                            viewport={{ once: true }}
-                            transition={{ duration: 0.5 }}
-                        >
-                            <Card className="h-full border-none shadow-lg hover:shadow-xl text-white transition-shadow rounded-2xl flex flex-col bg-gradient-to-r from-emerald-500 to-teal-500">
-                                <CardHeader>
-                                    <CardTitle>Mensal</CardTitle>
-                                    <CardDescription className="dark:text-white text-white">Plano Básico Mensal</CardDescription>
-                                    <div className="mt-4">
-                                        <span className="text-4xl font-bold">R$29</span>
-                                        <span className="text-white">/mês</span>
-                                    </div>
-                                </CardHeader>
-                                <CardContent className="h-full w-full">
-                                    <ul className="space-y-3">
-                                        <li className="flex items-center">
-                                            <ChevronRight className="h-4 w-4 text-white mr-2 shrink-0" />
-                                            <span>Análises básicas de mercado</span>
-                                        </li>
-                                        <li className="flex items-center">
-                                            <ChevronRight className="h-4 w-4 text-white mr-2 shrink-0" />
-                                            <span>Gestão de até 5 investimentos</span>
-                                        </li>
-                                        <li className="flex items-center">
-                                            <ChevronRight className="h-4 w-4 text-white mr-2 shrink-0" />
-                                            <span>Relatórios mensais</span>
-                                        </li>
-                                        <li className="flex items-center">
-                                            <ChevronRight className="h-4 w-4 text-white mr-2 shrink-0" />
-                                            <span>Suporte por email</span>
-                                        </li>
-                                    </ul>
-                                </CardContent>
-                            </Card>
-                        </motion.div>
+            {/*        <div className="grid md:grid-cols-3 gap-8 max-w-5xl mx-auto">*/}
+            {/*            <motion.div*/}
+            {/*                initial={{ opacity: 0, y: 20 }}*/}
+            {/*                whileInView={{ opacity: 1, y: 0 }}*/}
+            {/*                viewport={{ once: true }}*/}
+            {/*                transition={{ duration: 0.5 }}*/}
+            {/*            >*/}
+            {/*                <Card className="h-full border-none shadow-lg hover:shadow-xl text-white transition-shadow rounded-2xl flex flex-col bg-gradient-to-r from-emerald-500 to-teal-500">*/}
+            {/*                    <CardHeader>*/}
+            {/*                        <CardTitle>Mensal</CardTitle>*/}
+            {/*                        <CardDescription className="dark:text-white text-white">Plano Básico Mensal</CardDescription>*/}
+            {/*                        <div className="mt-4">*/}
+            {/*                            <span className="text-4xl font-bold">R$29</span>*/}
+            {/*                            <span className="text-white">/mês</span>*/}
+            {/*                        </div>*/}
+            {/*                    </CardHeader>*/}
+            {/*                    <CardContent className="h-full w-full">*/}
+            {/*                        <ul className="space-y-3">*/}
+            {/*                            <li className="flex items-center">*/}
+            {/*                                <ChevronRight className="h-4 w-4 text-white mr-2 shrink-0" />*/}
+            {/*                                <span>Análises básicas de mercado</span>*/}
+            {/*                            </li>*/}
+            {/*                            <li className="flex items-center">*/}
+            {/*                                <ChevronRight className="h-4 w-4 text-white mr-2 shrink-0" />*/}
+            {/*                                <span>Gestão de até 5 investimentos</span>*/}
+            {/*                            </li>*/}
+            {/*                            <li className="flex items-center">*/}
+            {/*                                <ChevronRight className="h-4 w-4 text-white mr-2 shrink-0" />*/}
+            {/*                                <span>Relatórios mensais</span>*/}
+            {/*                            </li>*/}
+            {/*                            <li className="flex items-center">*/}
+            {/*                                <ChevronRight className="h-4 w-4 text-white mr-2 shrink-0" />*/}
+            {/*                                <span>Suporte por email</span>*/}
+            {/*                            </li>*/}
+            {/*                        </ul>*/}
+            {/*                    </CardContent>*/}
+            {/*                </Card>*/}
+            {/*            </motion.div>*/}
 
-                        <motion.div
-                            initial={{ opacity: 0, y: 20 }}
-                            whileInView={{ opacity: 1, y: 0 }}
-                            viewport={{ once: true }}
-                            transition={{ duration: 0.5 }}
-                        >
-                            <Card className="h-full border-none shadow-lg hover:shadow-xl text-white transition-shadow rounded-2xl flex flex-col bg-gradient-to-r from-emerald-500 to-teal-500">
-                                <CardHeader>
-                                    <CardTitle>Trimestral</CardTitle>
-                                    <CardDescription className="dark:text-white text-white">Plano Básico Trimestral</CardDescription>
-                                    <div className="mt-4">
-                                        <span className="text-4xl font-bold">R$85</span>
-                                        <span className="text-white">/trimestre</span>
-                                    </div>
-                                </CardHeader>
-                                <CardContent className="h-full w-full">
-                                    <ul className="space-y-3">
-                                        <li className="flex items-center">
-                                            <ChevronRight className="h-4 w-4 text-white mr-2 shrink-0" />
-                                            <span>Análises básicas de mercado</span>
-                                        </li>
-                                        <li className="flex items-center">
-                                            <ChevronRight className="h-4 w-4 text-white mr-2 shrink-0" />
-                                            <span>Gestão de até 5 investimentos</span>
-                                        </li>
-                                        <li className="flex items-center">
-                                            <ChevronRight className="h-4 w-4 text-white mr-2 shrink-0" />
-                                            <span>Relatórios mensais</span>
-                                        </li>
-                                        <li className="flex items-center">
-                                            <ChevronRight className="h-4 w-4 text-white mr-2 shrink-0" />
-                                            <span>Suporte por email</span>
-                                        </li>
-                                    </ul>
-                                </CardContent>
-                            </Card>
-                        </motion.div>
+            {/*            <motion.div*/}
+            {/*                initial={{ opacity: 0, y: 20 }}*/}
+            {/*                whileInView={{ opacity: 1, y: 0 }}*/}
+            {/*                viewport={{ once: true }}*/}
+            {/*                transition={{ duration: 0.5 }}*/}
+            {/*            >*/}
+            {/*                <Card className="h-full border-none shadow-lg hover:shadow-xl text-white transition-shadow rounded-2xl flex flex-col bg-gradient-to-r from-emerald-500 to-teal-500">*/}
+            {/*                    <CardHeader>*/}
+            {/*                        <CardTitle>Trimestral</CardTitle>*/}
+            {/*                        <CardDescription className="dark:text-white text-white">Plano Básico Trimestral</CardDescription>*/}
+            {/*                        <div className="mt-4">*/}
+            {/*                            <span className="text-4xl font-bold">R$85</span>*/}
+            {/*                            <span className="text-white">/trimestre</span>*/}
+            {/*                        </div>*/}
+            {/*                    </CardHeader>*/}
+            {/*                    <CardContent className="h-full w-full">*/}
+            {/*                        <ul className="space-y-3">*/}
+            {/*                            <li className="flex items-center">*/}
+            {/*                                <ChevronRight className="h-4 w-4 text-white mr-2 shrink-0" />*/}
+            {/*                                <span>Análises básicas de mercado</span>*/}
+            {/*                            </li>*/}
+            {/*                            <li className="flex items-center">*/}
+            {/*                                <ChevronRight className="h-4 w-4 text-white mr-2 shrink-0" />*/}
+            {/*                                <span>Gestão de até 5 investimentos</span>*/}
+            {/*                            </li>*/}
+            {/*                            <li className="flex items-center">*/}
+            {/*                                <ChevronRight className="h-4 w-4 text-white mr-2 shrink-0" />*/}
+            {/*                                <span>Relatórios mensais</span>*/}
+            {/*                            </li>*/}
+            {/*                            <li className="flex items-center">*/}
+            {/*                                <ChevronRight className="h-4 w-4 text-white mr-2 shrink-0" />*/}
+            {/*                                <span>Suporte por email</span>*/}
+            {/*                            </li>*/}
+            {/*                        </ul>*/}
+            {/*                    </CardContent>*/}
+            {/*                </Card>*/}
+            {/*            </motion.div>*/}
 
-                        <motion.div
-                            initial={{ opacity: 0, y: 20 }}
-                            whileInView={{ opacity: 1, y: 0 }}
-                            viewport={{ once: true }}
-                            transition={{ duration: 0.5 }}
-                        >
-                            <Card className="h-full border-none shadow-lg hover:shadow-xl text-white transition-shadow rounded-2xl flex flex-col bg-gradient-to-r from-emerald-500 to-teal-500">
-                                <CardHeader>
-                                    <CardTitle>Anual</CardTitle>
-                                    <CardDescription className="dark:text-white text-white">Plano Básico Anual</CardDescription>
-                                    <div className="mt-4">
-                                        <span className="text-4xl font-bold">R$350</span>
-                                        <span className="text-white">/anual</span>
-                                    </div>
-                                </CardHeader>
-                                <CardContent className="h-full w-full">
-                                    <ul className="space-y-3">
-                                        <li className="flex items-center">
-                                            <ChevronRight className="h-4 w-4 text-white mr-2 shrink-0" />
-                                            <span>Análises básicas de mercado</span>
-                                        </li>
-                                        <li className="flex items-center">
-                                            <ChevronRight className="h-4 w-4 text-white mr-2 shrink-0" />
-                                            <span>Gestão de até 5 investimentos</span>
-                                        </li>
-                                        <li className="flex items-center">
-                                            <ChevronRight className="h-4 w-4 text-white mr-2 shrink-0" />
-                                            <span>Relatórios mensais</span>
-                                        </li>
-                                        <li className="flex items-center">
-                                            <ChevronRight className="h-4 w-4 text-white mr-2 shrink-0" />
-                                            <span>Suporte por email</span>
-                                        </li>
-                                    </ul>
-                                </CardContent>
-                            </Card>
-                        </motion.div>
-                    </div>
-                </div>
-            </section>
+            {/*            <motion.div*/}
+            {/*                initial={{ opacity: 0, y: 20 }}*/}
+            {/*                whileInView={{ opacity: 1, y: 0 }}*/}
+            {/*                viewport={{ once: true }}*/}
+            {/*                transition={{ duration: 0.5 }}*/}
+            {/*            >*/}
+            {/*                <Card className="h-full border-none shadow-lg hover:shadow-xl text-white transition-shadow rounded-2xl flex flex-col bg-gradient-to-r from-emerald-500 to-teal-500">*/}
+            {/*                    <CardHeader>*/}
+            {/*                        <CardTitle>Anual</CardTitle>*/}
+            {/*                        <CardDescription className="dark:text-white text-white">Plano Básico Anual</CardDescription>*/}
+            {/*                        <div className="mt-4">*/}
+            {/*                            <span className="text-4xl font-bold">R$350</span>*/}
+            {/*                            <span className="text-white">/anual</span>*/}
+            {/*                        </div>*/}
+            {/*                    </CardHeader>*/}
+            {/*                    <CardContent className="h-full w-full">*/}
+            {/*                        <ul className="space-y-3">*/}
+            {/*                            <li className="flex items-center">*/}
+            {/*                                <ChevronRight className="h-4 w-4 text-white mr-2 shrink-0" />*/}
+            {/*                                <span>Análises básicas de mercado</span>*/}
+            {/*                            </li>*/}
+            {/*                            <li className="flex items-center">*/}
+            {/*                                <ChevronRight className="h-4 w-4 text-white mr-2 shrink-0" />*/}
+            {/*                                <span>Gestão de até 5 investimentos</span>*/}
+            {/*                            </li>*/}
+            {/*                            <li className="flex items-center">*/}
+            {/*                                <ChevronRight className="h-4 w-4 text-white mr-2 shrink-0" />*/}
+            {/*                                <span>Relatórios mensais</span>*/}
+            {/*                            </li>*/}
+            {/*                            <li className="flex items-center">*/}
+            {/*                                <ChevronRight className="h-4 w-4 text-white mr-2 shrink-0" />*/}
+            {/*                                <span>Suporte por email</span>*/}
+            {/*                            </li>*/}
+            {/*                        </ul>*/}
+            {/*                    </CardContent>*/}
+            {/*                </Card>*/}
+            {/*            </motion.div>*/}
+            {/*        </div>*/}
+            {/*    </div>*/}
+            {/*</section>*/}
 
             <section className="py-20 px-4 md:px-8">
                 <motion.div
@@ -671,7 +672,9 @@ export const LandingPage = ({ onNavigateToDashboard }: LandingPageProps) => {
                     </div>
                 </div>
             </footer>
+            <ForgotPasswordForm />
         </div>
+
     )
 }
 

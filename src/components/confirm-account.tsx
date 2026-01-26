@@ -103,8 +103,6 @@ export const ConfirmAccount: React.FC<ConfirmAccountProps> = ({ dialogTrigger, o
         throw new Error(errorText);
       }
 
-      // const message = await response.text();
-
       setActiveDialog(null);
       onNavigateToDashboard();
     } catch (error) {
@@ -161,6 +159,7 @@ export const ConfirmAccount: React.FC<ConfirmAccountProps> = ({ dialogTrigger, o
       });
     }
   };
+
   return (
       <Dialog open={activeDialog === "confirm-account"} onOpenChange={(open) => setActiveDialog(open ? "confirm-account" : null)}>
         <DialogTrigger asChild>
@@ -168,20 +167,20 @@ export const ConfirmAccount: React.FC<ConfirmAccountProps> = ({ dialogTrigger, o
             {dialogTrigger}
           </div>
         </DialogTrigger>
-        <DialogContent className="sm:max-w-[425px] bg-white">
+        <DialogContent className="w-[95vw] sm:max-w-[425px] max-h-[95vh] overflow-y-auto bg-white rounded-lg">
           <DialogHeader>
-            <DialogTitle className="dark:text-gray-600">Confirmar conta</DialogTitle>
-            {dialogSource == '' || dialogSource == null ? (
-                <DialogDescription className="dark:text-gray-600 flex items-center justify-center">
-                  Código enviado para: {formData.email}
+            <DialogTitle className="dark:text-gray-600 text-center sm:text-left">Confirmar conta</DialogTitle>
+            {dialogSource === '' || dialogSource == null ? (
+                <DialogDescription className="dark:text-gray-600 text-center sm:text-left">
+                  Código enviado para: <span className="font-medium break-all">{formData.email}</span>
                 </DialogDescription>
             ) : (
-                <DialogDescription className="dark:text-gray-600">
+                <DialogDescription className="dark:text-gray-600 text-center sm:text-left">
                   Informe seu email para receber o código de confirmação.
                 </DialogDescription>
             )}
           </DialogHeader>
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form onSubmit={handleSubmit} className="space-y-6 mt-2">
             {(!formData.email || !codeSent) && (
                 <div className="space-y-2 dark:text-gray-600">
                   <Label htmlFor="email">Email</Label>
@@ -193,14 +192,15 @@ export const ConfirmAccount: React.FC<ConfirmAccountProps> = ({ dialogTrigger, o
                       value={formData.email}
                       onChange={handleEmailChange}
                       required
+                      className="w-full"
                   />
                 </div>
             )}
 
-            <div className="space-y-2 flex flex-col items-center dark:text-gray-600">
-              <Label htmlFor="code">Código de confirmação</Label>
-              <div className="flex gap-2">
-                <InputOTP maxLength={6} onChange={handleChange}>
+            <div className="space-y-4 flex flex-col items-center dark:text-gray-600">
+              <Label htmlFor="code" className="text-center">Código de confirmação</Label>
+              <div className="flex flex-col items-center gap-4 w-full">
+                <InputOTP maxLength={6} onChange={handleChange} className="w-full justify-center">
                   <InputOTPGroup>
                     <InputOTPSlot index={0} />
                     <InputOTPSlot index={1} />
@@ -213,22 +213,23 @@ export const ConfirmAccount: React.FC<ConfirmAccountProps> = ({ dialogTrigger, o
                     <InputOTPSlot index={5} />
                   </InputOTPGroup>
                 </InputOTP>
+
                 <Button
                     type="button"
                     variant="outline"
-                    className="text-sm"
+                    className="text-sm w-full sm:w-auto"
                     onClick={handleResendCode}
                     disabled={resendCooldown > 0}
                 >
-                  {resendCooldown > 0 ? `Reenviar (${resendCooldown}s)` : "Reenviar"}
+                  {resendCooldown > 0 ? `Reenviar (${resendCooldown}s)` : "Reenviar código"}
                 </Button>
-
               </div>
             </div>
+
             <Button
                 variant="outline"
                 type="submit"
-                className="w-full cursor-pointer bg-gradient-to-r from-emerald-500 to-teal-500 mt-2 text-white"
+                className="w-full cursor-pointer bg-gradient-to-r from-emerald-500 to-teal-500 text-white font-semibold py-6"
                 disabled={isLoading}
             >
               {isLoading ? (

@@ -29,12 +29,12 @@ export const DeleteFinanceDialog = ({ transaction, onConfirm, isDeleting }: Dele
             setActiveDialog(null);
             setDeleteAll(false);
         }}>
-            <DialogContent>
+            <DialogContent className="w-[95vw] sm:max-w-[425px] max-h-[95vh] overflow-y-auto rounded-lg">
                 <DialogHeader>
-                    <DialogTitle>Confirmar Exclusão</DialogTitle>
-                    <DialogDescription className="pt-3">
+                    <DialogTitle className="text-left">Confirmar Exclusão</DialogTitle>
+                    <DialogDescription className="pt-3 text-left">
                         Você tem certeza que deseja excluir a transação
-                        <span className="font-medium"> {transaction?.description}</span>?
+                        <span className="font-medium text-foreground"> {transaction?.description}</span>?
                         {isRecurrent && (
                             <p className="mt-2 text-muted-foreground">
                                 Esta é uma transação {transaction?.recurrence.toLowerCase()}.
@@ -44,23 +44,24 @@ export const DeleteFinanceDialog = ({ transaction, onConfirm, isDeleting }: Dele
                 </DialogHeader>
 
                 {isRecurrent && (
-                    <div className="flex items-center space-x-2 py-2">
+                    <div className="flex items-center space-x-3 py-4 border-y my-2">
                         <Switch
                             id="delete-all"
                             checked={deleteAll}
                             onCheckedChange={setDeleteAll}
                         />
-                        <Label htmlFor="delete-all" className="text-sm">
+                        <Label htmlFor="delete-all" className="text-sm cursor-pointer leading-tight">
                             Excluir todas as {transaction?.recurrence === "FIXO" ? "recorrências" : "parcelas"}
                         </Label>
                     </div>
                 )}
 
-                <DialogFooter className="gap-2 sm:gap-0">
+                <DialogFooter className="flex flex-col-reverse sm:flex-row gap-3 sm:gap-2 mt-4">
                     <Button
                         variant="outline"
                         onClick={() => setActiveDialog(null)}
                         disabled={isDeleting}
+                        className="w-full sm:w-auto"
                     >
                         Cancelar
                     </Button>
@@ -68,6 +69,7 @@ export const DeleteFinanceDialog = ({ transaction, onConfirm, isDeleting }: Dele
                         variant="destructive"
                         onClick={handleConfirm}
                         disabled={isDeleting}
+                        className="w-full sm:w-auto"
                     >
                         {isDeleting ? "Excluindo..." : "Excluir"}
                     </Button>

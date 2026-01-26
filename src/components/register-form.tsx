@@ -63,8 +63,7 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({ dialogTrigger, onNav
       // 1. Cria a conta no Firebase
       await register(formData.email, formData.password);
 
-      // 2. Atualiza o perfil com o nome digitado (Opcional, mas recomendado)
-      // O register faz login automático, então auth.currentUser já deve estar disponível
+      // 2. Atualiza o perfil com o nome digitado
       if (auth.currentUser) {
         await updateProfile(auth.currentUser, {
           displayName: formData.name
@@ -76,7 +75,6 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({ dialogTrigger, onNav
       onNavigateToDashboard();
 
     } catch (error: any) {
-      // Erros são tratados no firebase.ts (toast), mas se falhar o updateProfile pode cair aqui
       console.error("Erro no fluxo de registro:", error);
     } finally {
       setIsLoading(false);
@@ -89,12 +87,12 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({ dialogTrigger, onNav
         <DialogTrigger asChild>
           <div className="text-emerald-600 hover:text-emerald-500 font-medium cursor-pointer flex items-center justify-center dark:text-emerald-600 dark:hover:text-emerald-500" onClick={() => setActiveDialog("register")}>{dialogTrigger}</div>
         </DialogTrigger>
-        <DialogContent className="sm:max-w-[425px] bg-white">
+        <DialogContent className="w-[calc(100%-2rem)] sm:max-w-[425px] max-h-[95vh] overflow-y-auto bg-white rounded-lg">
           <DialogHeader>
             <DialogTitle className="dark:text-gray-600">Criar Conta</DialogTitle>
             <DialogDescription className="dark:text-gray-600">Registre-se para começar a gerenciar suas finanças</DialogDescription>
           </DialogHeader>
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form onSubmit={handleSubmit} className="space-y-4 py-2">
             <div className="space-y-2 dark:text-gray-600">
               <Label htmlFor="name">Nome completo</Label>
               <Input
@@ -105,6 +103,7 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({ dialogTrigger, onNav
                   value={formData.name}
                   onChange={handleChange}
                   required
+                  className="w-full"
               />
             </div>
             <div className="space-y-2 dark:text-gray-600">
@@ -117,6 +116,7 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({ dialogTrigger, onNav
                   value={formData.email}
                   onChange={handleChange}
                   required
+                  className="w-full"
               />
             </div>
             <div className="space-y-2 dark:text-gray-600">
@@ -130,6 +130,7 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({ dialogTrigger, onNav
                     value={formData.password}
                     onChange={handleChange}
                     required
+                    className="w-full"
                 />
                 <Button
                     type="button"
@@ -141,11 +142,11 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({ dialogTrigger, onNav
                   {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                 </Button>
               </div>
-              <p className="text-xs text-gray-500">A senha deve ter pelo menos 6 caracteres.</p>
+              <p className="text-[10px] md:text-xs text-gray-500">A senha deve ter pelo menos 6 caracteres.</p>
             </div>
-            <div className="flex items-center space-x-2 dark:text-gray-600">
-              <Checkbox id="terms" className="cursor-pointer dark:text-gray-600 dark:border-gray-600" checked={formData.agreeTerms} onCheckedChange={handleCheckboxChange} required />
-              <Label htmlFor="terms" className="text-sm font-normal">
+            <div className="flex items-start space-x-2 dark:text-gray-600 py-1">
+              <Checkbox id="terms" className="mt-1 cursor-pointer dark:text-gray-600 dark:border-gray-600" checked={formData.agreeTerms} onCheckedChange={handleCheckboxChange} required />
+              <Label htmlFor="terms" className="text-sm font-normal leading-tight cursor-pointer">
                 Eu concordo com os{" "}
                 <a href="#" className="text-emerald-600 hover:text-emerald-500 font-medium">
                   Termos de Serviço{" "}
@@ -156,7 +157,12 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({ dialogTrigger, onNav
                 </a>
               </Label>
             </div>
-            <Button variant="outline" type="submit" className="w-full cursor-pointer bg-gradient-to-r from-emerald-500 to-teal-500 mt-2 text-white" disabled={isLoading}>
+            <Button
+                variant="outline"
+                type="submit"
+                className="w-full cursor-pointer bg-gradient-to-r from-emerald-500 to-teal-500 py-6 text-white font-semibold"
+                disabled={isLoading}
+            >
               {isLoading ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -166,11 +172,11 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({ dialogTrigger, onNav
                   "Criar conta"
               )}
             </Button>
-            <div className="text-center text-sm">
+            <div className="text-center text-sm pt-2">
               <span className="text-gray-500">Já tem uma conta? </span>
-              <span className="text-emerald-600 hover:text-emerald-500 font-medium cursor-pointer" onClick={() => setActiveDialog("login")}>
-              <LoginForm onNavigateToDashboard={onNavigateToDashboard} dialogTrigger="Faça o Login"/>
-            </span>
+              <span className="text-emerald-600 hover:text-emerald-500 font-medium cursor-pointer inline-block" onClick={() => setActiveDialog("login")}>
+                <LoginForm onNavigateToDashboard={onNavigateToDashboard} dialogTrigger="Faça o Login"/>
+              </span>
             </div>
           </form>
         </DialogContent>
