@@ -6,7 +6,7 @@ import {Input} from '@/components/ui/input';
 import {Button} from '@/components/ui/button';
 import {Select, SelectContent, SelectItem, SelectTrigger, SelectValue} from '@/components/ui/select';
 import {Tabs, TabsContent, TabsList, TabsTrigger} from '@/components/ui/tabs';
-import {ChevronLeft, ChevronRight, Filter, Loader2, PlusCircle, Search} from 'lucide-react';
+import {ChevronLeft, ChevronRight, Filter, Loader2, PlusCircle, Search, Download} from 'lucide-react'; // Importado Download
 import {IMes} from '@/model/IMes';
 import * as XLSX from 'xlsx';
 import {useDialogManager} from "@/context/DialogManagerContext";
@@ -121,38 +121,37 @@ export const TransactionsSection = () => {
         {
             element: '#search-input',
             title: 'Busca Inteligente',
-            description: 'Procure rapidamente por descrição ou categoria. O sistema ignora acentos para facilitar sua busca.'
+            description: 'Procure rapidamente por descrição ou categoria.'
         },
         {
             element: '#period-select',
             title: 'Seleção de Período',
-            description: 'Alterne entre meses e anos para visualizar seu histórico financeiro completo.'
+            description: 'Alterne entre meses e anos para visualizar seu histórico.'
         },
         {
             element: '#sort-select',
             title: 'Ordenação e Filtros',
-            description: 'Organize suas transações por valor, data ou filtre apenas as que ainda estão pendentes.'
+            description: 'Organize suas transações por valor, data ou status.'
         },
         {
             element: '#transaction-tabs',
             title: 'Categorização por Tipo',
-            description: 'Filtre rapidamente apenas suas Receitas ou Despesas para uma análise focada.'
+            description: 'Filtre rapidamente apenas suas Receitas ou Despesas.'
         },
         {
             element: '#add-transaction-btn',
             title: 'Novo Lançamento',
-            description: 'Clique aqui para adicionar uma nova movimentação financeira ao seu controle.'
+            description: 'Clique aqui para adicionar uma nova movimentação financeira.'
         },
         {
             element: '#export-actions',
             title: 'Exportação de Dados',
-            description: 'Precisa dos dados em outra planilha? Exporte tudo para CSV ou Excel com um clique.'
+            description: 'Precisa dos dados em outra planilha? Exporte para CSV ou Excel com um clique.'
         }
     ];
 
     return (
         <div className="space-y-6 animate-in fade-in duration-700 pb-10">
-            {/* COMPONENTE DE TUTORIAL */}
             <TutorialWizard tutorialKey="transactions-page" steps={transactionSteps} />
 
             <Card className="border-none shadow-none md:border md:shadow-sm">
@@ -193,48 +192,27 @@ export const TransactionsSection = () => {
                         </div>
 
                         <div className="w-full md:w-auto md:min-w-[200px] flex flex-col gap-3" id="sort-select">
-                            <div className="hidden md:block">
-                                <Select value={sortOrder} onValueChange={(value) => setSortOrder(value as any)}>
-                                    <SelectTrigger className="w-full h-10 border-emerald-500/20">
-                                        <div className="flex items-center gap-2">
-                                            <Filter className="h-4 w-4 text-emerald-500"/>
-                                            <SelectValue placeholder="Ordenar"/>
-                                        </div>
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="newest">Mais recentes</SelectItem>
-                                        <SelectItem value="oldest">Mais antigas</SelectItem>
-                                        <SelectItem value="highest">Maior valor</SelectItem>
-                                        <SelectItem value="lowest">Menor valor</SelectItem>
-                                        <SelectItem value="paid">Pagas/Recebidas</SelectItem>
-                                        <SelectItem value="pending">Pendentes</SelectItem>
-                                    </SelectContent>
-                                </Select>
-                            </div>
-
-                            <div className="md:hidden">
-                                <Select value={sortOrder} onValueChange={(value) => setSortOrder(value as any)}>
-                                    <SelectTrigger className="w-full">
-                                        <div className="flex items-center gap-2">
-                                            <Filter className="h-4 w-4"/>
-                                            <SelectValue placeholder="Ordenar"/>
-                                        </div>
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="newest">Mais recentes</SelectItem>
-                                        <SelectItem value="oldest">Mais antigas</SelectItem>
-                                        <SelectItem value="highest">Maior valor</SelectItem>
-                                        <SelectItem value="lowest">Menor valor</SelectItem>
-                                        <SelectItem value="paid">Pagas/Recebidas</SelectItem>
-                                        <SelectItem value="pending">Pendentes</SelectItem>
-                                    </SelectContent>
-                                </Select>
-                            </div>
+                            <Select value={sortOrder} onValueChange={(value) => setSortOrder(value as any)}>
+                                <SelectTrigger className="w-full h-10 border-emerald-500/20">
+                                    <div className="flex items-center gap-2">
+                                        <Filter className="h-4 w-4 text-emerald-500"/>
+                                        <SelectValue placeholder="Ordenar"/>
+                                    </div>
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="newest">Mais recentes</SelectItem>
+                                    <SelectItem value="oldest">Mais antigas</SelectItem>
+                                    <SelectItem value="highest">Maior valor</SelectItem>
+                                    <SelectItem value="lowest">Menor valor</SelectItem>
+                                    <SelectItem value="paid">Pagas/Recebidas</SelectItem>
+                                    <SelectItem value="pending">Pendentes</SelectItem>
+                                </SelectContent>
+                            </Select>
                         </div>
                     </div>
                 </CardHeader>
 
-                <CardContent className="px-4 md:px-6">
+                <CardContent className="px-4 md:px-6 pb-2">
                     <Tabs value={transactionType} onValueChange={(value) => setTransactionType(value as TransactionType)}>
                         <div className="flex flex-col md:flex-row items-center justify-between gap-4 mb-6">
                             <TabsList className="w-full md:w-auto" id="transaction-tabs">
@@ -245,7 +223,7 @@ export const TransactionsSection = () => {
 
                             <Button
                                 id="add-transaction-btn"
-                                className="w-full md:min-w-[200px] md:w-auto flex gap-2 items-center justify-center bg-emerald-600 hover:bg-emerald-700 text-white h-10 md:h-10 font-semibold"
+                                className="w-full md:min-w-[200px] md:w-auto flex gap-2 items-center justify-center bg-emerald-600 hover:bg-emerald-700 text-white h-10 font-semibold"
                                 onClick={() => setActiveDialog("add-finance", "transactions")}
                             >
                                 <PlusCircle className="w-5 h-5 md:w-4 md:h-4"/>
@@ -260,8 +238,40 @@ export const TransactionsSection = () => {
                             </div>
                         </TabsContent>
                     </Tabs>
+
+                    {/* EXPORTAÇÃO MOBILE: Visível apenas em telas pequenas */}
+                    <div className="md:hidden mt-6 mb-4 flex flex-col gap-3 pt-4 border-t border-dashed" id="export-actions">
+                        <div className="flex items-center gap-2 text-muted-foreground mb-1">
+                            <Download className="h-4 w-4" />
+                            <span className="text-xs font-bold uppercase tracking-wider">Exportar Relatórios</span>
+                        </div>
+                        <div className="grid grid-cols-2 gap-2">
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                className="text-xs h-9"
+                                onClick={() => exportCSV(filteredTransactions)}
+                                disabled={filteredTransactions.length === 0}
+                            >
+                                CSV
+                            </Button>
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                className="text-xs h-9 border-emerald-600/20 text-emerald-700"
+                                onClick={() => exportToExcel(filteredTransactions)}
+                                disabled={filteredTransactions.length === 0}
+                            >
+                                Excel
+                            </Button>
+                        </div>
+                        <p className="text-[10px] text-center text-muted-foreground italic">
+                            O arquivo será gerado com base nos filtros atuais.
+                        </p>
+                    </div>
                 </CardContent>
 
+                {/* FOOTER DESKTOP: Mantido original mas oculto no mobile */}
                 <CardFooter className="hidden md:flex flex-col md:flex-row justify-between gap-4 items-center px-4 md:px-6 py-6 border-t">
                     <p className="text-xs text-muted-foreground order-2 md:order-1">
                         Mostrando {displayTransactions.length} de {filteredTransactions.length} transações
