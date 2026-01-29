@@ -14,6 +14,7 @@ import {useBudgets} from "@/hooks/useBudgets.ts";
 import {useDialogManager} from "@/context/DialogManagerContext.tsx";
 import {AddBudgetForm} from "@/components/add-budget-form.tsx";
 import {ConfirmDialog} from "@/components/confirm-dialog.tsx";
+import {TutorialWizard} from "@/components/tutorial-wizard";
 
 export const BudgetSection = () => {
     const currentDate = new Date();
@@ -48,7 +49,6 @@ export const BudgetSection = () => {
             budgetAnalysis.reduce((sum, item) => sum + item.allocated, 0),
         [budgetAnalysis]);
 
-    // AJUSTE AQUI: Soma apenas os gastos das categorias que possuem orçamento definido
     const totalSpent = useMemo(() =>
             budgetAnalysis
                 .filter(item => item.allocated > 0)
@@ -81,8 +81,39 @@ export const BudgetSection = () => {
         }
     };
 
+    const budgetSteps = [
+        {
+            element: '#budget-period-select',
+            title: 'Planejamento Mensal',
+            description: 'Os orçamentos são definidos mês a mês. Você pode planejar o próximo mês antecipadamente selecionando a data aqui.'
+        },
+        {
+            element: '#budget-summary-cards',
+            title: 'Resumo de Metas',
+            description: 'Veja rapidamente o total que você planejou gastar vs. o que você realmente já gastou no mês selecionado.'
+        },
+        {
+            element: '#category-progress-list',
+            title: 'Controle por Categoria',
+            description: 'Acompanhe as barras de progresso. Elas mudam de cor e mostram quanto ainda resta (ou quanto excedeu) em cada categoria.'
+        },
+        {
+            element: '#add-budget-btn',
+            title: 'Configurar Limites',
+            description: 'Clique aqui para definir quanto você pretende gastar em cada categoria. Um bom planejamento é o segredo para economizar.'
+        },
+        {
+            element: '#budget-insights',
+            title: 'Insights Inteligentes',
+            description: 'Aqui o sistema analisa seus hábitos e te avisa onde você está economizando e onde precisa de mais atenção.'
+        }
+    ];
+
     return (
         <div className="space-y-6 animate-in fade-in duration-700 pb-10">
+            {/* COMPONENTE DE TUTORIAL */}
+            <TutorialWizard tutorialKey="budget-management" steps={budgetSteps} />
+
             <div className="flex flex-col gap-4">
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                     <div>
@@ -90,7 +121,7 @@ export const BudgetSection = () => {
                         <p className="text-sm text-muted-foreground">Controle seus limites de gastos reais.</p>
                     </div>
 
-                    <div className="flex flex-row items-center gap-2 w-full md:w-auto">
+                    <div className="flex flex-row items-center gap-2 w-full md:w-auto" id="budget-period-select">
                         <Select value={activeMonth} onValueChange={setActiveMonth}>
                             <SelectTrigger className="flex-1 md:w-[140px]">
                                 <SelectValue />
@@ -111,7 +142,7 @@ export const BudgetSection = () => {
                 </div>
             </div>
 
-            <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
+            <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3" id="budget-summary-cards">
                 <Card className="border-none shadow-sm md:border">
                     <CardHeader className="pb-2">
                         <CardDescription className="text-xs uppercase font-bold text-muted-foreground">Total Planejado</CardDescription>
@@ -144,7 +175,7 @@ export const BudgetSection = () => {
             </div>
 
             <div className="grid gap-6 md:grid-cols-7">
-                <Card className="col-span-7 md:col-span-4 border-none shadow-none md:border md:shadow-sm">
+                <Card className="col-span-7 md:col-span-4 border-none shadow-none md:border md:shadow-sm" id="category-progress-list">
                     <CardHeader>
                         <CardTitle className="text-lg">Progresso por Categoria</CardTitle>
                         <CardDescription>Baseado em suas despesas de {activeMonth}.</CardDescription>
@@ -200,6 +231,7 @@ export const BudgetSection = () => {
                     </CardContent>
                     <CardFooter>
                         <Button
+                            id="add-budget-btn"
                             variant="outline"
                             className="w-full border-dashed py-6 text-emerald-600 border-emerald-500/30 hover:bg-emerald-50"
                             onClick={() => setActiveDialog("add-budget")}
@@ -209,7 +241,7 @@ export const BudgetSection = () => {
                     </CardFooter>
                 </Card>
 
-                <Card className="col-span-7 md:col-span-3 border-none shadow-none md:border md:shadow-sm">
+                <Card className="col-span-7 md:col-span-3 border-none shadow-none md:border md:shadow-sm" id="budget-insights">
                     <CardHeader>
                         <CardTitle className="text-lg">Insights de {activeMonth}</CardTitle>
                     </CardHeader>

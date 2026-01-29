@@ -14,6 +14,7 @@ import {AddFinanceForm} from "@/components/add-finance-form";
 import {TransactionList} from "@/components/transaction-list.tsx";
 import {Transaction, TransactionType} from "@/model/types/Transaction.ts";
 import {useTransactions, useUpdateTransaction} from "@/hooks/useTransactions";
+import {TutorialWizard} from "@/components/tutorial-wizard";
 
 export const TransactionsSection = () => {
     const [transactionType, setTransactionType] = useState<TransactionType>('all');
@@ -116,16 +117,49 @@ export const TransactionsSection = () => {
     if (isLoading) return <div className="flex justify-center items-center h-48"><Loader2 className="animate-spin h-8 w-8"/></div>;
     if (error) return <div className="text-center text-red-500 p-4">Erro: {error.message}</div>;
 
+    const transactionSteps = [
+        {
+            element: '#search-input',
+            title: 'Busca Inteligente',
+            description: 'Procure rapidamente por descrição ou categoria. O sistema ignora acentos para facilitar sua busca.'
+        },
+        {
+            element: '#period-select',
+            title: 'Seleção de Período',
+            description: 'Alterne entre meses e anos para visualizar seu histórico financeiro completo.'
+        },
+        {
+            element: '#sort-select',
+            title: 'Ordenação e Filtros',
+            description: 'Organize suas transações por valor, data ou filtre apenas as que ainda estão pendentes.'
+        },
+        {
+            element: '#transaction-tabs',
+            title: 'Categorização por Tipo',
+            description: 'Filtre rapidamente apenas suas Receitas ou Despesas para uma análise focada.'
+        },
+        {
+            element: '#add-transaction-btn',
+            title: 'Novo Lançamento',
+            description: 'Clique aqui para adicionar uma nova movimentação financeira ao seu controle.'
+        },
+        {
+            element: '#export-actions',
+            title: 'Exportação de Dados',
+            description: 'Precisa dos dados em outra planilha? Exporte tudo para CSV ou Excel com um clique.'
+        }
+    ];
+
     return (
         <div className="space-y-6 animate-in fade-in duration-700 pb-10">
+            {/* COMPONENTE DE TUTORIAL */}
+            <TutorialWizard tutorialKey="transactions-page" steps={transactionSteps} />
+
             <Card className="border-none shadow-none md:border md:shadow-sm">
                 <CardHeader className="px-4 md:px-6">
-                    {/* Container Principal dos Filtros Superior */}
                     <div className="flex flex-col md:flex-row md:items-start justify-between gap-4">
-
-                        {/* Lado Esquerdo: Busca e Datas */}
                         <div className="flex-1 w-full space-y-3">
-                            <div className="relative w-full">
+                            <div className="relative w-full" id="search-input">
                                 <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground"/>
                                 <Input
                                     placeholder="Procurar transações..."
@@ -134,7 +168,7 @@ export const TransactionsSection = () => {
                                     onChange={(e) => setSearchQuery(e.target.value)}
                                 />
                             </div>
-                            <div className="flex flex-row items-center gap-2">
+                            <div className="flex flex-row items-center gap-2" id="period-select">
                                 <Select value={month} onValueChange={setMonth}>
                                     <SelectTrigger className="w-full">
                                         <SelectValue placeholder="Mês"/>
@@ -158,8 +192,7 @@ export const TransactionsSection = () => {
                             </div>
                         </div>
 
-                        {/* Lado Direito: Ordenação (Desktop fica ao lado da busca) */}
-                        <div className="w-full md:w-auto md:min-w-[200px] flex flex-col gap-3">
+                        <div className="w-full md:w-auto md:min-w-[200px] flex flex-col gap-3" id="sort-select">
                             <div className="hidden md:block">
                                 <Select value={sortOrder} onValueChange={(value) => setSortOrder(value as any)}>
                                     <SelectTrigger className="w-full h-10 border-emerald-500/20">
@@ -179,7 +212,6 @@ export const TransactionsSection = () => {
                                 </Select>
                             </div>
 
-                            {/* No Mobile a ordenação aparece aqui */}
                             <div className="md:hidden">
                                 <Select value={sortOrder} onValueChange={(value) => setSortOrder(value as any)}>
                                     <SelectTrigger className="w-full">
@@ -205,13 +237,14 @@ export const TransactionsSection = () => {
                 <CardContent className="px-4 md:px-6">
                     <Tabs value={transactionType} onValueChange={(value) => setTransactionType(value as TransactionType)}>
                         <div className="flex flex-col md:flex-row items-center justify-between gap-4 mb-6">
-                            <TabsList className="w-full md:w-auto">
+                            <TabsList className="w-full md:w-auto" id="transaction-tabs">
                                 <TabsTrigger value="all" className="flex-1 md:flex-none">Todas</TabsTrigger>
                                 <TabsTrigger value="RECEITA" className="flex-1 md:flex-none text-emerald-600">Receitas</TabsTrigger>
                                 <TabsTrigger value="DESPESA" className="flex-1 md:flex-none text-rose-600">Despesas</TabsTrigger>
                             </TabsList>
 
                             <Button
+                                id="add-transaction-btn"
                                 className="w-full md:min-w-[200px] md:w-auto flex gap-2 items-center justify-center bg-emerald-600 hover:bg-emerald-700 text-white h-10 md:h-10 font-semibold"
                                 onClick={() => setActiveDialog("add-finance", "transactions")}
                             >
@@ -244,7 +277,7 @@ export const TransactionsSection = () => {
                             <ChevronRight className="h-4 w-4"/>
                         </Button>
                     </div>
-                    <div className="flex flex-wrap gap-2 order-3">
+                    <div className="flex flex-wrap gap-2 order-3" id="export-actions">
                         <Button variant="ghost" size="sm" className="text-xs" onClick={() => exportCSV(filteredTransactions)} disabled={filteredTransactions.length === 0}>CSV</Button>
                         <Button variant="ghost" size="sm" className="text-xs" onClick={() => exportToExcel(filteredTransactions)} disabled={filteredTransactions.length === 0}>Excel</Button>
                     </div>
