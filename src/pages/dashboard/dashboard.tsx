@@ -10,6 +10,7 @@ import { AccountsSection } from '@/components/dashboard/sections/accounts-sectio
 import { BudgetSection } from '@/components/dashboard/sections/budget-section';
 import { InvestmentsSection } from '@/components/dashboard/sections/investments-section';
 import {ProfileSection} from "@/pages/profile/profile.tsx";
+import {SettingsSection} from "@/pages/settings/settings.tsx";
 
 interface DashboardProps {
   onNavigateToLanding: () => void;
@@ -18,7 +19,7 @@ interface DashboardProps {
 export const Dashboard = ({ onNavigateToLanding }: DashboardProps) => {
   // Inicializamos como true (colapsado) para que a barra comece oculta
   const [collapsed, setCollapsed] = useState(true);
-  const [activeSection, setActiveSection] = useState<'overview' | 'transactions' | 'accounts' | 'budget' | 'investments' | 'profile'>('overview');
+  const [activeSection, setActiveSection] = useState<'overview' | 'transactions' | 'accounts' | 'budget' | 'investments' | 'profile' | 'settings'>('overview');
   const sidebarRef = useRef<HTMLDivElement>(null);
 
   const sectionMeta = {
@@ -50,6 +51,11 @@ export const Dashboard = ({ onNavigateToLanding }: DashboardProps) => {
     profile: {
       title: "Perfil",
       subtitle: "Acesse e edite suas informações pessoais",
+      active: true,
+    },
+    settings: {
+      title: "Configurações",
+      subtitle: "Acesse suas configurações e preferências",
       active: true,
     },
   };
@@ -88,6 +94,8 @@ export const Dashboard = ({ onNavigateToLanding }: DashboardProps) => {
         return <InvestmentsSection />;
       case 'profile':
         return <ProfileSection />;
+      case 'settings':
+        return <SettingsSection />;
       default:
         return <OverviewSection />;
     }
@@ -95,7 +103,6 @@ export const Dashboard = ({ onNavigateToLanding }: DashboardProps) => {
 
   return (
       <div className="flex min-h-screen w-full overflow-hidden bg-background">
-        {/* Sidebar agora recebe a prop 'sectionMeta' para controle de ativação */}
         <DashboardSidebar
             ref={sidebarRef}
             collapsed={collapsed}
@@ -105,9 +112,6 @@ export const Dashboard = ({ onNavigateToLanding }: DashboardProps) => {
             onToggleSidebar={() => setCollapsed(!collapsed)}
         />
 
-        {/* REMOVIDO: ml-16 e ml-64.
-          O 'ml-0' garante que o conteúdo ocupe toda a largura independente da sidebar.
-      */}
         <div className="flex flex-1 flex-col overflow-hidden transition-all duration-300 ease-in-out ml-0">
           <DashboardHeader
               collapsed={collapsed}

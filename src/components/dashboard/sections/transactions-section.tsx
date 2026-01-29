@@ -6,7 +6,7 @@ import {Input} from '@/components/ui/input';
 import {Button} from '@/components/ui/button';
 import {Select, SelectContent, SelectItem, SelectTrigger, SelectValue} from '@/components/ui/select';
 import {Tabs, TabsContent, TabsList, TabsTrigger} from '@/components/ui/tabs';
-import {ChevronLeft, ChevronRight, Filter, PlusCircle, Search} from 'lucide-react';
+import {ChevronLeft, ChevronRight, Filter, Loader2, PlusCircle, Search} from 'lucide-react';
 import {IMes} from '@/model/IMes';
 import * as XLSX from 'xlsx';
 import {useDialogManager} from "@/context/DialogManagerContext";
@@ -32,30 +32,21 @@ export const TransactionsSection = () => {
         setCurrentPage(1);
     }, [transactionType, searchQuery, sortOrder, month, year]);
 
-    // Função auxiliar para normalizar strings (remover acentos e colocar em lowercase)
     const normalizeString = (str: string) => {
-        return str
-            .toLowerCase()
-            .normalize("NFD")
-            .replace(/[\u0300-\u036f]/g, "");
+        return str.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
     };
 
-    // Lógica de Filtro e Ordenação combinada com normalização
     const processedTransactions = useMemo(() => {
         const normalizedQuery = normalizeString(searchQuery);
 
         return transactions
             .filter((transaction: Transaction) => {
-                // Normaliza campos de busca
                 const descriptionMatch = normalizeString(transaction.description).includes(normalizedQuery);
                 const categoryMatch = normalizeString(transaction.category.name).includes(normalizedQuery);
-
                 const matchesSearch = searchQuery ? (descriptionMatch || categoryMatch) : true;
 
-                // Filtro de Status
                 if (sortOrder === 'paid') return matchesSearch && (transaction.status === 'PAGA' || transaction.status === 'RECEBIDA');
                 if (sortOrder === 'pending') return matchesSearch && transaction.status === 'PENDENTE';
-
                 return matchesSearch;
             })
             .sort((a: Transaction, b: Transaction) => {
@@ -76,7 +67,6 @@ export const TransactionsSection = () => {
     ), [processedTransactions, transactionType]);
 
     const totalPages = Math.ceil(filteredTransactions.length / itemsPerPage);
-
     const [isMobile, setIsMobile] = useState(false);
 
     useEffect(() => {
@@ -95,136 +85,119 @@ export const TransactionsSection = () => {
     };
 
     const exportCSV = (finances: Transaction[]) => {
-        const headers = [
-            'ID', 'Descrição', 'Valor', 'Mês', 'Ano', 'Tipo',
-            'Recorrência', 'Status', 'Nº Parcelas', 'Parcela Atual',
-            'Referência', 'Categoria'
-        ];
-
+        const headers = ['Descrição', 'Valor', 'Mês', 'Ano', 'Tipo', 'Status', 'Categoria'];
         const rows = finances.map(f => [
-            `"${f.description}"`,
-            f.amount.toFixed(2).replace('.', ','),
-            IMes[f.month],
-            f.year,
-            f.type,
-            f.recurrence,
-            f.status,
-            f.numInstallments ?? '',
-            f.currentInstallment ?? '',
-            f.reference ?? '',
-            f.category?.name ?? ''
+            `"${f.description}"`, f.amount.toFixed(2), IMes[f.month], f.year, f.type, f.status, f.category?.name ?? ''
         ]);
-
-        const csvContent = [headers, ...rows]
-            .map(row => row.join(';'))
-            .join('\n');
-
+        const csvContent = [headers, ...rows].map(row => row.join(';')).join('\n');
         const blob = new Blob(["\uFEFF" + csvContent], {type: 'text/csv;charset=utf-8;'});
-        const url = URL.createObjectURL(blob);
         const link = document.createElement('a');
-        link.href = url;
-        link.setAttribute('download', 'financas_exportadas.csv');
-        document.body.appendChild(link);
+        link.href = URL.createObjectURL(blob);
+        link.setAttribute('download', 'financas.csv');
         link.click();
-        document.body.removeChild(link);
     };
 
     const exportToExcel = (finances: Transaction[]) => {
         const data = finances.map(f => ({
             Descrição: f.description,
-            Valor: Number(f.amount).toFixed(2).replace('.', ','),
+            Valor: f.amount,
             Mês: IMes[f.month],
             Ano: f.year,
             Tipo: f.type,
-            Recorrência: f.recurrence,
             Status: f.status,
-            'Nº Parcelas': f.numInstallments ?? '',
-            'Parcela Atual': f.currentInstallment ?? '',
-            Referência: f.reference ?? '',
             Categoria: f.category?.name ?? ''
         }));
-
         const worksheet = XLSX.utils.json_to_sheet(data);
         const workbook = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(workbook, worksheet, 'Finanças');
-        XLSX.writeFile(workbook, 'financas_exportadas.xlsx');
+        XLSX.writeFile(workbook, 'financas.xlsx');
     };
 
-    if (isLoading) {
-        return (
-            <div className="flex justify-center items-center h-48">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"/>
-            </div>
-        );
-    }
-
-    if (error) {
-        return (
-            <div className="text-center text-red-500 p-4">
-                <p className="font-semibold text-sm">Erro ao carregar transações: {error.message}</p>
-            </div>
-        );
-    }
+    if (isLoading) return <div className="flex justify-center items-center h-48"><Loader2 className="animate-spin h-8 w-8"/></div>;
+    if (error) return <div className="text-center text-red-500 p-4">Erro: {error.message}</div>;
 
     return (
         <div className="space-y-6 animate-in fade-in duration-700 pb-10">
             <Card className="border-none shadow-none md:border md:shadow-sm">
                 <CardHeader className="px-4 md:px-6">
-                    <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
+                    {/* Container Principal dos Filtros Superior */}
+                    <div className="flex flex-col md:flex-row md:items-start justify-between gap-4">
 
-                        <div className="flex-1 w-full md:max-w-3xl">
-                            <div className="flex flex-col gap-3">
-                                <div className="relative w-full">
-                                    <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground"/>
-                                    <Input
-                                        placeholder="Procurar transações..."
-                                        className="pl-10 w-full"
-                                        value={searchQuery}
-                                        onChange={(e) => setSearchQuery(e.target.value)}
-                                    />
-                                </div>
-                                <div className="flex flex-row items-center gap-2">
-                                    <Select value={month} onValueChange={setMonth}>
-                                        <SelectTrigger className="flex-1">
-                                            <SelectValue placeholder="Mês"/>
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            {IMes.map((mes, index) => (
-                                                <SelectItem key={index} value={mes}>{mes}</SelectItem>
-                                            ))}
-                                        </SelectContent>
-                                    </Select>
-                                    <Select value={year.toString()} onValueChange={(value) => setYear(Number(value))}>
-                                        <SelectTrigger className="flex-1">
-                                            <SelectValue placeholder="Ano"/>
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            {generateYears(new Date().getFullYear() - 5, new Date().getFullYear() + 5).map((year) => (
-                                                <SelectItem key={year} value={year.toString()}>{year}</SelectItem>
-                                            ))}
-                                        </SelectContent>
-                                    </Select>
-                                </div>
+                        {/* Lado Esquerdo: Busca e Datas */}
+                        <div className="flex-1 w-full space-y-3">
+                            <div className="relative w-full">
+                                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground"/>
+                                <Input
+                                    placeholder="Procurar transações..."
+                                    className="pl-10 w-full"
+                                    value={searchQuery}
+                                    onChange={(e) => setSearchQuery(e.target.value)}
+                                />
+                            </div>
+                            <div className="flex flex-row items-center gap-2">
+                                <Select value={month} onValueChange={setMonth}>
+                                    <SelectTrigger className="w-full">
+                                        <SelectValue placeholder="Mês"/>
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {IMes.map((mes, index) => (
+                                            <SelectItem key={index} value={mes}>{mes}</SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                                <Select value={year.toString()} onValueChange={(value) => setYear(Number(value))}>
+                                    <SelectTrigger className="w-full">
+                                        <SelectValue placeholder="Ano"/>
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {generateYears(new Date().getFullYear() - 5, new Date().getFullYear() + 5).map((y) => (
+                                            <SelectItem key={y} value={y.toString()}>{y}</SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
                             </div>
                         </div>
 
-                        <div className="md:flex flex-col gap-1.5 min-w-[180px]">
-                            <Select value={sortOrder} onValueChange={(value) => setSortOrder(value as any)}>
-                                <SelectTrigger className="w-full">
-                                    <div className="flex items-center gap-2">
-                                        <Filter className="h-4 w-4"/>
-                                        <SelectValue placeholder="Ordenar"/>
-                                    </div>
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="newest">Mais recentes</SelectItem>
-                                    <SelectItem value="oldest">Mais antigas</SelectItem>
-                                    <SelectItem value="highest">Maior valor</SelectItem>
-                                    <SelectItem value="lowest">Menor valor</SelectItem>
-                                    <SelectItem value="paid">Pagas/Recebidas</SelectItem>
-                                    <SelectItem value="pending">Pendentes</SelectItem>
-                                </SelectContent>
-                            </Select>
+                        {/* Lado Direito: Ordenação (Desktop fica ao lado da busca) */}
+                        <div className="w-full md:w-auto md:min-w-[200px] flex flex-col gap-3">
+                            <div className="hidden md:block">
+                                <Select value={sortOrder} onValueChange={(value) => setSortOrder(value as any)}>
+                                    <SelectTrigger className="w-full h-10 border-emerald-500/20">
+                                        <div className="flex items-center gap-2">
+                                            <Filter className="h-4 w-4 text-emerald-500"/>
+                                            <SelectValue placeholder="Ordenar"/>
+                                        </div>
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="newest">Mais recentes</SelectItem>
+                                        <SelectItem value="oldest">Mais antigas</SelectItem>
+                                        <SelectItem value="highest">Maior valor</SelectItem>
+                                        <SelectItem value="lowest">Menor valor</SelectItem>
+                                        <SelectItem value="paid">Pagas/Recebidas</SelectItem>
+                                        <SelectItem value="pending">Pendentes</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                            </div>
+
+                            {/* No Mobile a ordenação aparece aqui */}
+                            <div className="md:hidden">
+                                <Select value={sortOrder} onValueChange={(value) => setSortOrder(value as any)}>
+                                    <SelectTrigger className="w-full">
+                                        <div className="flex items-center gap-2">
+                                            <Filter className="h-4 w-4"/>
+                                            <SelectValue placeholder="Ordenar"/>
+                                        </div>
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="newest">Mais recentes</SelectItem>
+                                        <SelectItem value="oldest">Mais antigas</SelectItem>
+                                        <SelectItem value="highest">Maior valor</SelectItem>
+                                        <SelectItem value="lowest">Menor valor</SelectItem>
+                                        <SelectItem value="paid">Pagas/Recebidas</SelectItem>
+                                        <SelectItem value="pending">Pendentes</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                            </div>
                         </div>
                     </div>
                 </CardHeader>
@@ -232,18 +205,17 @@ export const TransactionsSection = () => {
                 <CardContent className="px-4 md:px-6">
                     <Tabs value={transactionType} onValueChange={(value) => setTransactionType(value as TransactionType)}>
                         <div className="flex flex-col md:flex-row items-center justify-between gap-4 mb-6">
-                            <TabsList className="hidden md:inline-flex">
-                                <TabsTrigger value="all">Todas</TabsTrigger>
-                                <TabsTrigger value="RECEITA">Receitas</TabsTrigger>
-                                <TabsTrigger value="DESPESA">Despesas</TabsTrigger>
+                            <TabsList className="w-full md:w-auto">
+                                <TabsTrigger value="all" className="flex-1 md:flex-none">Todas</TabsTrigger>
+                                <TabsTrigger value="RECEITA" className="flex-1 md:flex-none text-emerald-600">Receitas</TabsTrigger>
+                                <TabsTrigger value="DESPESA" className="flex-1 md:flex-none text-rose-600">Despesas</TabsTrigger>
                             </TabsList>
 
                             <Button
-                                variant="outline"
-                                className="w-full md:w-auto flex gap-2 items-center justify-center border-green-500/50 hover:bg-green-50 dark:hover:bg-green-950/20 py-6 md:py-2 text-base md:text-sm font-semibold"
+                                className="w-full md:min-w-[200px] md:w-auto flex gap-2 items-center justify-center bg-emerald-600 hover:bg-emerald-700 text-white h-10 md:h-10 font-semibold"
                                 onClick={() => setActiveDialog("add-finance", "transactions")}
                             >
-                                <PlusCircle className="w-5 h-5 md:w-4 md:h-4 text-green-500"/>
+                                <PlusCircle className="w-5 h-5 md:w-4 md:h-4"/>
                                 <span>Nova Transação</span>
                             </Button>
 
@@ -273,18 +245,10 @@ export const TransactionsSection = () => {
                         </Button>
                     </div>
                     <div className="flex flex-wrap gap-2 order-3">
-                        <Button variant="ghost" size="sm" className="text-xs" onClick={() => exportCSV(filteredTransactions)} disabled={filteredTransactions.length === 0}>
-                            CSV
-                        </Button>
-                        <Button variant="ghost" size="sm" className="text-xs" onClick={() => exportToExcel(filteredTransactions)} disabled={filteredTransactions.length === 0}>
-                            Excel
-                        </Button>
+                        <Button variant="ghost" size="sm" className="text-xs" onClick={() => exportCSV(filteredTransactions)} disabled={filteredTransactions.length === 0}>CSV</Button>
+                        <Button variant="ghost" size="sm" className="text-xs" onClick={() => exportToExcel(filteredTransactions)} disabled={filteredTransactions.length === 0}>Excel</Button>
                     </div>
                 </CardFooter>
-
-                <div className="md:hidden py-4 text-center">
-                    <p className="text-[10px] text-muted-foreground uppercase tracking-widest italic opacity-50">Fim das transações</p>
-                </div>
             </Card>
         </div>
     );

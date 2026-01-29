@@ -11,7 +11,7 @@ import {Avatar, AvatarFallback, AvatarImage} from '@/components/ui/avatar';
 import {HelpCircle, LogOut, Settings, UserCircle} from 'lucide-react';
 import {useAuth} from "@/context/AuthContext.tsx";
 
-type DashboardSection = 'overview' | 'transactions' | 'accounts' | 'budget' | 'investments' | 'profile';
+type DashboardSection = 'overview' | 'transactions' | 'accounts' | 'budget' | 'investments' | 'profile' | 'settings';
 
 export const UserMenu = ({
                            onNavigateToLanding,
@@ -62,7 +62,7 @@ export const UserMenu = ({
           <span>Perfil</span>
         </DropdownMenuItem>
 
-        <DropdownMenuItem className="cursor-pointer hover:bg-muted/50 focus:bg-muted/50 focus:text-primary">
+        <DropdownMenuItem className="cursor-pointer hover:bg-muted/50 focus:bg-muted/50 focus:text-primary" onClick={() => onSectionChange("settings")}>
           <Settings className="mr-2 h-4 w-4" />
           <span>Configurações</span>
         </DropdownMenuItem>

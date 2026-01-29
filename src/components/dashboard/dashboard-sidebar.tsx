@@ -7,7 +7,7 @@ import {ArrowLeftRight, CreditCard, LayoutDashboard, LineChart, PieChart} from '
 import {forwardRef} from "react";
 import {Tooltip, TooltipContent, TooltipTrigger} from "@/components/ui/tooltip.tsx";
 
-type DashboardSection = 'overview' | 'transactions' | 'budget' | 'accounts' | 'investments' | 'profile';
+type DashboardSection = 'overview' | 'transactions' | 'budget' | 'accounts' | 'investments' | 'profile' | 'settings';
 
 interface DashboardSidebarProps {
     collapsed: boolean;

@@ -15,22 +15,18 @@ import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/comp
 import { useBudgets } from "@/hooks/useBudgets";
 import { Budget } from "@/model/types/Budget";
 import { useCategories } from '@/hooks/useCategories';
+import { TutorialWizard } from '@/components/tutorial-wizard';
 
 export const OverviewSection = () => {
     const currentDate = new Date();
     const [selectedMonth, setSelectedMonth] = useState(IMes[currentDate.getMonth()]);
     const [selectedYear, setSelectedYear] = useState(currentDate.getFullYear());
     const [selectedView, setSelectedView] = useState<'month' | 'year'>('month');
-
-    // Estado para filtro de categoria
     const [selectedCategory, setSelectedCategory] = useState<string>("all");
 
-    // Hook de categorias para validar visibilidade
     const { data: visibleCategories = [] } = useCategories();
-
     const { data: monthlyTransactions, isLoading: isLoadingMonthly } = useTransactions(selectedMonth, selectedYear);
     const { data: yearlyTransactions, isLoading: isLoadingYearly } = useTransactionsByYear(selectedYear);
-
     const { budgets, isLoading: isLoadingBudgets } = useBudgets(
         selectedView === 'month' ? IMes.indexOf(selectedMonth) + 1 : undefined,
         selectedYear
@@ -41,10 +37,7 @@ export const OverviewSection = () => {
 
     const availableCategories = useMemo(() => {
         if (visibleCategories.length === 0) return [];
-
-        return [...visibleCategories].sort((a, b) =>
-            (a.name || "").localeCompare(b.name || "")
-        );
+        return [...visibleCategories].sort((a, b) => (a.name || "").localeCompare(b.name || ""));
     }, [visibleCategories]);
 
     const transactions = useMemo(() => {
@@ -57,6 +50,44 @@ export const OverviewSection = () => {
         return Array.from({ length: 11 }, (_, i) => currentDate.getFullYear() - 5 + i);
     }, [currentDate]);
 
+    const tutorialSteps = [
+        {
+            element: '#dashboard-tabs',
+            title: 'Modo de Visualização',
+            description: 'Alterne entre a visão detalhada do mês ou o acumulado do ano inteiro.'
+        },
+        {
+            element: '#date-filters',
+            title: 'Seleção de Período',
+            description: 'Escolha o mês e ano que deseja analisar. Todos os cards serão atualizados.'
+        },
+        {
+            element: '#category-filter',
+            title: 'Filtro por Categoria',
+            description: 'Filtre todas as informações do painel por uma categoria específica para uma análise detalhada.'
+        },
+        {
+            element: '#dashboard-stats',
+            title: 'Resumo Financeiro',
+            description: 'Entenda seu fluxo: o que já foi pago (Gasto Real) e o que ainda está planejado (Comprometimento).'
+        },
+        {
+            element: '#chart-section',
+            title: 'Evolução Gráfica',
+            description: 'Acompanhe visualmente a entrada e saída de dinheiro ao longo do tempo.'
+        },
+        {
+            element: '#recent-transactions-card',
+            title: 'Transações Recentes',
+            description: 'Confira a lista das últimas movimentações baseadas nos seus filtros atuais.'
+        },
+        {
+            element: '#budget-progress-card',
+            title: 'Progresso do Orçamento',
+            description: 'Controle suas metas! Veja se seus gastos reais estão dentro do planejado.'
+        }
+    ];
+
     if (isLoadingBudgets && (!budgets || budgets.length === 0)) {
         return (
             <div className="flex justify-center items-center h-48 text-muted-foreground animate-pulse">
@@ -66,7 +97,9 @@ export const OverviewSection = () => {
     }
 
     return (
-        <div className="space-y-6 animate-in fade-in duration-700">
+        <div className="space-y-6 animate-in fade-in duration-700 pb-10">
+            <TutorialWizard tutorialKey="overview-detailed" steps={tutorialSteps} />
+
             <TooltipProvider>
                 <Tabs
                     defaultValue="month"
@@ -77,11 +110,11 @@ export const OverviewSection = () => {
                     }}
                 >
                     <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                        <TabsList className="w-full md:w-auto">
+                        <TabsList className="w-full md:w-auto" id="dashboard-tabs">
                             <TabsTrigger value="month" className="flex-1 md:flex-none">
                                 <Tooltip>
                                     <TooltipTrigger asChild>
-                                        <div className="h-full w-full px-4 py-2">Mês</div>
+                                        <div className="h-full w-full px-4 py-0">Mês</div>
                                     </TooltipTrigger>
                                     <TooltipContent className="bg-gray-800 text-white border-none">Visualizar dados por mês</TooltipContent>
                                 </Tooltip>
@@ -89,7 +122,7 @@ export const OverviewSection = () => {
                             <TabsTrigger value="year" className="flex-1 md:flex-none">
                                 <Tooltip>
                                     <TooltipTrigger asChild>
-                                        <div className="h-full w-full px-4 py-2">Ano</div>
+                                        <div className="h-full w-full px-4 py-0">Ano</div>
                                     </TooltipTrigger>
                                     <TooltipContent className="bg-gray-800 text-white border-none">Visualizar dados por ano</TooltipContent>
                                 </Tooltip>
@@ -97,8 +130,7 @@ export const OverviewSection = () => {
                         </TabsList>
 
                         <div className="flex flex-col sm:flex-row gap-2 w-full md:w-auto">
-                            {/* Select de Categoria que respeita o Ocultar */}
-                            <div className="w-full md:w-[200px]">
+                            <div className="w-full md:w-[200px]" id="category-filter">
                                 <Select value={selectedCategory} onValueChange={setSelectedCategory}>
                                     <SelectTrigger className="w-full bg-background border-emerald-500/20">
                                         <div className="flex items-center gap-2">
@@ -115,38 +147,44 @@ export const OverviewSection = () => {
                                 </Select>
                             </div>
 
-                            {selectedView === 'month' && (
-                                <div className="w-full md:w-[150px]">
-                                    <Select value={selectedMonth} onValueChange={setSelectedMonth}>
+                            <div className="flex flex-row items-center gap-2" id="date-filters">
+                                {selectedView === 'month' && (
+                                    <div className="w-full md:w-[150px]">
+                                        <Select value={selectedMonth} onValueChange={setSelectedMonth}>
+                                            <SelectTrigger className="w-full">
+                                                <SelectValue placeholder="Mês" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                {IMes.map((mes, index) => (
+                                                    <SelectItem key={index} value={mes}>{mes}</SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+                                )}
+                                <div className="w-full md:w-[100px]">
+                                    <Select value={selectedYear.toString()} onValueChange={(value) => setSelectedYear(Number(value))}>
                                         <SelectTrigger className="w-full">
-                                            <SelectValue placeholder="Mês" />
+                                            <SelectValue placeholder="Ano" />
                                         </SelectTrigger>
                                         <SelectContent>
-                                            {IMes.map((mes, index) => (
-                                                <SelectItem key={index} value={mes}>{mes}</SelectItem>
+                                            {years.map((year) => (
+                                                <SelectItem key={year} value={year.toString()}>{year}</SelectItem>
                                             ))}
                                         </SelectContent>
                                     </Select>
                                 </div>
-                            )}
-                            <div className="w-full md:w-[100px]">
-                                <Select value={selectedYear.toString()} onValueChange={(value) => setSelectedYear(Number(value))}>
-                                    <SelectTrigger className="w-full">
-                                        <SelectValue placeholder="Ano" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        {years.map((year) => (
-                                            <SelectItem key={year} value={year.toString()}>{year}</SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
                             </div>
                         </div>
                     </div>
 
                     <TabsContent value="month" className="space-y-4 outline-none">
-                        <StatsGrid transactions={transactions} />
-                        <ChartSection transactions={transactions} view={selectedView} month={selectedMonth} year={selectedYear} />
+                        <div id="dashboard-stats">
+                            <StatsGrid transactions={transactions} />
+                        </div>
+                        <div id="chart-section">
+                            <ChartSection transactions={transactions} view={selectedView} month={selectedMonth} year={selectedYear} />
+                        </div>
                     </TabsContent>
 
                     <TabsContent value="year" className="space-y-4 outline-none">
@@ -157,7 +195,7 @@ export const OverviewSection = () => {
             </TooltipProvider>
 
             <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-                <Card className="xl:col-span-2 border-none shadow-sm md:border">
+                <Card className="xl:col-span-2 border-none shadow-sm md:border" id="recent-transactions-card">
                     <CardHeader>
                         <CardTitle>Transações {selectedCategory !== "all" ? "Filtradas" : "Recentes"}</CardTitle>
                         <CardDescription>
@@ -169,7 +207,7 @@ export const OverviewSection = () => {
                     </CardContent>
                 </Card>
 
-                <Card className="border-none shadow-sm md:border">
+                <Card className="border-none shadow-sm md:border" id="budget-progress-card">
                     <CardHeader>
                         <CardTitle>Progresso do orçamento</CardTitle>
                         <CardDescription>Meta vs Gasto Real</CardDescription>
@@ -187,70 +225,26 @@ export const OverviewSection = () => {
     );
 };
 
-// --- COMPONENTES AUXILIARES ---
-
+// --- COMPONENTES AUXILIARES (StatsGrid, ChartSection, RecentTransactionsList, BudgetProgress) ---
+// Mantidos como no código anterior para brevidade, apenas garanta que estão presentes no arquivo.
 const StatsGrid = ({ transactions }: { transactions?: Transaction[] }) => {
     if (!transactions) return null;
-
-    // Transações que ainda não foram liquidadas
     const pendingTransactions = transactions.filter(t => t.status === 'PENDENTE');
-
-    // Transações já liquidadas (Pagas ou Recebidas)
     const completedTransactions = transactions.filter(t => t.status === 'PAGA' || t.status === 'RECEBIDA');
 
-    // Cálculos para os Cards
-    const pendingIncome = pendingTransactions
-        .filter(t => t.type === 'RECEITA')
-        .reduce((acc, curr) => acc + curr.amount, 0);
+    const pendingIncome = pendingTransactions.filter(t => t.type === 'RECEITA').reduce((acc, curr) => acc + curr.amount, 0);
+    const pendingExpenses = pendingTransactions.filter(t => t.type === 'DESPESA').reduce((acc, curr) => acc + curr.amount, 0);
+    const realExpenses = completedTransactions.filter(t => t.type === 'DESPESA').reduce((acc, curr) => acc + curr.amount, 0);
 
-    const pendingExpenses = pendingTransactions
-        .filter(t => t.type === 'DESPESA')
-        .reduce((acc, curr) => acc + curr.amount, 0);
-
-    const realExpenses = completedTransactions
-        .filter(t => t.type === 'DESPESA')
-        .reduce((acc, curr) => acc + curr.amount, 0);
-
-    // Saldo Final Previsto (O que já tenho - o que falta pagar + o que falta receber)
-    // Nota: Aqui você pode ajustar se quer somar o saldo atual em conta ou apenas o fluxo do mês
     const balance = pendingIncome - pendingExpenses;
-
-    // Comprometimento Total (O que já paguei + o que ainda devo pagar)
     const totalCommitted = realExpenses + pendingExpenses;
 
     return (
         <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
-            <StatCard
-                title="Balanço Previsto"
-                value={formatTransactionAmount(balance)}
-                description="Resultado das pendências"
-                icon={<Wallet className="h-4 w-4 text-blue-400" />}
-                trend={balance >= 0 ? "up" : "down"}
-            />
-
-            <StatCard
-                title="A Receber"
-                value={formatTransactionAmount(pendingIncome)}
-                description="Entradas futuras"
-                icon={<ArrowUpRight className="h-4 w-4 text-green-400" />}
-                trend="up"
-            />
-
-            <StatCard
-                title="Gasto Real"
-                value={formatTransactionAmount(realExpenses)}
-                description="Já pago no período"
-                icon={<ArrowDownRight className="h-4 w-4 text-rose-500" />}
-                trend="down"
-            />
-
-            <StatCard
-                title="Comprometimento"
-                value={formatTransactionAmount(totalCommitted)}
-                description="Realizado + Pendente"
-                icon={<DollarSign className="h-4 w-4 text-yellow-500" />}
-                trend="warning"
-            />
+            <StatCard title="Balanço Previsto" value={formatTransactionAmount(balance)} description="Restante das pendências" icon={<Wallet className="h-4 w-4 text-blue-400" />} trend={balance >= 0 ? "up" : "down"} />
+            <StatCard title="A Receber" value={formatTransactionAmount(pendingIncome)} description="Entradas futuras" icon={<ArrowUpRight className="h-4 w-4 text-green-400" />} trend="up" />
+            <StatCard title="Gasto Real" value={formatTransactionAmount(realExpenses)} description="Já pago no período" icon={<ArrowDownRight className="h-4 w-4 text-rose-500" />} trend="down" />
+            <StatCard title="Comprometimento" value={formatTransactionAmount(totalCommitted)} description="Total Realizado + Pendente" icon={<DollarSign className="h-4 w-4 text-yellow-500" />} trend="warning" />
         </div>
     );
 };
