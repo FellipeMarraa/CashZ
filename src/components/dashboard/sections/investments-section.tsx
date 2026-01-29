@@ -18,7 +18,8 @@ import {
     Target,
     TrendingUp,
     Zap,
-    Loader2
+    Loader2,
+    Trash2 // Adicionado ícone de lixeira
 } from 'lucide-react';
 import {cn} from "@/lib/utils";
 import {formatTransactionAmount} from '@/hooks/useTransactions';
@@ -26,7 +27,7 @@ import {useDialogManager} from "@/context/DialogManagerContext";
 import {TutorialWizard} from "@/components/tutorial-wizard";
 import {AddInvestmentForm} from "@/components/add-Investment-form.tsx";
 import {useAuth} from "@/context/AuthContext.tsx";
-import {useInvestments, useSaveInvestment} from "@/hooks/useInvestments.ts";
+import {useInvestments, useSaveInvestment, useDeleteInvestment} from "@/hooks/useInvestments.ts"; // Importado delete
 import {getDeepAnalysis} from "@/service/aiService.ts";
 
 // --- TIPAGEM ---
@@ -81,8 +82,9 @@ export const InvestmentsSection = () => {
     const { setActiveDialog } = useDialogManager();
     const { data: investmentsList = [] } = useInvestments();
     const { mutate: saveInvestment } = useSaveInvestment();
-    const [profile, setProfile] = useState<keyof typeof INVESTMENT_PROFILES>('moderate');
+    const { mutate: deleteInvestment } = useDeleteInvestment(); // Hook de deleção
 
+    const [profile, setProfile] = useState<keyof typeof INVESTMENT_PROFILES>('moderate');
     const [investmentToEdit, setInvestmentToEdit] = useState<InvestmentItem | null>(null);
 
     // --- ESTADOS DA IA ---
@@ -100,10 +102,8 @@ export const InvestmentsSection = () => {
             Object.values(totalsByCategory).reduce((a, b) => a + b, 0),
         [totalsByCategory]);
 
-    // LÓGICA ATUALIZADA: Analisa todas as classes e sugere o maior desvio negativo
     const agentInsight = useMemo(() => {
         if (totalPortfolio === 0) return null;
-
         const targetAllocation = INVESTMENT_PROFILES[profile].allocation;
         let biggestGap = 0;
         let suggestedCategory: InvestmentClass | null = null;
@@ -112,18 +112,14 @@ export const InvestmentsSection = () => {
             const targetPct = targetAllocation[cat];
             const currentAmt = totalsByCategory[cat] || 0;
             const currentPct = (currentAmt / totalPortfolio) * 100;
-
-            // Calculamos a distância para o alvo
             const gap = targetPct - currentPct;
-
-            // Se o gap for positivo, significa que falta dinheiro nessa categoria
             if (gap > biggestGap) {
                 biggestGap = gap;
                 suggestedCategory = cat;
             }
         });
 
-        if (suggestedCategory && biggestGap > 1) { // Só sugere se o desvio for maior que 1%
+        if (suggestedCategory && biggestGap > 1) {
             const diffAmount = (biggestGap / 100) * totalPortfolio;
             return {
                 class: CATEGORY_LABELS[suggestedCategory],
@@ -131,12 +127,12 @@ export const InvestmentsSection = () => {
                 reason: `Sua exposição em ${CATEGORY_LABELS[suggestedCategory]} está ${biggestGap.toFixed(1)}% abaixo do ideal para o perfil ${INVESTMENT_PROFILES[profile].label}.`
             };
         }
-
         return null;
     }, [profile, totalsByCategory, totalPortfolio]);
 
     const handleSaveInvestment = async (data: any) => {
         try {
+            let payload;
             if (investmentToEdit) {
                 const custoTotalAntigo = investmentToEdit.amountInvested;
                 const custoNovoAporte = data.amountInvested;
@@ -148,7 +144,7 @@ export const InvestmentsSection = () => {
                     novoPrecoMedio = (custoTotalAntigo + custoNovoAporte) / novaQuantidade;
                 }
 
-                saveInvestment({
+                payload = {
                     id: investmentToEdit.id,
                     name: investmentToEdit.name,
                     category: investmentToEdit.category,
@@ -159,33 +155,39 @@ export const InvestmentsSection = () => {
                     averagePrice: novoPrecoMedio,
                     indexador: data.indexador || investmentToEdit.indexador,
                     taxa: data.taxa || investmentToEdit.taxa
-                });
+                };
             } else {
-                saveInvestment(data);
+                payload = data;
             }
+            await saveInvestment(payload);
             setInvestmentToEdit(null);
         } catch (error) {
-            console.error("Erro ao processar salvamento:", error);
+            console.error("Erro ao salvar:", error);
         }
     };
 
-    // --- FUNÇÃO DE ANÁLISE IA REAL ---
+    // Função para deletar o ativo
+    const handleDelete = (id: string, e: React.MouseEvent) => {
+        e.stopPropagation(); // Evita abrir o modal de edição ao clicar na lixeira
+        if (confirm("Deseja realmente remover este ativo da sua carteira?")) {
+            deleteInvestment(id);
+        }
+    };
+
     const handleDeepAnalysis = async () => {
         setIsAnalyzing(true);
         setAiAnalysis(null);
-
         const summary = {
             perfil: INVESTMENT_PROFILES[profile].label,
             total: totalPortfolio,
             distribuicao: totalsByCategory,
             ativos: investmentsList.map(i => ({ nome: i.name, valor: i.currentValue }))
         };
-
         try {
             const result = await getDeepAnalysis(summary);
             setAiAnalysis(result);
         } catch (error) {
-            setAiAnalysis("Desculpe, meus sistemas de análise estão sobrecarregados agora. Tente novamente em instantes.");
+            setAiAnalysis("Desculpe, meus sistemas de análise estão sobrecarregados agora.");
         } finally {
             setIsAnalyzing(false);
         }
@@ -267,15 +269,6 @@ export const InvestmentsSection = () => {
                                 ) : (
                                     <p className="text-sm text-emerald-800 italic">Sua carteira está equilibrada seguindo seu perfil.</p>
                                 )}
-
-                                <Button
-                                    size="sm"
-                                    className="w-full bg-emerald-600 hover:bg-emerald-700 sm:hidden"
-                                    onClick={handleDeepAnalysis}
-                                    disabled={isAnalyzing}
-                                >
-                                    {isAnalyzing ? <Loader2 className="h-4 w-4 animate-spin" /> : "Solicitar Análise IA"}
-                                </Button>
                             </CardContent>
                         </Card>
 
@@ -339,11 +332,10 @@ export const InvestmentsSection = () => {
                     <Card className="border-none shadow-none md:border text-left">
                         <CardHeader className="hidden md:block">
                             <CardTitle>Meus Ativos</CardTitle>
-                            <CardDescription>Gerencie suas posições e realize novos aportes.</CardDescription>
                         </CardHeader>
 
                         <CardContent className="p-0 md:p-6">
-                            <div className="max-h-[600px] overflow-y-auto scrollbar-thin scrollbar-thumb-muted-foreground/20">
+                            <div className="max-h-[600px] overflow-y-auto scrollbar-thin scrollbar-thumb-muted-foreground/20 px-4 md:px-0">
 
                                 {/* VIEW: DESKTOP TABLE */}
                                 <div className="hidden md:block text-left">
@@ -365,36 +357,45 @@ export const InvestmentsSection = () => {
                                             return (
                                                 <tr key={inv.id} className="group hover:bg-muted/30 transition-colors">
                                                     <td className="py-4 px-2 text-left">
-                                                        <div className="flex items-center gap-3 text-left">
-                                                            <div className="p-2 bg-muted rounded-lg group-hover:bg-background transition-colors"><Landmark className="h-4 w-4 text-muted-foreground" /></div>
-                                                            <div className="text-left">
+                                                        <div className="flex items-center gap-3">
+                                                            <div className="p-2 bg-muted rounded-lg group-hover:bg-background"><Landmark className="h-4 w-4 text-muted-foreground" /></div>
+                                                            <div>
                                                                 <p className="font-bold text-sm leading-tight">{inv.name}</p>
                                                                 <p className="text-[10px] text-muted-foreground">{inv.institution}</p>
                                                             </div>
                                                         </div>
                                                     </td>
-                                                    <td className="px-2 text-left">
-                                                            <span className="text-[10px] bg-muted px-2 py-1 rounded-full font-bold uppercase whitespace-nowrap">
-                                                                {inv.category === 'fixed' ? 'Renda Fixa' : inv.category}
-                                                            </span>
+                                                    <td className="px-2">
+                                                        <span className="text-[10px] bg-muted px-2 py-1 rounded-full font-bold uppercase whitespace-nowrap">
+                                                            {inv.category === 'fixed' ? 'Renda Fixa' : inv.category}
+                                                        </span>
                                                     </td>
                                                     <td className="px-2 text-right text-muted-foreground whitespace-nowrap">{formatTransactionAmount(inv.amountInvested)}</td>
                                                     <td className="px-2 text-right font-bold whitespace-nowrap">{formatTransactionAmount(inv.currentValue)}</td>
                                                     <td className={cn("px-2 text-right font-bold whitespace-nowrap", profit >= 0 ? "text-emerald-600" : "text-rose-600")}>
-                                                        <div className="flex flex-col items-end text-right">
+                                                        <div className="flex flex-col items-end">
                                                             <span>{profitPct > 0 ? "+" : ""}{profitPct.toFixed(2)}%</span>
-                                                            <span className="text-[10px] font-normal opacity-70">{formatTransactionAmount(profit)}</span>
                                                         </div>
                                                     </td>
                                                     <td className="px-2 text-right">
-                                                        <Button
-                                                            variant="ghost"
-                                                            size="icon"
-                                                            className="h-8 w-8 text-emerald-600 hover:bg-emerald-50 hover:text-emerald-700"
-                                                            onClick={() => { setInvestmentToEdit(inv); setActiveDialog("add-investment"); }}
-                                                        >
-                                                            <Plus className="h-4 w-4" />
-                                                        </Button>
+                                                        <div className="flex justify-end gap-1">
+                                                            <Button
+                                                                variant="ghost"
+                                                                size="icon"
+                                                                className="h-8 w-8 text-emerald-600 hover:bg-emerald-50"
+                                                                onClick={() => { setInvestmentToEdit(inv); setActiveDialog("add-investment"); }}
+                                                            >
+                                                                <Plus className="h-4 w-4" />
+                                                            </Button>
+                                                            <Button
+                                                                variant="ghost"
+                                                                size="icon"
+                                                                className="h-8 w-8 text-rose-500 hover:bg-rose-50"
+                                                                onClick={(e) => handleDelete(inv.id, e)}
+                                                            >
+                                                                <Trash2 className="h-4 w-4" />
+                                                            </Button>
+                                                        </div>
                                                     </td>
                                                 </tr>
                                             );
@@ -403,6 +404,7 @@ export const InvestmentsSection = () => {
                                     </table>
                                 </div>
 
+                                {/* VIEW: MOBILE CARDS */}
                                 <div className="grid grid-cols-1 gap-3 p-4 md:hidden">
                                     {investmentsList.map((inv) => {
                                         const profit = inv.currentValue - inv.amountInvested;
@@ -410,7 +412,7 @@ export const InvestmentsSection = () => {
                                         return (
                                             <div
                                                 key={inv.id}
-                                                className="bg-muted/30 border rounded-xl p-4 space-y-3 active:scale-[0.98] transition-all cursor-pointer text-left"
+                                                className="bg-muted/30 border rounded-xl p-4 space-y-3 active:scale-[0.98] transition-all cursor-pointer relative"
                                                 onClick={() => { setInvestmentToEdit(inv); setActiveDialog("add-investment"); }}
                                             >
                                                 <div className="flex justify-between items-start">
@@ -421,9 +423,19 @@ export const InvestmentsSection = () => {
                                                             <p className="text-[10px] text-muted-foreground">{inv.institution}</p>
                                                         </div>
                                                     </div>
-                                                    <span className="text-[9px] bg-white border px-2 py-0.5 rounded-full font-bold uppercase text-muted-foreground">
-                                                        {inv.category === 'fixed' ? 'Renda Fixa' : inv.category}
-                                                    </span>
+                                                    <div className="flex flex-col items-end gap-2">
+                                                        <span className="text-[9px] bg-white border px-2 py-0.5 rounded-full font-bold uppercase text-muted-foreground">
+                                                            {inv.category === 'fixed' ? 'Renda Fixa' : inv.category}
+                                                        </span>
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="icon"
+                                                            className="h-7 w-7 text-rose-400"
+                                                            onClick={(e) => handleDelete(inv.id, e)}
+                                                        >
+                                                            <Trash2 className="h-4 w-4" />
+                                                        </Button>
+                                                    </div>
                                                 </div>
 
                                                 <div className="grid grid-cols-2 gap-4 pt-2 border-t border-dashed">
@@ -436,15 +448,6 @@ export const InvestmentsSection = () => {
                                                         <p className={cn("text-sm font-bold", profit >= 0 ? "text-emerald-600" : "text-rose-600")}>
                                                             {profitPct > 0 ? "+" : ""}{profitPct.toFixed(1)}%
                                                         </p>
-                                                    </div>
-                                                </div>
-
-                                                <div className="flex items-center justify-between pt-1">
-                                                    <p className="text-[10px] text-muted-foreground italic">
-                                                        Custo: {formatTransactionAmount(inv.amountInvested)}
-                                                    </p>
-                                                    <div className="flex items-center gap-1 text-emerald-600 text-[10px] font-bold bg-emerald-50 px-2 py-1 rounded-lg">
-                                                        <Plus className="h-3 w-3" /> Aporte
                                                     </div>
                                                 </div>
                                             </div>
