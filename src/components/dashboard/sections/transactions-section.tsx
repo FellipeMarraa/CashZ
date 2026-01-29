@@ -1,4 +1,6 @@
-import {useEffect, useState} from 'react';
+"use client"
+
+import {useEffect, useState, useMemo} from 'react';
 import {Card, CardContent, CardFooter, CardHeader} from '@/components/ui/card';
 import {Input} from '@/components/ui/input';
 import {Button} from '@/components/ui/button';
@@ -30,38 +32,48 @@ export const TransactionsSection = () => {
         setCurrentPage(1);
     }, [transactionType, searchQuery, sortOrder, month, year]);
 
-    // Lógica de Filtro e Ordenação combinada
-    const processedTransactions = transactions
-        .filter((transaction: Transaction) => {
-            // Filtro de Busca
-            const matchesSearch = searchQuery
-                ? (transaction.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                    transaction.category.name.toLowerCase().includes(searchQuery.toLowerCase()))
-                : true;
+    // Função auxiliar para normalizar strings (remover acentos e colocar em lowercase)
+    const normalizeString = (str: string) => {
+        return str
+            .toLowerCase()
+            .normalize("NFD")
+            .replace(/[\u0300-\u036f]/g, "");
+    };
 
-            // Filtro de Status via Select (se selecionado paid ou pending)
-            if (sortOrder === 'paid') return matchesSearch && (transaction.status === 'PAGA' || transaction.status === 'RECEBIDA');
-            if (sortOrder === 'pending') return matchesSearch && transaction.status === 'PENDENTE';
+    // Lógica de Filtro e Ordenação combinada com normalização
+    const processedTransactions = useMemo(() => {
+        const normalizedQuery = normalizeString(searchQuery);
 
-            return matchesSearch;
-        })
-        .sort((a: Transaction, b: Transaction) => {
-            switch (sortOrder) {
-                case 'highest':
-                    return b.amount - a.amount;
-                case 'lowest':
-                    return a.amount - b.amount;
-                case 'oldest':
-                    return new Date(a.date).getTime() - new Date(b.date).getTime();
-                case 'newest':
-                default:
-                    return new Date(b.date).getTime() - new Date(a.date).getTime();
-            }
-        });
+        return transactions
+            .filter((transaction: Transaction) => {
+                // Normaliza campos de busca
+                const descriptionMatch = normalizeString(transaction.description).includes(normalizedQuery);
+                const categoryMatch = normalizeString(transaction.category.name).includes(normalizedQuery);
 
-    const filteredTransactions = processedTransactions.filter((transaction: Transaction) =>
-        transactionType === 'all' ? true : transaction.type === transactionType
-    );
+                const matchesSearch = searchQuery ? (descriptionMatch || categoryMatch) : true;
+
+                // Filtro de Status
+                if (sortOrder === 'paid') return matchesSearch && (transaction.status === 'PAGA' || transaction.status === 'RECEBIDA');
+                if (sortOrder === 'pending') return matchesSearch && transaction.status === 'PENDENTE';
+
+                return matchesSearch;
+            })
+            .sort((a: Transaction, b: Transaction) => {
+                switch (sortOrder) {
+                    case 'highest': return b.amount - a.amount;
+                    case 'lowest': return a.amount - b.amount;
+                    case 'oldest': return new Date(a.date).getTime() - new Date(b.date).getTime();
+                    case 'newest':
+                    default: return new Date(b.date).getTime() - new Date(a.date).getTime();
+                }
+            });
+    }, [transactions, searchQuery, sortOrder]);
+
+    const filteredTransactions = useMemo(() => (
+        processedTransactions.filter((transaction: Transaction) =>
+            transactionType === 'all' ? true : transaction.type === transactionType
+        )
+    ), [processedTransactions, transactionType]);
 
     const totalPages = Math.ceil(filteredTransactions.length / itemsPerPage);
 
@@ -155,13 +167,11 @@ export const TransactionsSection = () => {
     }
 
     return (
-        <div className="space-y-6 animate-in fade-in duration-700">
+        <div className="space-y-6 animate-in fade-in duration-700 pb-10">
             <Card className="border-none shadow-none md:border md:shadow-sm">
                 <CardHeader className="px-4 md:px-6">
-                    {/* Container Principal dos Filtros */}
                     <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
 
-                        {/* Lado Esquerdo: Busca e Datas */}
                         <div className="flex-1 w-full md:max-w-3xl">
                             <div className="flex flex-col gap-3">
                                 <div className="relative w-full">
@@ -198,8 +208,7 @@ export const TransactionsSection = () => {
                             </div>
                         </div>
 
-                        {/* Lado Direito: Ordenação (Alinhado por baixo no desktop) */}
-                        <div className="hidden md:flex flex-col gap-1.5 min-w-[180px]">
+                        <div className="md:flex flex-col gap-1.5 min-w-[180px]">
                             <Select value={sortOrder} onValueChange={(value) => setSortOrder(value as any)}>
                                 <SelectTrigger className="w-full">
                                     <div className="flex items-center gap-2">
@@ -274,7 +283,7 @@ export const TransactionsSection = () => {
                 </CardFooter>
 
                 <div className="md:hidden py-4 text-center">
-                    <p className="text-[10px] text-muted-foreground uppercase tracking-widest">Fim das transações do mês</p>
+                    <p className="text-[10px] text-muted-foreground uppercase tracking-widest italic opacity-50">Fim das transações</p>
                 </div>
             </Card>
         </div>

@@ -1,38 +1,42 @@
 "use client"
 
-import { useMemo, useState } from 'react';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Progress } from '@/components/ui/progress';
-import { Button } from '@/components/ui/button';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { AlertTriangle, Plus, Target, TrendingUp, CheckCircle2, Lightbulb, Trash2 } from 'lucide-react';
-import { IMes } from "@/model/IMes.ts";
-import { formatTransactionAmount, useTransactions } from '@/hooks/useTransactions';
-import { useCategories } from '@/hooks/useCategories';
-import { cn } from "@/lib/utils";
-import { AddBudgetForm } from "@/components/add-budget-form.tsx";
-import { useBudgets } from "@/hooks/useBudgets.ts";
-import { useDialogManager } from "@/context/DialogManagerContext.tsx";
+import {useMemo, useState} from 'react';
+import {Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle} from '@/components/ui/card';
+import {Progress} from '@/components/ui/progress';
+import {Button} from '@/components/ui/button';
+import {Select, SelectContent, SelectItem, SelectTrigger, SelectValue} from '@/components/ui/select';
+import {AlertTriangle, CheckCircle2, Lightbulb, Plus, Target, Trash2, TrendingUp} from 'lucide-react';
+import {IMes} from "@/model/IMes.ts";
+import {formatTransactionAmount, useTransactions} from '@/hooks/useTransactions';
+import {useCategories} from '@/hooks/useCategories';
+import {cn} from "@/lib/utils";
+import {useBudgets} from "@/hooks/useBudgets.ts";
+import {useDialogManager} from "@/context/DialogManagerContext.tsx";
+import {AddBudgetForm} from "@/components/add-budget-form.tsx";
+import {ConfirmDialog} from "@/components/confirm-dialog.tsx";
 
 export const BudgetSection = () => {
     const currentDate = new Date();
     const [activeMonth, setActiveMonth] = useState(IMes[currentDate.getMonth()]);
     const [activeYear, setActiveYear] = useState(currentDate.getFullYear());
 
-    const { setActiveDialog } = useDialogManager();
+    const {setActiveDialog } = useDialogManager();
     const { budgets, deleteBudget } = useBudgets(IMes.indexOf(activeMonth) + 1, activeYear);
     const { data: transactions = [] } = useTransactions(activeMonth, activeYear);
     const { data: categories = [] } = useCategories();
 
+    const [idToDelete, setIdToDelete] = useState<string | null>(null);
     const budgetAnalysis = useMemo(() => {
         return categories.map(category => {
             const spent = transactions
                 .filter(t => t.category.id === category.id && t.type === 'DESPESA')
-                .reduce((acc, t) => acc + t.amount, 0);
+                .reduce((acc, t) => acc + Number(t.amount || 0), 0);
 
             const budgetData = budgets.find(b => b.categoryId === category.id);
-            const allocated = budgetData ? budgetData.amount : 0;
-            const budgetId = budgetData ? budgetData.id : null; // Captura o ID para o delete
+
+            const allocated = budgetData ? Number(budgetData.amount) : 0;
+            const budgetId = budgetData ? budgetData.id : null;
+
             const percentSpent = allocated > 0 ? (spent / allocated) * 100 : 0;
             const remaining = allocated - spent;
 
@@ -40,22 +44,41 @@ export const BudgetSection = () => {
         });
     }, [categories, transactions, budgets]);
 
-    // --- LÓGICA DE INSIGHTS REAIS ---
+    const totalAllocated = useMemo(() =>
+            budgetAnalysis.reduce((sum, item) => sum + item.allocated, 0),
+        [budgetAnalysis]);
+
+    // AJUSTE AQUI: Soma apenas os gastos das categorias que possuem orçamento definido
+    const totalSpent = useMemo(() =>
+            budgetAnalysis
+                .filter(item => item.allocated > 0)
+                .reduce((sum, item) => sum + item.spent, 0),
+        [budgetAnalysis]);
+
+    const isOverBudget = totalAllocated > 0 && totalSpent > totalAllocated;
+
     const insights = useMemo(() => {
         const categoriesWithBudget = budgetAnalysis.filter(cat => cat.allocated > 0);
-
         const critical = [...categoriesWithBudget].sort((a, b) => b.percentSpent - a.percentSpent)[0];
         const saving = [...categoriesWithBudget].sort((a, b) => a.percentSpent - b.percentSpent)[0];
         const overBudgetCount = categoriesWithBudget.filter(cat => cat.spent > cat.allocated).length;
-
         return { critical, saving, overBudgetCount, totalBudgets: categoriesWithBudget.length };
     }, [budgetAnalysis]);
 
-    const totalAllocated = budgetAnalysis.reduce((sum, item) => sum + item.allocated, 0);
-    const totalSpent = budgetAnalysis.reduce((sum, item) => sum + item.spent, 0);
+    const handleOpenConfirm = (budgetId: string) => {
+        setIdToDelete(budgetId);
+        setActiveDialog("confirm-dialog");
+    };
 
-    const handleDelete = (budgetId: string) => {
-        deleteBudget.mutate(budgetId);
+    const handleConfirmDelete = () => {
+        if (idToDelete) {
+            deleteBudget.mutate(idToDelete, {
+                onSuccess: () => {
+                    setActiveDialog(null);
+                    setIdToDelete(null);
+                }
+            });
+        }
     };
 
     return (
@@ -91,24 +114,30 @@ export const BudgetSection = () => {
             <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
                 <Card className="border-none shadow-sm md:border">
                     <CardHeader className="pb-2">
-                        <CardDescription className="text-xs uppercase font-bold">Total Planejado</CardDescription>
-                        <CardTitle className="text-2xl">{formatTransactionAmount(totalAllocated)}</CardTitle>
+                        <CardDescription className="text-xs uppercase font-bold text-muted-foreground">Total Planejado</CardDescription>
+                        <CardTitle className="text-2xl font-bold">{formatTransactionAmount(totalAllocated)}</CardTitle>
                     </CardHeader>
                 </Card>
                 <Card className="border-none shadow-sm md:border">
                     <CardHeader className="pb-2">
-                        <CardDescription className="text-xs uppercase font-bold">Total Gasto Real</CardDescription>
-                        <CardTitle className="text-2xl">{formatTransactionAmount(totalSpent)}</CardTitle>
+                        <CardDescription className="text-xs uppercase font-bold text-muted-foreground">Total Gasto Real</CardDescription>
+                        <CardTitle className="text-2xl font-bold">{formatTransactionAmount(totalSpent)}</CardTitle>
                     </CardHeader>
                 </Card>
                 <Card className={cn(
-                    "border-none shadow-sm md:border",
-                    totalSpent > totalAllocated && totalAllocated > 0 ? "text-red-500" : "text-emerald-500"
+                    "border-none shadow-sm md:border transition-colors",
+                    isOverBudget ? "bg-red-50 border-red-200" : "text-emerald-500"
                 )}>
                     <CardHeader className="pb-2">
-                        <CardDescription className="text-xs uppercase font-bold text-muted-foreground">Status Geral</CardDescription>
-                        <CardTitle className="text-2xl truncate">
-                            {totalAllocated === 0 ? "Sem metas" : totalSpent > totalAllocated ? "Orçamento Estourado" : "Dentro do Limite"}
+                        <CardDescription className={cn("text-xs uppercase font-bold", isOverBudget ? "text-red-500" : "text-muted-foreground")}>
+                            Status Geral
+                        </CardDescription>
+                        <CardTitle className={cn("text-2xl truncate font-bold", isOverBudget && "text-red-600")}>
+                            {totalAllocated === 0
+                                ? "Sem metas"
+                                : isOverBudget
+                                    ? "Orçamento Estourado"
+                                    : "Dentro do Limite"}
                         </CardTitle>
                     </CardHeader>
                 </Card>
@@ -130,30 +159,29 @@ export const BudgetSection = () => {
                                         <div className="flex items-center justify-between">
                                             <div className="flex items-center gap-3">
                                                 <div className="p-2 bg-muted rounded-lg">
-                                                    <Target className="h-4 w-4 text-primary" />
+                                                    <Target className={cn("h-4 w-4", item.spent > item.allocated ? "text-red-500" : "text-primary")} />
                                                 </div>
                                                 <div>
                                                     <div className="flex items-center gap-2">
                                                         <p className="text-sm font-bold">{item.name}</p>
                                                         {item.budgetId && (
                                                             <button
-                                                                onClick={() => handleDelete(item.budgetId!)}
+                                                                onClick={() => handleOpenConfirm(item.budgetId!)}
                                                                 className="opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-red-500"
                                                             >
                                                                 <Trash2 className="h-3.5 w-3.5" />
                                                             </button>
                                                         )}
                                                     </div>
-                                                    <p className="text-[10px] text-muted-foreground">
-                                                        {item.remaining > 0 ? `Restam ${formatTransactionAmount(item.remaining)}` : "Limite excedido"}
+                                                    <p className={cn("text-[10px]", item.spent > item.allocated ? "text-red-500 font-bold" : "text-muted-foreground")}>
+                                                        {item.spent > item.allocated
+                                                            ? `Excedeu em ${formatTransactionAmount(item.spent - item.allocated)}`
+                                                            : `Restam ${formatTransactionAmount(item.remaining)}`}
                                                     </p>
                                                 </div>
                                             </div>
                                             <div className="text-right">
-                                                <span className={cn(
-                                                    "text-sm font-bold",
-                                                    item.percentSpent > 100 ? "text-red-500" : "text-foreground"
-                                                )}>
+                                                <span className={cn("text-sm font-bold", item.spent > item.allocated ? "text-red-600" : "text-foreground")}>
                                                     {formatTransactionAmount(item.spent)}
                                                 </span>
                                                 <span className="text-[10px] text-muted-foreground block">
@@ -165,12 +193,6 @@ export const BudgetSection = () => {
                                             value={item.percentSpent > 100 ? 100 : item.percentSpent}
                                             className="h-2"
                                         />
-                                        {item.percentSpent > 90 && (
-                                            <div className="flex items-center gap-1 text-[10px] text-red-500 font-medium">
-                                                <AlertTriangle className="h-3 w-3" />
-                                                Limite crítico!
-                                            </div>
-                                        )}
                                     </div>
                                 ))
                             )}
@@ -194,27 +216,26 @@ export const BudgetSection = () => {
                     <CardContent className="space-y-4">
                         {insights.totalBudgets > 0 ? (
                             <>
-                                {insights.critical && insights.critical.percentSpent >= 90 && (
+                                {insights.critical && insights.critical.spent > insights.critical.allocated && (
                                     <div className="p-4 rounded-xl bg-amber-50 dark:bg-amber-950/20 border border-amber-100 dark:border-amber-900">
                                         <div className="flex items-center gap-3 mb-2">
                                             <AlertTriangle className="h-5 w-5 text-amber-600" />
-                                            <span className="font-bold text-sm text-amber-900 dark:text-amber-100">Atenção em {insights.critical.name}</span>
+                                            <span className="font-bold text-sm text-amber-900">Atenção em {insights.critical.name}</span>
                                         </div>
-                                        <p className="text-xs text-amber-800/80 dark:text-amber-200/80">
-                                            Você já utilizou {insights.critical.percentSpent.toFixed(0)}% do limite.
-                                            {insights.critical.remaining < 0 ? ' Orçamento excedido!' : ` Restam apenas ${formatTransactionAmount(insights.critical.remaining)}.`}
+                                        <p className="text-xs text-amber-800/80">
+                                            Orçamento excedido em {formatTransactionAmount(insights.critical.spent - insights.critical.allocated)}.
                                         </p>
                                     </div>
                                 )}
 
                                 {insights.saving && insights.saving.percentSpent < 80 && (
-                                    <div className="p-4 rounded-xl bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-100 dark:border-emerald-900">
+                                    <div className="p-4 rounded-xl bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-100 dark:border-amber-900">
                                         <div className="flex items-center gap-3 mb-2">
                                             <TrendingUp className="h-5 w-5 text-emerald-600" />
-                                            <span className="font-bold text-sm text-emerald-900 dark:text-emerald-100">Boa Economia em {insights.saving.name}</span>
+                                            <span className="font-bold text-sm text-emerald-900">Boa Economia em {insights.saving.name}</span>
                                         </div>
-                                        <p className="text-xs text-emerald-800/80 dark:text-emerald-200/80">
-                                            Nesta categoria, você gastou apenas {insights.saving.percentSpent.toFixed(0)}% do planejado. Continue assim!
+                                        <p className="text-xs text-emerald-800/80">
+                                            Você gastou apenas {insights.saving.percentSpent.toFixed(0)}% do planejado.
                                         </p>
                                     </div>
                                 )}
@@ -222,26 +243,33 @@ export const BudgetSection = () => {
                                 <div className="p-4 rounded-xl bg-blue-50 dark:bg-blue-950/20 border border-blue-100 dark:border-blue-900">
                                     <div className="flex items-center gap-3 mb-2">
                                         <CheckCircle2 className="h-5 w-5 text-blue-600" />
-                                        <span className="font-bold text-sm text-blue-900 dark:text-blue-100">Status Geral</span>
+                                        <span className="font-bold text-sm text-blue-900">Status Geral</span>
                                     </div>
-                                    <p className="text-xs text-blue-800/80 dark:text-blue-200/80">
+                                    <p className="text-xs text-blue-800/80">
                                         {insights.overBudgetCount > 0
-                                            ? `Você tem ${insights.overBudgetCount} categoria(s) fora do limite planejado.`
-                                            : "Parabéns! Todas as suas categorias com metas estão dentro do orçamento."}
+                                            ? `Você tem ${insights.overBudgetCount} categoria(s) fora do limite.`
+                                            : "Parabéns! Todas as metas estão em dia."}
                                     </p>
                                 </div>
                             </>
                         ) : (
                             <div className="text-center py-6 text-muted-foreground italic space-y-2">
                                 <Lightbulb className="h-8 w-8 mx-auto opacity-20" />
-                                <p className="text-xs text-muted-foreground">Configure metas para receber insights personalizados.</p>
+                                <p className="text-xs text-muted-foreground">Configure metas para ver os insights.</p>
                             </div>
                         )}
                     </CardContent>
                 </Card>
             </div>
-
             <AddBudgetForm month={activeMonth} year={activeYear} />
+            <ConfirmDialog
+                title="Excluir Limite?"
+                description="Tem certeza que deseja remover esta meta? Isso afetará os insights de economia do mês."
+                confirmLabel="Sim, excluir"
+                onConfirm={handleConfirmDelete}
+                isLoading={deleteBudget.isPending}
+                variant="destructive"
+            />
         </div>
     );
 };
