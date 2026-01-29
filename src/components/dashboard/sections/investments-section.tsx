@@ -1,431 +1,350 @@
-import {Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle} from '@/components/ui/card';
-import {Tabs, TabsContent, TabsList, TabsTrigger} from '@/components/ui/tabs';
+"use client"
+
+import {useMemo, useState} from 'react';
+import {Card, CardContent, CardDescription, CardHeader, CardTitle} from '@/components/ui/card';
 import {Button} from '@/components/ui/button';
 import {Progress} from '@/components/ui/progress';
-import {DollarSign, RefreshCcw, TrendingDown, TrendingUp} from 'lucide-react';
-import {FinanceChart} from '@/components/dashboard/finance-chart';
-import {useState} from "react";
+import {Tabs, TabsContent, TabsList, TabsTrigger} from '@/components/ui/tabs';
+import {
+    ArrowUpCircle,
+    Banknote,
+    BrainCircuit,
+    Landmark,
+    List,
+    PieChart,
+    Plus,
+    ShieldCheck,
+    Target,
+    TrendingUp,
+    Zap,
+    Info
+} from 'lucide-react';
+import {cn} from "@/lib/utils";
+import {formatTransactionAmount} from '@/hooks/useTransactions';
+import {useDialogManager} from "@/context/DialogManagerContext";
+import {TutorialWizard} from "@/components/tutorial-wizard";
+import {AddInvestmentForm} from "@/components/add-Investment-form.tsx";
 
-interface Investment {
+// --- TIPAGEM ---
+type InvestmentClass = 'fixed' | 'stocks' | 'international' | 'crypto';
+
+export interface InvestmentItem {
     id: string;
     name: string;
-    symbol: string;
-    shares: number;
-    price: number;
-    previousPrice: number;
-    valueChange: number;
-    percentChange: number;
+    category: InvestmentClass;
+    amountInvested: number;
+    currentValue: number;
+    institution: string;
+    indexador?: string;
+    taxa?: number;
+    quantity?: number;
+    averagePrice?: number;
 }
 
+const INVESTMENT_PROFILES = {
+    conservative: {
+        label: "Conservador",
+        icon: ShieldCheck,
+        color: "text-blue-500",
+        description: "Foco em proteção de capital e liquidez.",
+        allocation: { fixed: 80, stocks: 15, international: 5, crypto: 0 }
+    },
+    moderate: {
+        label: "Moderado",
+        icon: TrendingUp,
+        color: "text-emerald-500",
+        description: "Equilíbrio entre segurança e crescimento.",
+        allocation: { fixed: 50, stocks: 35, international: 10, crypto: 5 }
+    },
+    aggressive: {
+        label: "Arrojado",
+        icon: Zap,
+        color: "text-purple-500",
+        description: "Busca máxima rentabilidade aceitando riscos.",
+        allocation: { fixed: 20, stocks: 50, international: 20, crypto: 10 }
+    }
+};
+
 export const InvestmentsSection = () => {
+    const { setActiveDialog } = useDialogManager();
+    const [profile, setProfile] = useState<keyof typeof INVESTMENT_PROFILES>('moderate');
+    const [investmentToEdit, setInvestmentToEdit] = useState<InvestmentItem | null>(null);
 
-    const [exibePage] = useState(false);
+    const [investmentsList, setInvestmentsList] = useState<InvestmentItem[]>([
+        { id: '1', name: 'Tesouro Selic 2027', category: 'fixed', amountInvested: 10000, currentValue: 10850, institution: 'XP Investimentos', indexador: 'SELIC', taxa: 100 },
+        { id: '2', name: 'ITUB4 (Itaú)', category: 'stocks', amountInvested: 4000, currentValue: 4200, institution: 'NuInvest', quantity: 100, averagePrice: 40 },
+        { id: '3', name: 'Ethereum', category: 'crypto', amountInvested: 1000, currentValue: 1400, institution: 'Binance', quantity: 0.05, averagePrice: 20000 }
+    ]);
 
-    const investments: Investment[] = [
-        {
-            id: '1',
-            name: 'Vanguard Total Stock Market ETF',
-            symbol: 'VTI',
-            shares: 45.2,
-            price: 253.48,
-            previousPrice: 251.22,
-            valueChange: 102.18,
-            percentChange: 0.9,
-        },
-        {
-            id: '2',
-            name: 'Apple Inc.',
-            symbol: 'AAPL',
-            shares: 28,
-            price: 187.05,
-            previousPrice: 185.92,
-            valueChange: 31.64,
-            percentChange: 0.6,
-        },
-        {
-            id: '3',
-            name: 'Amazon.com Inc.',
-            symbol: 'AMZN',
-            shares: 12,
-            price: 178.15,
-            previousPrice: 180.75,
-            valueChange: -31.2,
-            percentChange: -1.4,
-        },
-        {
-            id: '4',
-            name: 'Microsoft Corporation',
-            symbol: 'MSFT',
-            shares: 15,
-            price: 420.55,
-            previousPrice: 418.20,
-            valueChange: 35.25,
-            percentChange: 0.5,
-        },
-        {
-            id: '5',
-            name: 'Berkshire Hathaway Inc.',
-            symbol: 'BRK.B',
-            shares: 8,
-            price: 412.89,
-            previousPrice: 410.15,
-            valueChange: 21.92,
-            percentChange: 0.7,
-        },
-    ];
+    const totalsByCategory = useMemo(() => {
+        return investmentsList.reduce((acc, inv) => {
+            acc[inv.category] = (acc[inv.category] || 0) + inv.currentValue;
+            return acc;
+        }, { fixed: 0, stocks: 0, international: 0, crypto: 0 } as Record<InvestmentClass, number>);
+    }, [investmentsList]);
 
-    const totalValue = investments.reduce((sum, inv) => sum + (inv.price * inv.shares), 0);
-    const totalValueChange = investments.reduce((sum, inv) => sum + inv.valueChange, 0);
-    const totalPercentChange = (totalValueChange / (totalValue - totalValueChange)) * 100;
+    const totalPortfolio = useMemo(() =>
+            Object.values(totalsByCategory).reduce((a, b) => a + b, 0),
+        [totalsByCategory]);
 
-    // Portfolio allocation data
-    const allocation = [
-        {name: 'US Stocks', value: 65},
-        {name: 'International Stocks', value: 20},
-        {name: 'Bonds', value: 10},
-        {name: 'Cash', value: 5},
-    ];
+    const agentInsight = useMemo(() => {
+        const target = INVESTMENT_PROFILES[profile].allocation;
+        const currentPct = totalPortfolio > 0 ? (totalsByCategory.fixed / totalPortfolio) * 100 : 0;
+
+        if (currentPct < target.fixed) {
+            const diffAmount = (target.fixed / 100 * totalPortfolio) - totalsByCategory.fixed;
+            return {
+                class: "Renda Fixa",
+                amount: diffAmount,
+                reason: "Sua segurança está abaixo da meta do seu perfil."
+            };
+        }
+        return null;
+    }, [profile, totalsByCategory, totalPortfolio]);
+
+    const handleSaveInvestment = (data: any) => {
+        if (investmentToEdit) {
+            setInvestmentsList(prev => prev.map(inv => {
+                if (inv.id === investmentToEdit.id) {
+                    const custoTotalAntigo = inv.amountInvested;
+                    const custoNovoAporte = data.amountInvested;
+                    let novoPrecoMedio = inv.averagePrice || 0;
+                    let novaQuantidade = inv.quantity || 0;
+
+                    if (inv.category !== 'fixed') {
+                        novaQuantidade = (inv.quantity || 0) + (data.quantity || 0);
+                        novoPrecoMedio = (custoTotalAntigo + custoNovoAporte) / novaQuantidade;
+                    }
+
+                    return {
+                        ...inv,
+                        amountInvested: custoTotalAntigo + custoNovoAporte,
+                        currentValue: data.currentValue,
+                        quantity: novaQuantidade,
+                        averagePrice: novoPrecoMedio,
+                        indexador: data.indexador || inv.indexador,
+                        taxa: data.taxa || inv.taxa
+                    };
+                }
+                return inv;
+            }));
+        } else {
+            const newItem = { ...data, id: Math.random().toString() };
+            setInvestmentsList(prev => [...prev, newItem]);
+        }
+        setInvestmentToEdit(null);
+    };
 
     return (
+        <div className="space-y-6 animate-in fade-in duration-700 pb-10">
+            <TutorialWizard
+                tutorialKey="investments-page"
+                steps={[
+                    { element: '#investment-tabs-list', title: 'Modos de Visão', description: 'Alterne entre estratégia e lista de ativos.' },
+                    { element: '#agent-insight-card', title: 'Agente Financeiro', description: 'Nossa inteligência sugere onde aportar.' },
+                    { element: '#portfolio-card', title: 'Patrimônio Total', description: 'O valor total que você tem investido.' },
+                    { element: '#btn-add-investment', title: 'Novo Ativo', description: 'Adicione novos ativos ou atualize existentes.' }
+                ]}
+            />
 
-        <>
-            {!exibePage ? (
-                <div
-                    className="flex flex-col items-center justify-center h-[60vh] text-center animate-in fade-in slide-in-from-top-8 duration-700">
-                    <svg
-                        className="w-16 h-16 mb-4 text-muted-foreground animate-bounce"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="1.5"
-                        viewBox="0 0 24 24"
+            <Tabs defaultValue="overview" className="space-y-6 text-left">
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                    <TabsList id="investment-tabs-list" className="grid w-full grid-cols-2 md:w-auto">
+                        <TabsTrigger value="overview" className="flex gap-2"><PieChart className="h-4 w-4" /> Estratégia</TabsTrigger>
+                        <TabsTrigger value="assets" className="flex gap-2"><List className="h-4 w-4" /> Ativos</TabsTrigger>
+                    </TabsList>
+
+                    <Button
+                        id="btn-add-investment"
+                        onClick={() => { setInvestmentToEdit(null); setActiveDialog("add-investment"); }}
+                        className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold"
                     >
-                        <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            d="M12 9v3.75m0 3.75h.008v-.008H12v.008zM21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                        />
-                    </svg>
-                    <h2 className="text-2xl font-semibold">Página em manutenção</h2>
-                    <p className="mt-2 text-muted-foreground">Estamos trabalhando nisso. Em breve estará disponível!</p>
+                        <Plus className="mr-2 h-4 w-4" /> Novo Ativo
+                    </Button>
                 </div>
-            ) : (
 
-                <div className="space-y-6 animate-in fade-in duration-700">
-                    {/*<div>*/}
-                    {/*  <h2 className="text-3xl font-bold tracking-tight">Investments</h2>*/}
-                    {/*  <p className="text-muted-foreground">Track and manage your investment portfolio.</p>*/}
-                    {/*</div>*/}
-
-                    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-                        <Card>
-                            <CardHeader className="pb-2">
-                                <CardTitle className="text-sm font-medium">Total Portfolio Value</CardTitle>
-                            </CardHeader>
-                            <CardContent>
-                                <div className="text-2xl font-bold">${totalValue.toFixed(2)}</div>
-                                <p className={`mt-1 text-xs ${totalPercentChange > 0 ? 'text-success' : totalPercentChange < 0 ? 'text-destructive' : 'text-muted-foreground'}`}>
-                                    {totalPercentChange > 0 ? '↗' : '↘'} ${Math.abs(totalValueChange).toFixed(2)} ({totalPercentChange.toFixed(2)}%)
-                                </p>
-                            </CardContent>
-                        </Card>
-
-                        <Card>
-                            <CardHeader className="pb-2">
-                                <CardTitle className="text-sm font-medium">Day's Change</CardTitle>
-                            </CardHeader>
-                            <CardContent>
-                                <div
-                                    className={`text-2xl font-bold ${totalValueChange > 0 ? 'text-success' : totalValueChange < 0 ? 'text-destructive' : ''}`}>
-                                    {totalValueChange > 0 ? '+' : ''}{totalValueChange.toFixed(2)}
+                <TabsContent value="overview" className="space-y-6">
+                    {/* ... (Seu conteúdo de Overview se mantém igual, pois já é responsivo) ... */}
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <Card id="agent-insight-card" className="md:col-span-2 border-emerald-500/20 bg-emerald-500/5 shadow-none text-left">
+                            <CardHeader className="flex flex-row items-center gap-4 space-y-0 pb-4">
+                                <div className="p-3 bg-emerald-500 rounded-2xl"><BrainCircuit className="h-6 w-6 text-white" /></div>
+                                <div>
+                                    <CardTitle className="text-emerald-900 text-lg">Agente de Investimentos</CardTitle>
+                                    <CardDescription className="text-emerald-700/80">Analisando perfil <strong>{INVESTMENT_PROFILES[profile].label}</strong></CardDescription>
                                 </div>
-                                <p className="mt-1 text-xs text-muted-foreground">
-                                    {totalPercentChange.toFixed(2)}% today
-                                </p>
+                            </CardHeader>
+                            <CardContent>
+                                {agentInsight ? (
+                                    <div className="flex items-start gap-3 p-4 bg-white rounded-xl border border-emerald-100 shadow-sm animate-in slide-in-from-left">
+                                        <ArrowUpCircle className="h-5 w-5 text-emerald-600 mt-1 shrink-0" />
+                                        <div>
+                                            <p className="text-sm font-bold text-emerald-900 text-left">Oportunidade de Aporte!</p>
+                                            <p className="text-xs text-emerald-800 leading-relaxed text-left">Sugerimos <strong>{formatTransactionAmount(agentInsight.amount)}</strong> em <strong>{agentInsight.class}</strong>. {agentInsight.reason}</p>
+                                        </div>
+                                    </div>
+                                ) : <p className="text-sm text-emerald-800 italic">Carteira equilibrada!</p>}
                             </CardContent>
                         </Card>
 
-                        <Card>
-                            <CardHeader className="pb-2">
-                                <CardTitle className="text-sm font-medium">Portfolio Diversity</CardTitle>
-                            </CardHeader>
+                        <Card id="profile-tabs-selector" className="shadow-none border-dashed border-2">
+                            <CardHeader className="pb-2 text-left"><CardTitle className="text-sm font-bold">Estratégia Alvo</CardTitle></CardHeader>
                             <CardContent>
-                                <div className="text-2xl font-bold">{investments.length}</div>
-                                <p className="mt-1 text-xs text-muted-foreground">
-                                    Positions across various sectors
-                                </p>
-                            </CardContent>
-                        </Card>
-
-                        <Card>
-                            <CardHeader className="pb-2">
-                                <CardTitle className="text-sm font-medium">Top Performer</CardTitle>
-                            </CardHeader>
-                            <CardContent>
-                                <div className="text-2xl font-bold">
-                                    {investments.sort((a, b) => b.percentChange - a.percentChange)[0].symbol}
-                                </div>
-                                <p className="mt-1 text-xs text-success">
-                                    ↗ {investments.sort((a, b) => b.percentChange - a.percentChange)[0].percentChange.toFixed(2)}%
-                                </p>
+                                <Tabs value={profile} onValueChange={(v) => setProfile(v as any)} className="w-full">
+                                    <TabsList className="grid grid-cols-3 w-full h-10">
+                                        <TabsTrigger value="conservative"><ShieldCheck className="h-4 w-4" /></TabsTrigger>
+                                        <TabsTrigger value="moderate"><TrendingUp className="h-4 w-4" /></TabsTrigger>
+                                        <TabsTrigger value="aggressive"><Zap className="h-4 w-4" /></TabsTrigger>
+                                    </TabsList>
+                                </Tabs>
+                                <p className={cn("text-[10px] mt-4 font-bold uppercase text-center tracking-wider", INVESTMENT_PROFILES[profile].color)}>{INVESTMENT_PROFILES[profile].description}</p>
                             </CardContent>
                         </Card>
                     </div>
 
-                    <Tabs defaultValue="holdings" className="space-y-4">
-                        <div className="flex items-center justify-between">
-                            <TabsList>
-                                <TabsTrigger value="holdings">Holdings</TabsTrigger>
-                                <TabsTrigger value="performance">Performance</TabsTrigger>
-                                <TabsTrigger value="allocation">Allocation</TabsTrigger>
-                            </TabsList>
-                            <div className="flex items-center space-x-2">
-                                <Button variant="outline" size="sm" className="h-8">
-                                    <RefreshCcw className="mr-2 h-4 w-4"/>
-                                    <span>Refresh</span>
-                                </Button>
-                                <Button variant="outline" size="sm" className="h-8">
-                                    <DollarSign className="mr-2 h-4 w-4"/>
-                                    <span>Trade</span>
-                                </Button>
-                            </div>
-                        </div>
-
-                        <TabsContent value="holdings" className="space-y-4 mt-0">
-                            <Card>
-                                <CardHeader>
-                                    <CardTitle>Investment Holdings</CardTitle>
-                                    <CardDescription>Your current investment positions.</CardDescription>
-                                </CardHeader>
-                                <CardContent>
-                                    <div className="rounded-md border">
-                                        <div className="grid grid-cols-[2fr_1fr_1fr_1fr_1fr] gap-4 p-4 font-medium">
-                                            <div>Name</div>
-                                            <div>Shares</div>
-                                            <div>Price</div>
-                                            <div>Value</div>
-                                            <div>Change</div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <Card className="shadow-none text-left">
+                            <CardHeader><CardTitle className="text-lg flex items-center gap-2"><Target className="h-5 w-5 text-emerald-500" /> Alocação Atual vs Alvo</CardTitle></CardHeader>
+                            <CardContent className="space-y-6">
+                                {Object.entries(INVESTMENT_PROFILES[profile].allocation).map(([key, targetPct]) => {
+                                    const currentAmt = totalsByCategory[key as InvestmentClass] || 0;
+                                    const currentPct = totalPortfolio > 0 ? (currentAmt / totalPortfolio) * 100 : 0;
+                                    return (
+                                        <div key={key} className="space-y-2 text-left">
+                                            <div className="flex justify-between text-xs font-bold text-left"><span className="capitalize">{key === 'fixed' ? 'Renda Fixa' : key}</span><span>{currentPct.toFixed(1)}% de {targetPct}%</span></div>
+                                            <Progress value={currentPct} className="h-2" />
                                         </div>
-                                        {investments.map((investment) => (
+                                    );
+                                })}
+                            </CardContent>
+                        </Card>
+
+                        <Card id="portfolio-card" className="bg-slate-900 text-white border-none shadow-xl flex flex-col justify-center items-center">
+                            <CardHeader><CardTitle className="text-white/70 text-sm font-medium">Patrimônio Investido</CardTitle></CardHeader>
+                            <CardContent className="flex flex-col items-center py-2 text-center">
+                                <p className="text-4xl font-bold tracking-tighter mb-6">{formatTransactionAmount(totalPortfolio)}</p>
+                                <div className="flex gap-2"><div className="flex items-center gap-1 text-emerald-400 text-xs bg-emerald-400/10 px-2 py-1 rounded-full"><TrendingUp className="h-3 w-3" /><span>Lucro positivo</span></div><div className="flex items-center gap-1 text-blue-300 text-xs bg-blue-400/10 px-2 py-1 rounded-full"><Banknote className="h-3 w-3" /><span>{investmentsList.length} ativos</span></div></div>
+                            </CardContent>
+                        </Card>
+                    </div>
+                </TabsContent>
+
+                <TabsContent value="assets" className="animate-in slide-in-from-bottom-2 duration-300">
+                    <Card className="border-none shadow-none md:border text-left">
+                        <CardHeader className="hidden md:block">
+                            <CardTitle>Meus Ativos</CardTitle>
+                            <CardDescription>Gerencie suas posições e realize novos aportes.</CardDescription>
+                        </CardHeader>
+
+                        {/* CONTÊINER DA LISTA:
+                            - Tabela no Desktop
+                            - Cards no Mobile
+                        */}
+                        <CardContent className="p-0 md:p-6">
+                            <div className="max-h-[600px] overflow-y-auto scrollbar-thin scrollbar-thumb-muted-foreground/20">
+
+                                {/* VIEW: DESKTOP TABLE */}
+                                <div className="hidden md:block">
+                                    <table className="w-full text-sm">
+                                        <thead className="sticky top-0 bg-background z-10 shadow-sm">
+                                        <tr className="text-left border-b text-muted-foreground text-[10px] font-bold uppercase tracking-wider">
+                                            <th className="pb-3 px-2">Ativo</th>
+                                            <th className="pb-3 px-2">Classe</th>
+                                            <th className="pb-3 px-2 text-right">Aplicado</th>
+                                            <th className="pb-3 px-2 text-right">Atual</th>
+                                            <th className="pb-3 px-2 text-right">Resultado</th>
+                                            <th className="pb-3 px-2 text-right">Ações</th>
+                                        </tr>
+                                        </thead>
+                                        <tbody className="divide-y">
+                                        {investmentsList.map((inv) => {
+                                            const profit = inv.currentValue - inv.amountInvested;
+                                            const profitPct = inv.amountInvested > 0 ? (profit / inv.amountInvested) * 100 : 0;
+                                            return (
+                                                <tr key={inv.id} className="group hover:bg-muted/30 transition-colors">
+                                                    <td className="py-4 px-2 text-left">
+                                                        <div className="flex items-center gap-3 text-left">
+                                                            <div className="p-2 bg-muted rounded-lg group-hover:bg-background"><Landmark className="h-4 w-4 text-muted-foreground" /></div>
+                                                            <div className="text-left"><p className="font-bold text-sm leading-tight">{inv.name}</p><p className="text-[10px] text-muted-foreground">{inv.institution}</p></div>
+                                                        </div>
+                                                    </td>
+                                                    <td className="px-2 text-left"><span className="text-[10px] bg-muted px-2 py-1 rounded-full font-bold uppercase whitespace-nowrap">{inv.category === 'fixed' ? 'Renda Fixa' : inv.category}</span></td>
+                                                    <td className="px-2 text-right text-muted-foreground whitespace-nowrap">{formatTransactionAmount(inv.amountInvested)}</td>
+                                                    <td className="px-2 text-right font-bold whitespace-nowrap">{formatTransactionAmount(inv.currentValue)}</td>
+                                                    <td className={cn("px-2 text-right font-bold whitespace-nowrap", profit >= 0 ? "text-emerald-600" : "text-rose-600")}>
+                                                        <div className="flex flex-col items-end text-right"><span>{profitPct > 0 ? "+" : ""}{profitPct.toFixed(2)}%</span><span className="text-[10px] font-normal opacity-70">{formatTransactionAmount(profit)}</span></div>
+                                                    </td>
+                                                    <td className="px-2 text-right"><Button variant="ghost" size="icon" className="h-8 w-8 text-emerald-600 hover:bg-emerald-50" onClick={() => { setInvestmentToEdit(inv); setActiveDialog("add-investment"); }}><Plus className="h-4 w-4" /></Button></td>
+                                                </tr>
+                                            );
+                                        })}
+                                        </tbody>
+                                    </table>
+                                </div>
+
+                                {/* VIEW: MOBILE CARDS */}
+                                <div className="grid grid-cols-1 gap-3 p-4 md:hidden">
+                                    {investmentsList.map((inv) => {
+                                        const profit = inv.currentValue - inv.amountInvested;
+                                        const profitPct = inv.amountInvested > 0 ? (profit / inv.amountInvested) * 100 : 0;
+                                        return (
                                             <div
-                                                key={investment.id}
-                                                className="grid grid-cols-[2fr_1fr_1fr_1fr_1fr] items-center gap-4 border-t p-4 hover:bg-muted/50 transition-colors"
+                                                key={inv.id}
+                                                className="bg-muted/30 border rounded-xl p-4 space-y-3 active:scale-[0.98] transition-transform"
+                                                onClick={() => { setInvestmentToEdit(inv); setActiveDialog("add-investment"); }}
                                             >
-                                                <div>
-                                                    <div className="font-medium">{investment.symbol}</div>
-                                                    <div
-                                                        className="text-xs text-muted-foreground truncate max-w-[200px]">{investment.name}</div>
-                                                </div>
-                                                <div>{investment.shares.toFixed(2)}</div>
-                                                <div>${investment.price.toFixed(2)}</div>
-                                                <div>${(investment.price * investment.shares).toFixed(2)}</div>
-                                                <div
-                                                    className={`flex items-center ${investment.percentChange > 0 ? 'text-success' : investment.percentChange < 0 ? 'text-destructive' : ''}`}>
-                                                    {investment.percentChange > 0 ? (
-                                                        <TrendingUp className="mr-1 h-4 w-4"/>
-                                                    ) : investment.percentChange < 0 ? (
-                                                        <TrendingDown className="mr-1 h-4 w-4"/>
-                                                    ) : null}
-                                                    <span>{investment.percentChange > 0 ? '+' : ''}{investment.percentChange.toFixed(2)}%</span>
-                                                </div>
-                                            </div>
-                                        ))}
-                                    </div>
-                                </CardContent>
-                            </Card>
-                        </TabsContent>
-
-                        <TabsContent value="performance" className="space-y-4 mt-0">
-                            <Card>
-                                <CardHeader>
-                                    <CardTitle>Portfolio Performance</CardTitle>
-                                    <CardDescription>Track your investment returns over time.</CardDescription>
-                                </CardHeader>
-                                <CardContent>
-                                    <div className="h-[300px]">
-                                        <FinanceChart view={'month'} year={new Date().getFullYear()}/>
-                                    </div>
-                                </CardContent>
-                                <CardFooter className="flex justify-between">
-                                    <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-                                        <div>
-                                            <div className="text-xs font-medium uppercase text-muted-foreground">
-                                                Day
-                                            </div>
-                                            <div className="text-lg font-bold text-success">+1.2%</div>
-                                        </div>
-                                        <div>
-                                            <div className="text-xs font-medium uppercase text-muted-foreground">
-                                                Week
-                                            </div>
-                                            <div className="text-lg font-bold text-success">+3.8%</div>
-                                        </div>
-                                        <div>
-                                            <div className="text-xs font-medium uppercase text-muted-foreground">
-                                                Month
-                                            </div>
-                                            <div className="text-lg font-bold text-success">+12.3%</div>
-                                        </div>
-                                        <div>
-                                            <div className="text-xs font-medium uppercase text-muted-foreground">
-                                                Year
-                                            </div>
-                                            <div className="text-lg font-bold text-success">+24.7%</div>
-                                        </div>
-                                    </div>
-                                </CardFooter>
-                            </Card>
-                        </TabsContent>
-
-                        <TabsContent value="allocation" className="space-y-4 mt-0">
-                            <div className="grid gap-4 md:grid-cols-2">
-                                <Card>
-                                    <CardHeader>
-                                        <CardTitle>Asset Allocation</CardTitle>
-                                        <CardDescription>Distribution of your investment portfolio.</CardDescription>
-                                    </CardHeader>
-                                    <CardContent>
-                                        <div className="flex h-[300px] items-center justify-center">
-                                            <div className="relative h-60 w-60">
-                                                <div
-                                                    className="absolute inset-0 flex items-center justify-center rounded-full">
-                                                    <div className="text-center">
-                                                        <div className="text-2xl font-bold">100%</div>
-                                                        <div className="text-xs text-muted-foreground">Total</div>
-                                                    </div>
-                                                </div>
-                                                <svg viewBox="0 0 100 100" className="transform -rotate-90">
-                                                    <circle
-                                                        cx="50"
-                                                        cy="50"
-                                                        r="40"
-                                                        fill="none"
-                                                        stroke="hsl(var(--muted))"
-                                                        strokeWidth="10"
-                                                    />
-                                                    {allocation.reduce((acc, item, i) => {
-                                                        const prevPercentage = i === 0 ? 0 : allocation
-                                                            .slice(0, i)
-                                                            .reduce((sum, c) => sum + c.value, 0);
-
-                                                        const strokeDasharray = 2 * Math.PI * 40;
-                                                        // const strokeDashoffset = strokeDasharray * (1 - item.value / 100);
-
-                                                        // Use chart colors from our theme
-                                                        const colors = ['--chart-1', '--chart-2', '--chart-3', '--chart-4', '--chart-5'];
-
-                                                        return [
-                                                            ...acc,
-                                                            <circle
-                                                                key={item.name}
-                                                                cx="50"
-                                                                cy="50"
-                                                                r="40"
-                                                                fill="none"
-                                                                stroke={`hsl(var(${colors[i % colors.length]}))`}
-                                                                strokeWidth="10"
-                                                                strokeDasharray={`${item.value * strokeDasharray / 100} ${strokeDasharray}`}
-                                                                strokeDashoffset={`-${prevPercentage * strokeDasharray / 100}`}
-                                                                style={{transition: 'stroke-dashoffset 0.5s ease'}}
-                                                            />
-                                                        ];
-                                                    }, [] as JSX.Element[])}
-                                                </svg>
-                                            </div>
-                                        </div>
-                                    </CardContent>
-                                    <CardFooter>
-                                        <div className="grid w-full grid-cols-2 gap-2">
-                                            {allocation.map((item, i) => {
-                                                const colors = ['chart-1', 'chart-2', 'chart-3', 'chart-4', 'chart-5'];
-                                                return (
-                                                    <div key={item.name} className="flex items-center space-x-2">
-                                                        <div
-                                                            className={`h-3 w-3 rounded-full bg-${colors[i % colors.length]}`}/>
-                                                        <div className="flex items-center space-x-2">
-                                                            <span className="text-sm font-medium">{item.name}</span>
-                                                            <span
-                                                                className="text-sm text-muted-foreground">{item.value}%</span>
+                                                <div className="flex justify-between items-start">
+                                                    <div className="flex gap-3">
+                                                        <div className="p-2 bg-white rounded-lg border shadow-sm"><Landmark className="h-5 w-5 text-emerald-600" /></div>
+                                                        <div>
+                                                            <p className="font-bold text-sm leading-tight">{inv.name}</p>
+                                                            <p className="text-[10px] text-muted-foreground">{inv.institution}</p>
                                                         </div>
                                                     </div>
-                                                );
-                                            })}
-                                        </div>
-                                    </CardFooter>
-                                </Card>
+                                                    <span className="text-[9px] bg-white border px-2 py-0.5 rounded-full font-bold uppercase text-muted-foreground">
+                                                        {inv.category === 'fixed' ? 'Renda Fixa' : inv.category}
+                                                    </span>
+                                                </div>
 
-                                <Card>
-                                    <CardHeader>
-                                        <CardTitle>Sector Breakdown</CardTitle>
-                                        <CardDescription>Distribution of investments by sector.</CardDescription>
-                                    </CardHeader>
-                                    <CardContent className="space-y-6">
-                                        <div className="space-y-2">
-                                            <div className="flex items-center justify-between">
-                                                <div className="flex items-center space-x-2">
-                                                    <div className="h-3 w-3 rounded-full bg-chart-1"/>
-                                                    <span className="text-sm font-medium">Technology</span>
+                                                <div className="grid grid-cols-2 gap-4 pt-2 border-t border-dashed">
+                                                    <div>
+                                                        <p className="text-[9px] uppercase font-bold text-muted-foreground tracking-tighter">Valor Atual</p>
+                                                        <p className="text-sm font-bold text-slate-900">{formatTransactionAmount(inv.currentValue)}</p>
+                                                    </div>
+                                                    <div className="text-right">
+                                                        <p className="text-[9px] uppercase font-bold text-muted-foreground tracking-tighter">Resultado</p>
+                                                        <p className={cn("text-sm font-bold", profit >= 0 ? "text-emerald-600" : "text-rose-600")}>
+                                                            {profitPct > 0 ? "+" : ""}{profitPct.toFixed(1)}%
+                                                        </p>
+                                                    </div>
                                                 </div>
-                                                <span className="text-sm font-medium">38%</span>
-                                            </div>
-                                            <Progress value={38} className="h-2"/>
-                                        </div>
-                                        <div className="space-y-2">
-                                            <div className="flex items-center justify-between">
-                                                <div className="flex items-center space-x-2">
-                                                    <div className="h-3 w-3 rounded-full bg-chart-2"/>
-                                                    <span className="text-sm font-medium">Financial Services</span>
+
+                                                <div className="flex items-center justify-between pt-1">
+                                                    <p className="text-[10px] text-muted-foreground italic">
+                                                        Custo: {formatTransactionAmount(inv.amountInvested)}
+                                                    </p>
+                                                    <div className="flex items-center gap-1 text-emerald-600 text-[10px] font-bold bg-emerald-50 px-2 py-1 rounded-lg">
+                                                        <Plus className="h-3 w-3" /> Aporte
+                                                    </div>
                                                 </div>
-                                                <span className="text-sm font-medium">22%</span>
                                             </div>
-                                            <Progress value={22} className="h-2"/>
-                                        </div>
-                                        <div className="space-y-2">
-                                            <div className="flex items-center justify-between">
-                                                <div className="flex items-center space-x-2">
-                                                    <div className="h-3 w-3 rounded-full bg-chart-3"/>
-                                                    <span className="text-sm font-medium">Healthcare</span>
-                                                </div>
-                                                <span className="text-sm font-medium">15%</span>
-                                            </div>
-                                            <Progress value={15} className="h-2"/>
-                                        </div>
-                                        <div className="space-y-2">
-                                            <div className="flex items-center justify-between">
-                                                <div className="flex items-center space-x-2">
-                                                    <div className="h-3 w-3 rounded-full bg-chart-4"/>
-                                                    <span className="text-sm font-medium">Consumer Cyclical</span>
-                                                </div>
-                                                <span className="text-sm font-medium">12%</span>
-                                            </div>
-                                            <Progress value={12} className="h-2"/>
-                                        </div>
-                                        <div className="space-y-2">
-                                            <div className="flex items-center justify-between">
-                                                <div className="flex items-center space-x-2">
-                                                    <div className="h-3 w-3 rounded-full bg-chart-5"/>
-                                                    <span className="text-sm font-medium">Communication Services</span>
-                                                </div>
-                                                <span className="text-sm font-medium">8%</span>
-                                            </div>
-                                            <Progress value={8} className="h-2"/>
-                                        </div>
-                                        <div className="space-y-2">
-                                            <div className="flex items-center justify-between">
-                                                <div className="flex items-center space-x-2">
-                                                    <div className="h-3 w-3 rounded-full bg-primary"/>
-                                                    <span className="text-sm font-medium">Other Sectors</span>
-                                                </div>
-                                                <span className="text-sm font-medium">5%</span>
-                                            </div>
-                                            <Progress value={5} className="h-2"/>
-                                        </div>
-                                    </CardContent>
-                                </Card>
+                                        );
+                                    })}
+                                </div>
+
+                                {investmentsList.length === 0 && (
+                                    <div className="py-10 text-center">
+                                        <Info className="h-10 w-10 text-muted-foreground mx-auto mb-2 opacity-20" />
+                                        <p className="text-sm text-muted-foreground">Você ainda não possui investimentos registrados.</p>
+                                    </div>
+                                )}
                             </div>
-                        </TabsContent>
-                    </Tabs>
-                </div>
-            )}
-        </>
+                        </CardContent>
+                    </Card>
+                </TabsContent>
+            </Tabs>
+
+            <AddInvestmentForm initialData={investmentToEdit} onAdd={handleSaveInvestment} />
+        </div>
     );
 };
