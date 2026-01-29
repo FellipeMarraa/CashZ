@@ -9,17 +9,16 @@ import {
     ArrowUpCircle,
     Banknote,
     BrainCircuit,
-    Info,
     Landmark,
     List,
+    Loader2,
     PieChart,
     Plus,
     ShieldCheck,
     Target,
+    Trash2,
     TrendingUp,
-    Zap,
-    Loader2,
-    Trash2 // Adicionado ícone de lixeira
+    Zap
 } from 'lucide-react';
 import {cn} from "@/lib/utils";
 import {formatTransactionAmount} from '@/hooks/useTransactions';
@@ -27,10 +26,10 @@ import {useDialogManager} from "@/context/DialogManagerContext";
 import {TutorialWizard} from "@/components/tutorial-wizard";
 import {AddInvestmentForm} from "@/components/add-Investment-form.tsx";
 import {useAuth} from "@/context/AuthContext.tsx";
-import {useInvestments, useSaveInvestment, useDeleteInvestment} from "@/hooks/useInvestments.ts"; // Importado delete
+import {useDeleteInvestment, useInvestments, useSaveInvestment} from "@/hooks/useInvestments.ts";
 import {getDeepAnalysis} from "@/service/aiService.ts";
 
-// --- TIPAGEM ---
+// ... TIPAGEM E CONSTANTES MANTIDAS ...
 type InvestmentClass = 'fixed' | 'stocks' | 'international' | 'crypto';
 
 export interface InvestmentItem {
@@ -80,14 +79,16 @@ const CATEGORY_LABELS: Record<InvestmentClass, string> = {
 export const InvestmentsSection = () => {
     useAuth();
     const { setActiveDialog } = useDialogManager();
-    const { data: investmentsList = [] } = useInvestments();
+
+    // Capturamos o isLoading aqui
+    const { data: investmentsList = [], isLoading } = useInvestments();
+
     const { mutate: saveInvestment } = useSaveInvestment();
-    const { mutate: deleteInvestment } = useDeleteInvestment(); // Hook de deleção
+    const { mutate: deleteInvestment } = useDeleteInvestment();
 
     const [profile, setProfile] = useState<keyof typeof INVESTMENT_PROFILES>('moderate');
     const [investmentToEdit, setInvestmentToEdit] = useState<InvestmentItem | null>(null);
 
-    // --- ESTADOS DA IA ---
     const [aiAnalysis, setAiAnalysis] = useState<string | null>(null);
     const [isAnalyzing, setIsAnalyzing] = useState(false);
 
@@ -124,7 +125,7 @@ export const InvestmentsSection = () => {
             return {
                 class: CATEGORY_LABELS[suggestedCategory],
                 amount: diffAmount,
-                reason: `Sua exposição em ${CATEGORY_LABELS[suggestedCategory]} está ${biggestGap.toFixed(1)}% abaixo do ideal para o perfil ${INVESTMENT_PROFILES[profile].label}.`
+                reason: `Sua exposição em ${CATEGORY_LABELS[suggestedCategory]} está ${biggestGap.toFixed(1)}% abaixo do ideal.`
             };
         }
         return null;
@@ -166,10 +167,9 @@ export const InvestmentsSection = () => {
         }
     };
 
-    // Função para deletar o ativo
     const handleDelete = (id: string, e: React.MouseEvent) => {
-        e.stopPropagation(); // Evita abrir o modal de edição ao clicar na lixeira
-        if (confirm("Deseja realmente remover este ativo da sua carteira?")) {
+        e.stopPropagation();
+        if (confirm("Deseja realmente remover este ativo?")) {
             deleteInvestment(id);
         }
     };
@@ -177,24 +177,35 @@ export const InvestmentsSection = () => {
     const handleDeepAnalysis = async () => {
         setIsAnalyzing(true);
         setAiAnalysis(null);
-        const summary = {
-            perfil: INVESTMENT_PROFILES[profile].label,
-            total: totalPortfolio,
-            distribuicao: totalsByCategory,
-            ativos: investmentsList.map(i => ({ nome: i.name, valor: i.currentValue }))
-        };
         try {
+            const summary = {
+                perfil: INVESTMENT_PROFILES[profile].label,
+                total: totalPortfolio,
+                distribuicao: totalsByCategory,
+                ativos: investmentsList.map(i => ({ nome: i.name, valor: i.currentValue }))
+            };
             const result = await getDeepAnalysis(summary);
             setAiAnalysis(result);
         } catch (error) {
-            setAiAnalysis("Desculpe, meus sistemas de análise estão sobrecarregados agora.");
+            setAiAnalysis("Erro na análise. Tente novamente.");
         } finally {
             setIsAnalyzing(false);
         }
     };
 
+    // TELA DE CARREGAMENTO (Resolve a percepção de demora)
+    if (isLoading) {
+        return (
+            <div className="flex flex-col h-[400px] items-center justify-center gap-4 animate-pulse">
+                <Loader2 className="h-10 w-10 animate-spin text-emerald-500" />
+                <p className="text-sm font-medium text-muted-foreground">Sincronizando sua carteira...</p>
+            </div>
+        );
+    }
+
     return (
         <div className="space-y-6 animate-in fade-in duration-700 pb-10 text-left">
+            {/* ... CONTEÚDO MANTIDO ... */}
             <TutorialWizard
                 tutorialKey="investments-page"
                 steps={[
@@ -226,10 +237,14 @@ export const InvestmentsSection = () => {
                         <Card id="agent-insight-card" className="md:col-span-2 border-emerald-500/20 bg-emerald-500/5 shadow-none text-left overflow-hidden relative">
                             <CardHeader className="flex flex-row items-center justify-between gap-4 space-y-0 pb-4">
                                 <div className="flex items-center gap-4">
-                                    <div className="p-3 bg-emerald-500 rounded-2xl"><BrainCircuit className="h-6 w-6 text-white" /></div>
+                                    <div className="p-3 bg-emerald-500 rounded-2xl">
+                                        <BrainCircuit className="h-6 w-6 text-white" />
+                                    </div>
                                     <div>
                                         <CardTitle className="text-emerald-900 text-lg">Agente de Investimentos</CardTitle>
-                                        <CardDescription className="text-emerald-700/80">Perfil <strong>{INVESTMENT_PROFILES[profile].label}</strong></CardDescription>
+                                        <CardDescription className="text-emerald-700/80">
+                                            Perfil <strong>{INVESTMENT_PROFILES[profile].label}</strong>
+                                        </CardDescription>
                                     </div>
                                 </div>
                                 <Button
@@ -268,6 +283,19 @@ export const InvestmentsSection = () => {
                                     </div>
                                 ) : (
                                     <p className="text-sm text-emerald-800 italic">Sua carteira está equilibrada seguindo seu perfil.</p>
+                                )}
+
+                                {/* Botão Mobile */}
+                                {!aiAnalysis && (
+                                    <Button
+                                        size="sm"
+                                        className="w-full bg-emerald-600 hover:bg-emerald-700 gap-2 flex sm:hidden h-10 font-bold"
+                                        onClick={handleDeepAnalysis}
+                                        disabled={isAnalyzing}
+                                    >
+                                        {isAnalyzing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Zap className="h-4 w-4 fill-current" />}
+                                        Solicitar Análise Profunda IA
+                                    </Button>
                                 )}
                             </CardContent>
                         </Card>
@@ -336,8 +364,7 @@ export const InvestmentsSection = () => {
 
                         <CardContent className="p-0 md:p-6">
                             <div className="max-h-[600px] overflow-y-auto scrollbar-thin scrollbar-thumb-muted-foreground/20 px-4 md:px-0">
-
-                                {/* VIEW: DESKTOP TABLE */}
+                                {/* TABELAS E CARDS MANTIDOS IGUAIS ... */}
                                 <div className="hidden md:block text-left">
                                     <table className="w-full text-sm">
                                         <thead className="sticky top-0 bg-background z-10 shadow-sm">
@@ -404,7 +431,6 @@ export const InvestmentsSection = () => {
                                     </table>
                                 </div>
 
-                                {/* VIEW: MOBILE CARDS */}
                                 <div className="grid grid-cols-1 gap-3 p-4 md:hidden">
                                     {investmentsList.map((inv) => {
                                         const profit = inv.currentValue - inv.amountInvested;
@@ -454,13 +480,6 @@ export const InvestmentsSection = () => {
                                         );
                                     })}
                                 </div>
-
-                                {investmentsList.length === 0 && (
-                                    <div className="py-10 text-center flex flex-col items-center justify-center">
-                                        <Info className="h-10 w-10 text-muted-foreground mb-2 opacity-20" />
-                                        <p className="text-sm text-muted-foreground">Você ainda não possui investimentos registrados.</p>
-                                    </div>
-                                )}
                             </div>
                         </CardContent>
                     </Card>
