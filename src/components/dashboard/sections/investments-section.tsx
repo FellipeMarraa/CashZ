@@ -9,6 +9,7 @@ import {
     ArrowUpCircle,
     Banknote,
     BrainCircuit,
+    Info,
     Landmark,
     List,
     PieChart,
@@ -17,13 +18,16 @@ import {
     Target,
     TrendingUp,
     Zap,
-    Info
+    Loader2
 } from 'lucide-react';
 import {cn} from "@/lib/utils";
 import {formatTransactionAmount} from '@/hooks/useTransactions';
 import {useDialogManager} from "@/context/DialogManagerContext";
 import {TutorialWizard} from "@/components/tutorial-wizard";
 import {AddInvestmentForm} from "@/components/add-Investment-form.tsx";
+import {useAuth} from "@/context/AuthContext.tsx";
+import {useInvestments, useSaveInvestment} from "@/hooks/useInvestments.ts";
+import {getDeepAnalysis} from "@/service/aiService.ts";
 
 // --- TIPAGEM ---
 type InvestmentClass = 'fixed' | 'stocks' | 'international' | 'crypto';
@@ -65,16 +69,25 @@ const INVESTMENT_PROFILES = {
     }
 };
 
+const CATEGORY_LABELS: Record<InvestmentClass, string> = {
+    fixed: "Renda Fixa",
+    stocks: "Ações / FIIs",
+    international: "Internacional",
+    crypto: "Cripto"
+};
+
 export const InvestmentsSection = () => {
+    useAuth();
     const { setActiveDialog } = useDialogManager();
+    const { data: investmentsList = [] } = useInvestments();
+    const { mutate: saveInvestment } = useSaveInvestment();
     const [profile, setProfile] = useState<keyof typeof INVESTMENT_PROFILES>('moderate');
+
     const [investmentToEdit, setInvestmentToEdit] = useState<InvestmentItem | null>(null);
 
-    const [investmentsList, setInvestmentsList] = useState<InvestmentItem[]>([
-        { id: '1', name: 'Tesouro Selic 2027', category: 'fixed', amountInvested: 10000, currentValue: 10850, institution: 'XP Investimentos', indexador: 'SELIC', taxa: 100 },
-        { id: '2', name: 'ITUB4 (Itaú)', category: 'stocks', amountInvested: 4000, currentValue: 4200, institution: 'NuInvest', quantity: 100, averagePrice: 40 },
-        { id: '3', name: 'Ethereum', category: 'crypto', amountInvested: 1000, currentValue: 1400, institution: 'Binance', quantity: 0.05, averagePrice: 20000 }
-    ]);
+    // --- ESTADOS DA IA ---
+    const [aiAnalysis, setAiAnalysis] = useState<string | null>(null);
+    const [isAnalyzing, setIsAnalyzing] = useState(false);
 
     const totalsByCategory = useMemo(() => {
         return investmentsList.reduce((acc, inv) => {
@@ -87,56 +100,99 @@ export const InvestmentsSection = () => {
             Object.values(totalsByCategory).reduce((a, b) => a + b, 0),
         [totalsByCategory]);
 
+    // LÓGICA ATUALIZADA: Analisa todas as classes e sugere o maior desvio negativo
     const agentInsight = useMemo(() => {
-        const target = INVESTMENT_PROFILES[profile].allocation;
-        const currentPct = totalPortfolio > 0 ? (totalsByCategory.fixed / totalPortfolio) * 100 : 0;
+        if (totalPortfolio === 0) return null;
 
-        if (currentPct < target.fixed) {
-            const diffAmount = (target.fixed / 100 * totalPortfolio) - totalsByCategory.fixed;
+        const targetAllocation = INVESTMENT_PROFILES[profile].allocation;
+        let biggestGap = 0;
+        let suggestedCategory: InvestmentClass | null = null;
+
+        (Object.keys(targetAllocation) as InvestmentClass[]).forEach((cat) => {
+            const targetPct = targetAllocation[cat];
+            const currentAmt = totalsByCategory[cat] || 0;
+            const currentPct = (currentAmt / totalPortfolio) * 100;
+
+            // Calculamos a distância para o alvo
+            const gap = targetPct - currentPct;
+
+            // Se o gap for positivo, significa que falta dinheiro nessa categoria
+            if (gap > biggestGap) {
+                biggestGap = gap;
+                suggestedCategory = cat;
+            }
+        });
+
+        if (suggestedCategory && biggestGap > 1) { // Só sugere se o desvio for maior que 1%
+            const diffAmount = (biggestGap / 100) * totalPortfolio;
             return {
-                class: "Renda Fixa",
+                class: CATEGORY_LABELS[suggestedCategory],
                 amount: diffAmount,
-                reason: "Sua segurança está abaixo da meta do seu perfil."
+                reason: `Sua exposição em ${CATEGORY_LABELS[suggestedCategory]} está ${biggestGap.toFixed(1)}% abaixo do ideal para o perfil ${INVESTMENT_PROFILES[profile].label}.`
             };
         }
+
         return null;
     }, [profile, totalsByCategory, totalPortfolio]);
 
-    const handleSaveInvestment = (data: any) => {
-        if (investmentToEdit) {
-            setInvestmentsList(prev => prev.map(inv => {
-                if (inv.id === investmentToEdit.id) {
-                    const custoTotalAntigo = inv.amountInvested;
-                    const custoNovoAporte = data.amountInvested;
-                    let novoPrecoMedio = inv.averagePrice || 0;
-                    let novaQuantidade = inv.quantity || 0;
+    const handleSaveInvestment = async (data: any) => {
+        try {
+            if (investmentToEdit) {
+                const custoTotalAntigo = investmentToEdit.amountInvested;
+                const custoNovoAporte = data.amountInvested;
+                let novaQuantidade = investmentToEdit.quantity || 0;
+                let novoPrecoMedio = investmentToEdit.averagePrice || 0;
 
-                    if (inv.category !== 'fixed') {
-                        novaQuantidade = (inv.quantity || 0) + (data.quantity || 0);
-                        novoPrecoMedio = (custoTotalAntigo + custoNovoAporte) / novaQuantidade;
-                    }
-
-                    return {
-                        ...inv,
-                        amountInvested: custoTotalAntigo + custoNovoAporte,
-                        currentValue: data.currentValue,
-                        quantity: novaQuantidade,
-                        averagePrice: novoPrecoMedio,
-                        indexador: data.indexador || inv.indexador,
-                        taxa: data.taxa || inv.taxa
-                    };
+                if (investmentToEdit.category !== 'fixed') {
+                    novaQuantidade = (investmentToEdit.quantity || 0) + (data.quantity || 0);
+                    novoPrecoMedio = (custoTotalAntigo + custoNovoAporte) / novaQuantidade;
                 }
-                return inv;
-            }));
-        } else {
-            const newItem = { ...data, id: Math.random().toString() };
-            setInvestmentsList(prev => [...prev, newItem]);
+
+                saveInvestment({
+                    id: investmentToEdit.id,
+                    name: investmentToEdit.name,
+                    category: investmentToEdit.category,
+                    institution: investmentToEdit.institution,
+                    amountInvested: custoTotalAntigo + custoNovoAporte,
+                    currentValue: data.currentValue,
+                    quantity: novaQuantidade,
+                    averagePrice: novoPrecoMedio,
+                    indexador: data.indexador || investmentToEdit.indexador,
+                    taxa: data.taxa || investmentToEdit.taxa
+                });
+            } else {
+                saveInvestment(data);
+            }
+            setInvestmentToEdit(null);
+        } catch (error) {
+            console.error("Erro ao processar salvamento:", error);
         }
-        setInvestmentToEdit(null);
+    };
+
+    // --- FUNÇÃO DE ANÁLISE IA REAL ---
+    const handleDeepAnalysis = async () => {
+        setIsAnalyzing(true);
+        setAiAnalysis(null);
+
+        const summary = {
+            perfil: INVESTMENT_PROFILES[profile].label,
+            total: totalPortfolio,
+            distribuicao: totalsByCategory,
+            ativos: investmentsList.map(i => ({ nome: i.name, valor: i.currentValue }))
+        };
+
+        try {
+            const result = await getDeepAnalysis(summary);
+            setAiAnalysis(result);
+        } catch (error) {
+            setAiAnalysis("Desculpe, meus sistemas de análise estão sobrecarregados agora. Tente novamente em instantes.");
+        } finally {
+            setIsAnalyzing(false);
+        }
     };
 
     return (
-        <div className="space-y-6 animate-in fade-in duration-700 pb-10">
+        <div className="space-y-6 animate-in fade-in duration-700 pb-10 text-left">
             <TutorialWizard
                 tutorialKey="investments-page"
                 steps={[
@@ -164,26 +220,62 @@ export const InvestmentsSection = () => {
                 </div>
 
                 <TabsContent value="overview" className="space-y-6">
-                    {/* ... (Seu conteúdo de Overview se mantém igual, pois já é responsivo) ... */}
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <Card id="agent-insight-card" className="md:col-span-2 border-emerald-500/20 bg-emerald-500/5 shadow-none text-left">
-                            <CardHeader className="flex flex-row items-center gap-4 space-y-0 pb-4">
-                                <div className="p-3 bg-emerald-500 rounded-2xl"><BrainCircuit className="h-6 w-6 text-white" /></div>
-                                <div>
-                                    <CardTitle className="text-emerald-900 text-lg">Agente de Investimentos</CardTitle>
-                                    <CardDescription className="text-emerald-700/80">Analisando perfil <strong>{INVESTMENT_PROFILES[profile].label}</strong></CardDescription>
+                        <Card id="agent-insight-card" className="md:col-span-2 border-emerald-500/20 bg-emerald-500/5 shadow-none text-left overflow-hidden relative">
+                            <CardHeader className="flex flex-row items-center justify-between gap-4 space-y-0 pb-4">
+                                <div className="flex items-center gap-4">
+                                    <div className="p-3 bg-emerald-500 rounded-2xl"><BrainCircuit className="h-6 w-6 text-white" /></div>
+                                    <div>
+                                        <CardTitle className="text-emerald-900 text-lg">Agente de Investimentos</CardTitle>
+                                        <CardDescription className="text-emerald-700/80">Perfil <strong>{INVESTMENT_PROFILES[profile].label}</strong></CardDescription>
+                                    </div>
                                 </div>
+                                <Button
+                                    size="sm"
+                                    variant="outline"
+                                    className="border-emerald-200 bg-white text-emerald-700 hover:bg-emerald-50 gap-2 hidden sm:flex"
+                                    onClick={handleDeepAnalysis}
+                                    disabled={isAnalyzing}
+                                >
+                                    {isAnalyzing ? <Loader2 className="h-3 w-3 animate-spin" /> : <Zap className="h-3 w-3 fill-current" />}
+                                    Análise Profunda
+                                </Button>
                             </CardHeader>
-                            <CardContent>
-                                {agentInsight ? (
-                                    <div className="flex items-start gap-3 p-4 bg-white rounded-xl border border-emerald-100 shadow-sm animate-in slide-in-from-left">
+                            <CardContent className="space-y-4">
+                                {aiAnalysis ? (
+                                    <div className="p-4 bg-white rounded-xl border border-emerald-100 shadow-sm animate-in zoom-in-95 duration-300 relative text-left">
+                                        <p className="text-xs text-emerald-900 leading-relaxed italic pr-6 whitespace-pre-wrap">
+                                            {aiAnalysis}
+                                        </p>
+                                        <button
+                                            onClick={() => setAiAnalysis(null)}
+                                            className="absolute top-2 right-2 text-emerald-300 hover:text-emerald-500 text-[10px]"
+                                        >
+                                            Limpar
+                                        </button>
+                                    </div>
+                                ) : agentInsight ? (
+                                    <div className="flex items-start gap-3 p-4 bg-white rounded-xl border border-emerald-100 shadow-sm animate-in slide-in-from-left text-left">
                                         <ArrowUpCircle className="h-5 w-5 text-emerald-600 mt-1 shrink-0" />
                                         <div>
-                                            <p className="text-sm font-bold text-emerald-900 text-left">Oportunidade de Aporte!</p>
-                                            <p className="text-xs text-emerald-800 leading-relaxed text-left">Sugerimos <strong>{formatTransactionAmount(agentInsight.amount)}</strong> em <strong>{agentInsight.class}</strong>. {agentInsight.reason}</p>
+                                            <p className="text-sm font-bold text-emerald-900">Sugestão de Aporte</p>
+                                            <p className="text-xs text-emerald-800 leading-relaxed text-balance">
+                                                Invista aproximadamente <strong>{formatTransactionAmount(agentInsight.amount)}</strong> em <strong>{agentInsight.class}</strong>. {agentInsight.reason}
+                                            </p>
                                         </div>
                                     </div>
-                                ) : <p className="text-sm text-emerald-800 italic">Carteira equilibrada!</p>}
+                                ) : (
+                                    <p className="text-sm text-emerald-800 italic">Sua carteira está equilibrada seguindo seu perfil.</p>
+                                )}
+
+                                <Button
+                                    size="sm"
+                                    className="w-full bg-emerald-600 hover:bg-emerald-700 sm:hidden"
+                                    onClick={handleDeepAnalysis}
+                                    disabled={isAnalyzing}
+                                >
+                                    {isAnalyzing ? <Loader2 className="h-4 w-4 animate-spin" /> : "Solicitar Análise IA"}
+                                </Button>
                             </CardContent>
                         </Card>
 
@@ -211,7 +303,10 @@ export const InvestmentsSection = () => {
                                     const currentPct = totalPortfolio > 0 ? (currentAmt / totalPortfolio) * 100 : 0;
                                     return (
                                         <div key={key} className="space-y-2 text-left">
-                                            <div className="flex justify-between text-xs font-bold text-left"><span className="capitalize">{key === 'fixed' ? 'Renda Fixa' : key}</span><span>{currentPct.toFixed(1)}% de {targetPct}%</span></div>
+                                            <div className="flex justify-between text-xs font-bold text-left">
+                                                <span className="capitalize">{key === 'fixed' ? 'Renda Fixa' : key}</span>
+                                                <span>{currentPct.toFixed(1)}% de {targetPct}%</span>
+                                            </div>
                                             <Progress value={currentPct} className="h-2" />
                                         </div>
                                     );
@@ -219,11 +314,22 @@ export const InvestmentsSection = () => {
                             </CardContent>
                         </Card>
 
-                        <Card id="portfolio-card" className="bg-slate-900 text-white border-none shadow-xl flex flex-col justify-center items-center">
-                            <CardHeader><CardTitle className="text-white/70 text-sm font-medium">Patrimônio Investido</CardTitle></CardHeader>
-                            <CardContent className="flex flex-col items-center py-2 text-center">
+                        <Card id="portfolio-card" className="bg-slate-900 text-white border-none shadow-xl flex flex-col justify-center items-center p-4">
+                            <CardHeader className="p-0 mb-4 text-center">
+                                <CardTitle className="text-white/70 text-sm font-medium">Patrimônio Investido</CardTitle>
+                            </CardHeader>
+                            <CardContent className="flex flex-col items-center p-0 text-center">
                                 <p className="text-4xl font-bold tracking-tighter mb-6">{formatTransactionAmount(totalPortfolio)}</p>
-                                <div className="flex gap-2"><div className="flex items-center gap-1 text-emerald-400 text-xs bg-emerald-400/10 px-2 py-1 rounded-full"><TrendingUp className="h-3 w-3" /><span>Lucro positivo</span></div><div className="flex items-center gap-1 text-blue-300 text-xs bg-blue-400/10 px-2 py-1 rounded-full"><Banknote className="h-3 w-3" /><span>{investmentsList.length} ativos</span></div></div>
+                                <div className="flex gap-2">
+                                    <div className="flex items-center gap-1 text-emerald-400 text-[10px] bg-emerald-400/10 px-2 py-1 rounded-full border border-emerald-400/20">
+                                        <TrendingUp className="h-3 w-3" />
+                                        <span>Lucro positivo</span>
+                                    </div>
+                                    <div className="flex items-center gap-1 text-blue-300 text-[10px] bg-blue-400/10 px-2 py-1 rounded-full border border-blue-400/20">
+                                        <Banknote className="h-3 w-3" />
+                                        <span>{investmentsList.length} ativos</span>
+                                    </div>
+                                </div>
                             </CardContent>
                         </Card>
                     </div>
@@ -236,15 +342,11 @@ export const InvestmentsSection = () => {
                             <CardDescription>Gerencie suas posições e realize novos aportes.</CardDescription>
                         </CardHeader>
 
-                        {/* CONTÊINER DA LISTA:
-                            - Tabela no Desktop
-                            - Cards no Mobile
-                        */}
                         <CardContent className="p-0 md:p-6">
                             <div className="max-h-[600px] overflow-y-auto scrollbar-thin scrollbar-thumb-muted-foreground/20">
 
                                 {/* VIEW: DESKTOP TABLE */}
-                                <div className="hidden md:block">
+                                <div className="hidden md:block text-left">
                                     <table className="w-full text-sm">
                                         <thead className="sticky top-0 bg-background z-10 shadow-sm">
                                         <tr className="text-left border-b text-muted-foreground text-[10px] font-bold uppercase tracking-wider">
@@ -264,17 +366,36 @@ export const InvestmentsSection = () => {
                                                 <tr key={inv.id} className="group hover:bg-muted/30 transition-colors">
                                                     <td className="py-4 px-2 text-left">
                                                         <div className="flex items-center gap-3 text-left">
-                                                            <div className="p-2 bg-muted rounded-lg group-hover:bg-background"><Landmark className="h-4 w-4 text-muted-foreground" /></div>
-                                                            <div className="text-left"><p className="font-bold text-sm leading-tight">{inv.name}</p><p className="text-[10px] text-muted-foreground">{inv.institution}</p></div>
+                                                            <div className="p-2 bg-muted rounded-lg group-hover:bg-background transition-colors"><Landmark className="h-4 w-4 text-muted-foreground" /></div>
+                                                            <div className="text-left">
+                                                                <p className="font-bold text-sm leading-tight">{inv.name}</p>
+                                                                <p className="text-[10px] text-muted-foreground">{inv.institution}</p>
+                                                            </div>
                                                         </div>
                                                     </td>
-                                                    <td className="px-2 text-left"><span className="text-[10px] bg-muted px-2 py-1 rounded-full font-bold uppercase whitespace-nowrap">{inv.category === 'fixed' ? 'Renda Fixa' : inv.category}</span></td>
+                                                    <td className="px-2 text-left">
+                                                            <span className="text-[10px] bg-muted px-2 py-1 rounded-full font-bold uppercase whitespace-nowrap">
+                                                                {inv.category === 'fixed' ? 'Renda Fixa' : inv.category}
+                                                            </span>
+                                                    </td>
                                                     <td className="px-2 text-right text-muted-foreground whitespace-nowrap">{formatTransactionAmount(inv.amountInvested)}</td>
                                                     <td className="px-2 text-right font-bold whitespace-nowrap">{formatTransactionAmount(inv.currentValue)}</td>
                                                     <td className={cn("px-2 text-right font-bold whitespace-nowrap", profit >= 0 ? "text-emerald-600" : "text-rose-600")}>
-                                                        <div className="flex flex-col items-end text-right"><span>{profitPct > 0 ? "+" : ""}{profitPct.toFixed(2)}%</span><span className="text-[10px] font-normal opacity-70">{formatTransactionAmount(profit)}</span></div>
+                                                        <div className="flex flex-col items-end text-right">
+                                                            <span>{profitPct > 0 ? "+" : ""}{profitPct.toFixed(2)}%</span>
+                                                            <span className="text-[10px] font-normal opacity-70">{formatTransactionAmount(profit)}</span>
+                                                        </div>
                                                     </td>
-                                                    <td className="px-2 text-right"><Button variant="ghost" size="icon" className="h-8 w-8 text-emerald-600 hover:bg-emerald-50" onClick={() => { setInvestmentToEdit(inv); setActiveDialog("add-investment"); }}><Plus className="h-4 w-4" /></Button></td>
+                                                    <td className="px-2 text-right">
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="icon"
+                                                            className="h-8 w-8 text-emerald-600 hover:bg-emerald-50 hover:text-emerald-700"
+                                                            onClick={() => { setInvestmentToEdit(inv); setActiveDialog("add-investment"); }}
+                                                        >
+                                                            <Plus className="h-4 w-4" />
+                                                        </Button>
+                                                    </td>
                                                 </tr>
                                             );
                                         })}
@@ -282,7 +403,6 @@ export const InvestmentsSection = () => {
                                     </table>
                                 </div>
 
-                                {/* VIEW: MOBILE CARDS */}
                                 <div className="grid grid-cols-1 gap-3 p-4 md:hidden">
                                     {investmentsList.map((inv) => {
                                         const profit = inv.currentValue - inv.amountInvested;
@@ -290,13 +410,13 @@ export const InvestmentsSection = () => {
                                         return (
                                             <div
                                                 key={inv.id}
-                                                className="bg-muted/30 border rounded-xl p-4 space-y-3 active:scale-[0.98] transition-transform"
+                                                className="bg-muted/30 border rounded-xl p-4 space-y-3 active:scale-[0.98] transition-all cursor-pointer text-left"
                                                 onClick={() => { setInvestmentToEdit(inv); setActiveDialog("add-investment"); }}
                                             >
                                                 <div className="flex justify-between items-start">
                                                     <div className="flex gap-3">
                                                         <div className="p-2 bg-white rounded-lg border shadow-sm"><Landmark className="h-5 w-5 text-emerald-600" /></div>
-                                                        <div>
+                                                        <div className="text-left">
                                                             <p className="font-bold text-sm leading-tight">{inv.name}</p>
                                                             <p className="text-[10px] text-muted-foreground">{inv.institution}</p>
                                                         </div>
@@ -307,7 +427,7 @@ export const InvestmentsSection = () => {
                                                 </div>
 
                                                 <div className="grid grid-cols-2 gap-4 pt-2 border-t border-dashed">
-                                                    <div>
+                                                    <div className="text-left">
                                                         <p className="text-[9px] uppercase font-bold text-muted-foreground tracking-tighter">Valor Atual</p>
                                                         <p className="text-sm font-bold text-slate-900">{formatTransactionAmount(inv.currentValue)}</p>
                                                     </div>
@@ -333,8 +453,8 @@ export const InvestmentsSection = () => {
                                 </div>
 
                                 {investmentsList.length === 0 && (
-                                    <div className="py-10 text-center">
-                                        <Info className="h-10 w-10 text-muted-foreground mx-auto mb-2 opacity-20" />
+                                    <div className="py-10 text-center flex flex-col items-center justify-center">
+                                        <Info className="h-10 w-10 text-muted-foreground mb-2 opacity-20" />
                                         <p className="text-sm text-muted-foreground">Você ainda não possui investimentos registrados.</p>
                                     </div>
                                 )}
