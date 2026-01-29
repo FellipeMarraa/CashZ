@@ -3,7 +3,7 @@
 import {UserMenu} from '@/components/dashboard/user-menu';
 import {AnimatePresence, motion} from 'framer-motion';
 
-type DashboardSection = 'overview' | 'transactions' | 'accounts' | 'budget' | 'investments' | 'profile';
+type DashboardSection = 'overview' | 'transactions' | 'accounts' | 'budget' | 'investments' | 'profile' | 'settings';
 
 interface DashboardHeaderProps {
     collapsed: boolean;
