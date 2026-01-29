@@ -4,7 +4,7 @@ import {Card, CardContent, CardDescription, CardHeader, CardTitle} from "@/compo
 import {Tabs, TabsContent, TabsList, TabsTrigger} from "@/components/ui/tabs";
 import {Input} from "@/components/ui/input";
 import {Button} from "@/components/ui/button";
-import {Avatar, AvatarFallback} from "@/components/ui/avatar";
+import {Avatar, AvatarFallback, AvatarImage} from "@/components/ui/avatar"; // Importado AvatarImage
 import {useAuth} from "@/context/AuthContext";
 import {useEffect, useMemo, useState} from "react";
 import {auth} from "../../../firebase";
@@ -63,7 +63,6 @@ export const ProfileSection = () => {
         }
     }, [user]);
 
-    // Função auxiliar para normalizar strings (remover acentos e colocar em lowercase)
     const normalizeString = (str: string) => {
         return str
             .toLowerCase()
@@ -71,10 +70,8 @@ export const ProfileSection = () => {
             .replace(/[\u0300-\u036f]/g, "");
     };
 
-    // Lógica de filtragem ignorando acentos e case
     const filteredCategories = useMemo(() => {
         const normalizedSearch = normalizeString(searchTerm);
-
         return categories.filter(cat => {
             const normalizedCatName = normalizeString(cat.name);
             return normalizedCatName.includes(normalizedSearch);
@@ -155,7 +152,11 @@ export const ProfileSection = () => {
                         <CardContent className="space-y-6">
                             <div className="flex items-center space-x-4">
                                 <Avatar className="h-20 w-20 border-2 border-primary/10">
-                                    <AvatarFallback className="text-2xl bg-primary/10 text-primary">{user?.name?.[0]?.toUpperCase()}</AvatarFallback>
+                                    {/* CORREÇÃO AQUI: Adicionado AvatarImage */}
+                                    <AvatarImage src={user?.photo || undefined} alt={user?.name || "Avatar"} />
+                                    <AvatarFallback className="text-2xl bg-primary/10 text-primary">
+                                        {user?.name?.[0]?.toUpperCase()}
+                                    </AvatarFallback>
                                 </Avatar>
                                 <Button variant="outline" size="sm" disabled>Alterar Foto</Button>
                             </div>

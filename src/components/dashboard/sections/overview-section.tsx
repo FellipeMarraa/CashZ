@@ -40,14 +40,12 @@ export const OverviewSection = () => {
     const isLoading = selectedView === 'month' ? isLoadingMonthly : isLoadingYearly;
 
     const availableCategories = useMemo(() => {
-        if (!rawTransactions || visibleCategories.length === 0) return [];
+        if (visibleCategories.length === 0) return [];
 
-        const categoryIdsInTransactions = new Set(rawTransactions.map(t => t.category.id));
-
-        return visibleCategories
-            .filter(cat => categoryIdsInTransactions.has(cat.id))
-            .sort((a, b) => a.name.localeCompare(b.name));
-    }, [rawTransactions, visibleCategories]);
+        return [...visibleCategories].sort((a, b) =>
+            (a.name || "").localeCompare(b.name || "")
+        );
+    }, [visibleCategories]);
 
     const transactions = useMemo(() => {
         if (!rawTransactions) return [];
@@ -193,17 +191,66 @@ export const OverviewSection = () => {
 
 const StatsGrid = ({ transactions }: { transactions?: Transaction[] }) => {
     if (!transactions) return null;
+
+    // Transações que ainda não foram liquidadas
     const pendingTransactions = transactions.filter(t => t.status === 'PENDENTE');
-    const income = pendingTransactions.filter(t => t.type === 'RECEITA').reduce((acc, curr) => acc + curr.amount, 0);
-    const expenses = pendingTransactions.filter(t => t.type === 'DESPESA').reduce((acc, curr) => acc + curr.amount, 0);
-    const balance = income - expenses;
+
+    // Transações já liquidadas (Pagas ou Recebidas)
+    const completedTransactions = transactions.filter(t => t.status === 'PAGA' || t.status === 'RECEBIDA');
+
+    // Cálculos para os Cards
+    const pendingIncome = pendingTransactions
+        .filter(t => t.type === 'RECEITA')
+        .reduce((acc, curr) => acc + curr.amount, 0);
+
+    const pendingExpenses = pendingTransactions
+        .filter(t => t.type === 'DESPESA')
+        .reduce((acc, curr) => acc + curr.amount, 0);
+
+    const realExpenses = completedTransactions
+        .filter(t => t.type === 'DESPESA')
+        .reduce((acc, curr) => acc + curr.amount, 0);
+
+    // Saldo Final Previsto (O que já tenho - o que falta pagar + o que falta receber)
+    // Nota: Aqui você pode ajustar se quer somar o saldo atual em conta ou apenas o fluxo do mês
+    const balance = pendingIncome - pendingExpenses;
+
+    // Comprometimento Total (O que já paguei + o que ainda devo pagar)
+    const totalCommitted = realExpenses + pendingExpenses;
 
     return (
         <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
-            <StatCard title="Balanço Previsto" value={formatTransactionAmount(balance)} description="Saldo filtrado" icon={<Wallet className="h-4 w-4 text-blue-400" />} trend={balance >= 0 ? "up" : "down"} />
-            <StatCard title="A Receber" value={formatTransactionAmount(income)} description="Entradas filtradas" icon={<ArrowUpRight className="h-4 w-4 text-green-400" />} trend="up" />
-            <StatCard title="A Pagar" value={formatTransactionAmount(expenses)} description="Saídas filtradas" icon={<ArrowDownRight className="h-4 w-4 text-red-500" />} trend="down" />
-            <StatCard title="Total Pendente" value={formatTransactionAmount(expenses)} description="Pendências" icon={<DollarSign className="h-4 w-4 text-yellow-500" />} trend="warning" />
+            <StatCard
+                title="Balanço Previsto"
+                value={formatTransactionAmount(balance)}
+                description="Resultado das pendências"
+                icon={<Wallet className="h-4 w-4 text-blue-400" />}
+                trend={balance >= 0 ? "up" : "down"}
+            />
+
+            <StatCard
+                title="A Receber"
+                value={formatTransactionAmount(pendingIncome)}
+                description="Entradas futuras"
+                icon={<ArrowUpRight className="h-4 w-4 text-green-400" />}
+                trend="up"
+            />
+
+            <StatCard
+                title="Gasto Real"
+                value={formatTransactionAmount(realExpenses)}
+                description="Já pago no período"
+                icon={<ArrowDownRight className="h-4 w-4 text-rose-500" />}
+                trend="down"
+            />
+
+            <StatCard
+                title="Comprometimento"
+                value={formatTransactionAmount(totalCommitted)}
+                description="Realizado + Pendente"
+                icon={<DollarSign className="h-4 w-4 text-yellow-500" />}
+                trend="warning"
+            />
         </div>
     );
 };
