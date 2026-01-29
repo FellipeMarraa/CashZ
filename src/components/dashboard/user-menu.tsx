@@ -11,7 +11,7 @@ import {Avatar, AvatarFallback, AvatarImage} from '@/components/ui/avatar';
 import {HelpCircle, LogOut, Settings, UserCircle} from 'lucide-react';
 import {useAuth} from "@/context/AuthContext.tsx";
 
-type DashboardSection = 'overview' | 'transactions' | 'accounts' | 'budget' | 'investments' | 'profile' | 'settings';
+type DashboardSection = 'overview' | 'transactions' | 'budget' | 'investments' | 'profile' | 'settings';
 
 export const UserMenu = ({
                            onNavigateToLanding,
@@ -67,7 +67,14 @@ export const UserMenu = ({
           <span>Configurações</span>
         </DropdownMenuItem>
 
-        <DropdownMenuItem className="cursor-pointer hover:bg-muted/50 focus:bg-muted/50 focus:text-primary">
+        <DropdownMenuItem
+            className="cursor-pointer hover:bg-muted/50 focus:bg-muted/50 focus:text-primary"
+            onClick={() => {
+              const phone = "5534998842288";
+              const message = encodeURIComponent("Olá, preciso de ajuda com o CashZ");
+              window.open(`https://wa.me/${phone}?text=${message}`, "_blank");
+            }}
+        >
           <HelpCircle className="mr-2 h-4 w-4" />
           <span>Ajuda & Suporte</span>
         </DropdownMenuItem>
