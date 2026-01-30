@@ -1,28 +1,33 @@
 "use client"
 
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Progress } from '@/components/ui/progress';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { StatCard } from '@/components/dashboard/stat-card';
-import { FinanceChart } from '@/components/dashboard/finance-chart';
-import { ArrowDownRight, ArrowUpRight, CreditCard, DollarSign, PiggyBank, Wallet, Filter } from 'lucide-react';
-import { formatTransactionAmount, useTransactions, useTransactionsByYear } from '@/hooks/useTransactions';
-import { IMes } from '@/model/IMes';
-import { Transaction } from "@/model/types/Transaction.ts";
-import { useMemo, useState } from "react";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select.tsx";
-import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/components/ui/tooltip.tsx";
-import { useBudgets } from "@/hooks/useBudgets";
-import { Budget } from "@/model/types/Budget";
-import { useCategories } from '@/hooks/useCategories';
-import { TutorialWizard } from '@/components/tutorial-wizard';
+import {Card, CardContent, CardDescription, CardHeader, CardTitle} from '@/components/ui/card';
+import {Progress} from '@/components/ui/progress';
+import {Tabs, TabsContent, TabsList, TabsTrigger} from '@/components/ui/tabs';
+import {StatCard} from '@/components/dashboard/stat-card';
+import {FinanceChart} from '@/components/dashboard/finance-chart';
+import {ArrowDownRight, ArrowUpRight, CreditCard, DollarSign, Filter, PiggyBank, Users, Wallet} from 'lucide-react';
+import {formatTransactionAmount, useTransactions, useTransactionsByYear} from '@/hooks/useTransactions';
+import {IMes} from '@/model/IMes';
+import {Transaction} from "@/model/types/Transaction.ts";
+import {useMemo, useState} from "react";
+import {Select, SelectContent, SelectItem, SelectTrigger, SelectValue} from "@/components/ui/select.tsx";
+import {TooltipProvider} from "@/components/ui/tooltip.tsx";
+import {useBudgets} from "@/hooks/useBudgets";
+import {Budget} from "@/model/types/Budget";
+import {useCategories} from '@/hooks/useCategories';
+import {TutorialWizard} from '@/components/tutorial-wizard';
+import {useAuth} from '@/context/AuthContext';
+import {cn} from "@/lib/utils.ts";
 
 export const OverviewSection = () => {
+    const { user: currentUser } = useAuth();
     const currentDate = new Date();
+
     const [selectedMonth, setSelectedMonth] = useState(IMes[currentDate.getMonth()]);
     const [selectedYear, setSelectedYear] = useState(currentDate.getFullYear());
     const [selectedView, setSelectedView] = useState<'month' | 'year'>('month');
     const [selectedCategory, setSelectedCategory] = useState<string>("all");
+    const [selectedUser, setSelectedUser] = useState<string>("all"); // Novo filtro de usuário
 
     const { data: visibleCategories = [] } = useCategories();
     const { data: monthlyTransactions, isLoading: isLoadingMonthly } = useTransactions(selectedMonth, selectedYear);
@@ -35,70 +40,55 @@ export const OverviewSection = () => {
     const rawTransactions = selectedView === 'month' ? monthlyTransactions : yearlyTransactions;
     const isLoading = selectedView === 'month' ? isLoadingMonthly : isLoadingYearly;
 
+    const transactionUsers = useMemo(() => {
+        if (!rawTransactions) return [];
+        const usersMap = new Map();
+        rawTransactions.forEach(t => {
+            if (t.owner && t.owner.id !== currentUser?.id) {
+                usersMap.set(t.owner.id, t.owner.name);
+            }
+        });
+        return Array.from(usersMap.entries()).map(([id, label]) => ({ id, label }));
+    }, [rawTransactions, currentUser]);
+
+    const transactions = useMemo(() => {
+        if (!rawTransactions) return [];
+        return rawTransactions.filter(t => {
+            const categoryMatch = selectedCategory === "all" || t.category.id === selectedCategory;
+            const userMatch = selectedUser === "all" ||
+                (selectedUser === "me" ? t.owner.id === currentUser?.id : t.owner.id === selectedUser);
+            return categoryMatch && userMatch;
+        });
+    }, [rawTransactions, selectedCategory, selectedUser, currentUser]);
+
     const availableCategories = useMemo(() => {
         if (visibleCategories.length === 0) return [];
         return [...visibleCategories].sort((a, b) => (a.name || "").localeCompare(b.name || ""));
     }, [visibleCategories]);
-
-    const transactions = useMemo(() => {
-        if (!rawTransactions) return [];
-        if (selectedCategory === "all") return rawTransactions;
-        return rawTransactions.filter(t => t.category.id === selectedCategory);
-    }, [rawTransactions, selectedCategory]);
 
     const years = useMemo(() => {
         return Array.from({ length: 11 }, (_, i) => currentDate.getFullYear() - 5 + i);
     }, [currentDate]);
 
     const tutorialSteps = [
-        {
-            element: '#dashboard-tabs',
-            title: 'Modo de Visualização',
-            description: 'Alterne entre a visão detalhada do mês ou o acumulado do ano inteiro.'
-        },
-        {
-            element: '#date-filters',
-            title: 'Seleção de Período',
-            description: 'Escolha o mês e ano que deseja analisar. Todos os cards serão atualizados.'
-        },
-        {
-            element: '#category-filter',
-            title: 'Filtro por Categoria',
-            description: 'Filtre todas as informações do painel por uma categoria específica para uma análise detalhada.'
-        },
-        {
-            element: '#dashboard-stats',
-            title: 'Resumo Financeiro',
-            description: 'Entenda seu fluxo: o que já foi pago (Gasto Real) e o que ainda está planejado (Comprometimento).'
-        },
-        {
-            element: '#chart-section',
-            title: 'Evolução Gráfica',
-            description: 'Acompanhe visualmente a entrada e saída de dinheiro ao longo do tempo.'
-        },
-        {
-            element: '#recent-transactions-card',
-            title: 'Transações Recentes',
-            description: 'Confira a lista das últimas movimentações baseadas nos seus filtros atuais.'
-        },
-        {
-            element: '#budget-progress-card',
-            title: 'Progresso do Orçamento',
-            description: 'Controle suas metas! Veja se seus gastos reais estão dentro do planejado.'
-        }
+        { element: '#dashboard-tabs', title: 'Modo de Visão', description: 'Alterne entre a visão mensal ou o acumulado do ano.' },
+        { element: '#user-filter', title: 'Filtro de Usuários', description: 'Como você tem acesso a dados compartilhados, use este filtro para ver apenas suas finanças, apenas as de um parceiro ou de ambos simultaneamente.' },
+        { element: '#category-filter', title: 'Filtro por Categoria', description: 'Analise detalhadamente uma categoria específica.' },
+        { element: '#dashboard-stats', title: 'Resumo Financeiro', description: 'Veja o balanço do que já foi pago e o comprometimento total.' },
+        { element: '#chart-section', title: 'Evolução Gráfica', description: 'Acompanhe visualmente o fluxo de caixa.' }
     ];
 
     if (isLoadingBudgets && (!budgets || budgets.length === 0)) {
         return (
-            <div className="flex justify-center items-center h-48 text-muted-foreground animate-pulse">
-                Carregando visão geral...
+            <div className="flex justify-center items-center h-48 text-muted-foreground animate-pulse font-medium">
+                Carregando visão geral compartilhada...
             </div>
         );
     }
 
     return (
         <div className="space-y-6 animate-in fade-in duration-700 pb-10">
-            <TutorialWizard tutorialKey="overview-detailed" steps={tutorialSteps} />
+            <TutorialWizard tutorialKey="overview-shared-v1" steps={tutorialSteps} />
 
             <TooltipProvider>
                 <Tabs
@@ -107,30 +97,36 @@ export const OverviewSection = () => {
                     onValueChange={(value) => {
                         setSelectedView(value as 'month' | 'year');
                         setSelectedCategory("all");
+                        setSelectedUser("all");
                     }}
                 >
                     <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                         <TabsList className="w-full md:w-auto" id="dashboard-tabs">
-                            <TabsTrigger value="month" className="flex-1 md:flex-none">
-                                <Tooltip>
-                                    <TooltipTrigger asChild>
-                                        <div className="h-full w-full px-4 py-0">Mês</div>
-                                    </TooltipTrigger>
-                                    <TooltipContent className="bg-gray-800 text-white border-none">Visualizar dados por mês</TooltipContent>
-                                </Tooltip>
-                            </TabsTrigger>
-                            <TabsTrigger value="year" className="flex-1 md:flex-none">
-                                <Tooltip>
-                                    <TooltipTrigger asChild>
-                                        <div className="h-full w-full px-4 py-0">Ano</div>
-                                    </TooltipTrigger>
-                                    <TooltipContent className="bg-gray-800 text-white border-none">Visualizar dados por ano</TooltipContent>
-                                </Tooltip>
-                            </TabsTrigger>
+                            <TabsTrigger value="month" className="flex-1 md:flex-none">Mês</TabsTrigger>
+                            <TabsTrigger value="year" className="flex-1 md:flex-none">Ano</TabsTrigger>
                         </TabsList>
 
                         <div className="flex flex-col sm:flex-row gap-2 w-full md:w-auto">
-                            <div className="w-full md:w-[200px]" id="category-filter">
+                            {/* NOVO: FILTRO DE USUÁRIO */}
+                            <div className="w-full md:w-[180px]" id="user-filter">
+                                <Select value={selectedUser} onValueChange={setSelectedUser}>
+                                    <SelectTrigger className="w-full bg-background border-blue-500/20">
+                                        <div className="flex items-center gap-2">
+                                            <Users className="h-3 w-3 text-blue-500" />
+                                            <SelectValue placeholder="Usuário" />
+                                        </div>
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="all">Todos Usuários</SelectItem>
+                                        <SelectItem value="me">Apenas Eu</SelectItem>
+                                        {transactionUsers.map((u) => (
+                                            <SelectItem key={u.id} value={u.id}>{u.label}</SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                            </div>
+
+                            <div className="w-full md:w-[180px]" id="category-filter">
                                 <Select value={selectedCategory} onValueChange={setSelectedCategory}>
                                     <SelectTrigger className="w-full bg-background border-emerald-500/20">
                                         <div className="flex items-center gap-2">
@@ -147,29 +143,32 @@ export const OverviewSection = () => {
                                 </Select>
                             </div>
 
-                            <div className="flex flex-row items-center gap-2" id="date-filters">
+                            <div className="flex flex-row items-center gap-2 w-full md:w-auto" id="date-filters">
                                 {selectedView === 'month' && (
-                                    <div className="w-full md:w-[150px]">
+                                    <div className="flex-1 md:w-[120px] md:flex-none">
                                         <Select value={selectedMonth} onValueChange={setSelectedMonth}>
                                             <SelectTrigger className="w-full">
-                                                <SelectValue placeholder="Mês" />
+                                                <SelectValue />
                                             </SelectTrigger>
                                             <SelectContent>
-                                                {IMes.map((mes, index) => (
-                                                    <SelectItem key={index} value={mes}>{mes}</SelectItem>
+                                                {IMes.map((mes) => (
+                                                    <SelectItem key={mes} value={mes}>{mes}</SelectItem>
                                                 ))}
                                             </SelectContent>
                                         </Select>
                                     </div>
                                 )}
-                                <div className="w-full md:w-[100px]">
-                                    <Select value={selectedYear.toString()} onValueChange={(value) => setSelectedYear(Number(value))}>
+                                <div className={cn(
+                                    "md:w-[90px] md:flex-none",
+                                    selectedView === 'month' ? "flex-1" : "w-full"
+                                )}>
+                                    <Select value={selectedYear.toString()} onValueChange={(v) => setSelectedYear(Number(v))}>
                                         <SelectTrigger className="w-full">
-                                            <SelectValue placeholder="Ano" />
+                                            <SelectValue />
                                         </SelectTrigger>
                                         <SelectContent>
-                                            {years.map((year) => (
-                                                <SelectItem key={year} value={year.toString()}>{year}</SelectItem>
+                                            {years.map((y) => (
+                                                <SelectItem key={y} value={y.toString()}>{y}</SelectItem>
                                             ))}
                                         </SelectContent>
                                     </Select>
@@ -179,12 +178,8 @@ export const OverviewSection = () => {
                     </div>
 
                     <TabsContent value="month" className="space-y-4 outline-none">
-                        <div id="dashboard-stats">
-                            <StatsGrid transactions={transactions} />
-                        </div>
-                        <div id="chart-section">
-                            <ChartSection transactions={transactions} view={selectedView} month={selectedMonth} year={selectedYear} />
-                        </div>
+                        <StatsGrid transactions={transactions} />
+                        <ChartSection transactions={transactions} view={selectedView} month={selectedMonth} year={selectedYear} />
                     </TabsContent>
 
                     <TabsContent value="year" className="space-y-4 outline-none">
@@ -197,13 +192,13 @@ export const OverviewSection = () => {
             <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
                 <Card className="xl:col-span-2 border-none shadow-sm md:border" id="recent-transactions-card">
                     <CardHeader>
-                        <CardTitle>Transações {selectedCategory !== "all" ? "Filtradas" : "Recentes"}</CardTitle>
+                        <CardTitle>Transações {selectedUser !== "all" || selectedCategory !== "all" ? "Filtradas" : "Recentes"}</CardTitle>
                         <CardDescription>
-                            {selectedView === 'month' ? `Movimentações de ${selectedMonth}` : `Movimentações de ${selectedYear}`}
+                            Mostrando movimentações {selectedUser === "me" ? "suas" : selectedUser !== "all" ? "compartilhadas" : "gerais"}.
                         </CardDescription>
                     </CardHeader>
                     <CardContent className="max-h-[320px] overflow-y-auto pr-2 scrollbar-thin">
-                        <RecentTransactionsList transactions={transactions} isLoading={isLoading} />
+                        <RecentTransactionsList transactions={transactions} isLoading={isLoading} currentUserId={currentUser?.id} />
                     </CardContent>
                 </Card>
 
@@ -217,16 +212,17 @@ export const OverviewSection = () => {
                             transactions={transactions}
                             budgets={budgets}
                             filterId={selectedCategory}
-                        />
-                    </CardContent>
+                            selectedUser={selectedUser}
+                            currentUserId={currentUser?.id}
+                        />                    </CardContent>
                 </Card>
             </div>
         </div>
     );
 };
 
-// --- COMPONENTES AUXILIARES (StatsGrid, ChartSection, RecentTransactionsList, BudgetProgress) ---
-// Mantidos como no código anterior para brevidade, apenas garanta que estão presentes no arquivo.
+// --- COMPONENTES AUXILIARES ---
+
 const StatsGrid = ({ transactions }: { transactions?: Transaction[] }) => {
     if (!transactions) return null;
     const pendingTransactions = transactions.filter(t => t.status === 'PENDENTE');
@@ -252,12 +248,7 @@ const StatsGrid = ({ transactions }: { transactions?: Transaction[] }) => {
 const ChartSection = ({ transactions, view, month, year }: { transactions?: Transaction[]; view: 'month' | 'year'; month?: string; year: number; }) => {
     return (
         <Card className="border-none shadow-sm md:border">
-            <CardHeader>
-                <CardTitle>Finanças</CardTitle>
-                <CardDescription>
-                    {view === 'month' ? `Fluxo de caixa de ${month} de ${year}` : `Fluxo de caixa de ${year}`}
-                </CardDescription>
-            </CardHeader>
+            <CardHeader><CardTitle className="text-lg">Fluxo de Caixa</CardTitle></CardHeader>
             <CardContent>
                 <div className="h-[300px]">
                     <FinanceChart transactions={transactions} view={view} month={month} year={year} />
@@ -267,44 +258,75 @@ const ChartSection = ({ transactions, view, month, year }: { transactions?: Tran
     );
 };
 
-const RecentTransactionsList = ({ transactions, isLoading }: { transactions?: Transaction[], isLoading: boolean }) => {
-    if (isLoading) return <div className="py-4 text-center text-sm text-muted-foreground">Carregando...</div>;
-    if (!transactions?.length) return <div className="py-4 text-center text-sm text-muted-foreground italic">Nenhuma transação visível para este filtro.</div>;
+const RecentTransactionsList = ({ transactions, isLoading, currentUserId }: { transactions?: Transaction[], isLoading: boolean, currentUserId?: string }) => {
+    if (isLoading) return <div className="py-8 text-center text-sm text-muted-foreground animate-pulse">Carregando transações...</div>;
+    if (!transactions?.length) return <div className="py-12 text-center text-sm text-muted-foreground italic">Nenhuma transação encontrada.</div>;
 
     return (
         <div className="space-y-4">
-            {transactions.map((transaction) => (
-                <div key={transaction.id} className="flex items-center justify-between space-x-4 pb-2 border-b last:border-0 border-muted/50">
-                    <div className="flex items-center space-x-3 overflow-hidden">
-                        <div className={`rounded-full p-2 bg-muted shrink-0 ${transaction.status === 'PAGA' || transaction.status === 'RECEBIDA' ? 'opacity-50' : ''}`}>
-                            <CreditCard className="h-4 w-4" />
+            {transactions.map((transaction) => {
+                const isShared = transaction.owner && transaction.owner.id !== currentUserId;
+                return (
+                    <div key={transaction.id} className="flex items-center justify-between space-x-4 pb-3 border-b last:border-0 border-muted/30 group">
+                        <div className="flex items-center space-x-3 overflow-hidden">
+                            <div className={cn(
+                                "rounded-full p-2 shrink-0 transition-colors",
+                                isShared ? "bg-blue-50 text-blue-600" : "bg-muted text-slate-600"
+                            )}>
+                                {isShared ? <Users className="h-4 w-4" /> : <CreditCard className="h-4 w-4" />}
+                            </div>
+                            <div className="min-w-0">
+                                <div className="flex items-center gap-2">
+                                    <p className="text-sm  text-slate-800 truncate">{transaction.description}</p>
+                                    {isShared && (
+                                        <span className="text-[9px] bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded  uppercase tracking-tighter">
+                                            {transaction.owner.name.split(' ')[0]}
+                                        </span>
+                                    )}
+                                </div>
+                                <p className="text-[10px] text-muted-foreground mt-0.5 flex items-center gap-1">
+                                    { (transaction.status === 'PAGA' || transaction.status === 'RECEBIDA') &&
+                                        <span className="text-emerald-600 ">●</span>
+                                    }
+                                    {transaction.category.name}
+                                </p>
+                            </div>
                         </div>
-                        <div className="min-w-0">
-                            <p className="text-sm font-medium leading-none truncate">{transaction.description}</p>
-                            <p className="text-xs text-muted-foreground mt-1">
-                                { (transaction.status === 'PAGA' || transaction.status === 'RECEBIDA') &&
-                                    <span className="text-green-600 font-bold mr-1 text-[10px]">LANÇADO</span>
-                                }
-                                {transaction.category.name}
+                        <div className="text-right shrink-0">
+                            <p className={cn("text-sm ", transaction.type === 'RECEITA' ? 'text-emerald-600' : 'text-rose-600')}>
+                                {transaction.type === 'RECEITA' ? '+' : '-'}{formatTransactionAmount(transaction.amount)}
                             </p>
                         </div>
                     </div>
-                    <div className="text-right shrink-0">
-                        <p className={`text-sm font-bold ${transaction.type === 'RECEITA' ? 'text-emerald-600' : 'text-rose-600'}`}>
-                            {transaction.type === 'RECEITA' ? '+' : '-'}{formatTransactionAmount(transaction.amount)}
-                        </p>
-                    </div>
-                </div>
-            ))}
+                );
+            })}
         </div>
     );
 };
 
-const BudgetProgress = ({ transactions, budgets, filterId }: { transactions?: Transaction[], budgets: Budget[], filterId: string }) => {
+const BudgetProgress = ({
+                            transactions,
+                            budgets,
+                            filterId,
+                            selectedUser,
+                            currentUserId
+                        }: {
+    transactions?: Transaction[],
+    budgets: Budget[],
+    filterId: string,
+    selectedUser: string,
+    currentUserId?: string
+}) => {
     const analysis = useMemo(() => {
         if (!budgets || budgets.length === 0) return [];
 
-        const consolidatedBudgets = budgets.reduce((acc, b) => {
+        const filteredBudgets = budgets.filter(b => {
+            if (selectedUser === "all") return true;
+            if (selectedUser === "me") return b.userId === currentUserId;
+            return b.userId === selectedUser;
+        });
+
+        const consolidatedBudgets = filteredBudgets.reduce((acc, b) => {
             if (!acc[b.categoryId]) acc[b.categoryId] = { name: b.categoryName, allocated: 0 };
             acc[b.categoryId].allocated += b.amount;
             return acc;
@@ -320,27 +342,40 @@ const BudgetProgress = ({ transactions, budgets, filterId }: { transactions?: Tr
             const spent = expensesMap[categoryId] || 0;
             const allocated = budgetData.allocated;
             const percent = allocated > 0 ? (spent / allocated) * 100 : 0;
-            return { id: categoryId, name: budgetData.name, spent, allocated, percent: percent > 100 ? 100 : percent, isOver: spent > allocated };
+            return {
+                id: categoryId,
+                name: budgetData.name,
+                spent,
+                allocated,
+                percent: percent > 100 ? 100 : percent,
+                isOver: spent > allocated
+            };
         });
 
         if (filterId !== "all") result = result.filter(r => r.id === filterId);
         return result.sort((a, b) => b.percent - a.percent);
-    }, [transactions, budgets, filterId]);
+    }, [transactions, budgets, filterId, selectedUser, currentUserId]);
 
-    if (!budgets || budgets.length === 0 || analysis.length === 0) return <div className="py-4 text-center text-sm text-muted-foreground italic">Sem metas visíveis para este filtro.</div>;
+    if (analysis.length === 0) {
+        return (
+            <div className="py-12 text-center text-sm text-muted-foreground italic">
+                Nenhuma meta de orçamento definida para {selectedUser === "me" ? "você" : "este filtro"}.
+            </div>
+        );
+    }
 
     return (
         <div className="space-y-6">
             {analysis.map((item) => (
-                <div key={item.id} className="space-y-2">
+                <div key={item.id} className="space-y-2 text-left">
                     <div className="flex items-center justify-between gap-2">
                         <div className="flex items-center space-x-2 overflow-hidden">
-                            <PiggyBank className={`h-4 w-4 shrink-0 ${item.isOver ? 'text-red-500' : 'text-muted-foreground'}`} />
-                            <span className="text-sm font-medium truncate">{item.name}</span>
+                            <PiggyBank className={cn("h-4 w-4 shrink-0", item.isOver ? 'text-red-500' : 'text-slate-400')} />
+                            <span className="text-sm  text-slate-700 truncate">{item.name}</span>
                         </div>
-                        <span className="text-[10px] text-muted-foreground font-mono">{formatTransactionAmount(item.spent)} / {formatTransactionAmount(item.allocated)}</span>
+                        <span className="text-[10px] text-muted-foreground font-mono">{formatTransactionAmount(item.spent)}</span>
                     </div>
-                    <Progress value={item.percent} className="h-2" indicatorClassName={item.isOver ? "bg-red-500" : "bg-emerald-500"} />
+                    <Progress value={item.percent} className="h-1.5" indicatorClassName={item.isOver ? "bg-red-500" : "bg-emerald-500"} />
                 </div>
             ))}
         </div>

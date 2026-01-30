@@ -1,8 +1,8 @@
-import {useMutation, useQuery, useQueryClient} from "@tanstack/react-query";
-import {IMes} from "@/model/IMes";
-import {Transaction} from "@/model/types/Transaction";
-import {auth, db} from "../../firebase";
-import {useAuth} from "@/context/AuthContext";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { IMes } from "@/model/IMes";
+import { Transaction } from "@/model/types/Transaction";
+import { auth, db } from "../../firebase";
+import { useAuth } from "@/context/AuthContext";
 import {
     collection,
     deleteDoc,
@@ -17,6 +17,7 @@ import {
 } from 'firebase/firestore/lite';
 
 const COLLECTION_NAME = 'transactions';
+const SHARING_COLLECTION = 'sharing';
 
 type TransactionInput = Omit<Transaction, 'id' | 'owner'>;
 
@@ -58,9 +59,41 @@ const api = {
         } as Transaction;
     },
 
+    // --- LÓGICA DE COMPARTILHAMENTO ---
+    // Busca os IDs de usuários que compartilharam dados com o e-mail do usuário atual
+    // useTransactions.ts
+    async getAllowedUserIds(): Promise<string[]> {
+        const user = auth.currentUser;
+        if (!user || !user.email) return [];
+
+        try {
+            // AJUSTE: Buscamos o documento EXATO pelo e-mail (ID)
+            // Isso é muito mais rápido e seguro que uma query filter
+            const emailId = user.email.trim().toLowerCase();
+            const shareRef = doc(db, SHARING_COLLECTION, emailId);
+            const shareSnap = await getDoc(shareRef);
+
+            const allowedIds = [user.uid];
+
+            if (shareSnap.exists()) {
+                const data = shareSnap.data();
+                if (data.ownerId) {
+                    allowedIds.push(data.ownerId);
+                }
+            }
+
+            return allowedIds;
+        } catch (error) {
+            console.error("Erro ao buscar permissões:", error);
+            return [user.uid];
+        }
+    },
+
     async getTransactions(month: string, year: number): Promise<Transaction[]> {
         const user = auth.currentUser;
         if (!user) return [];
+
+        const allowedIds = await this.getAllowedUserIds();
 
         const monthIndex = IMes.indexOf(month);
         if (monthIndex === -1) return [];
@@ -71,7 +104,7 @@ const api = {
         try {
             const q = query(
                 collection(db, COLLECTION_NAME),
-                where("userId", "==", user.uid),
+                where("userId", "in", allowedIds),
                 where("date", ">=", startDate.toISOString()),
                 where("date", "<=", endDate.toISOString()),
                 orderBy("date", "desc")
@@ -81,20 +114,36 @@ const api = {
             return querySnapshot.docs.map(doc => this.mapDocumentToTransaction(doc));
         } catch (error) {
             console.error("Erro ao buscar transações:", error);
-            throw error;
+            const qFallback = query(
+                collection(db, COLLECTION_NAME),
+                where("userId", "==", user.uid),
+                where("date", ">=", startDate.toISOString()),
+                where("date", "<=", endDate.toISOString()),
+                orderBy("date", "desc")
+            );
+            const snapFallback = await getDocs(qFallback);
+            return snapFallback.docs.map(doc => this.mapDocumentToTransaction(doc));
         }
     },
 
     async getAllTransactions(): Promise<Transaction[]> {
         const user = auth.currentUser;
         if (!user) return [];
-        const q = query(
-            collection(db, COLLECTION_NAME),
-            where("userId", "==", user.uid),
-            orderBy("date", "desc")
-        );
-        const querySnapshot = await getDocs(q);
-        return querySnapshot.docs.map(doc => this.mapDocumentToTransaction(doc));
+
+        try {
+            const allowedIds = await this.getAllowedUserIds();
+
+            const q = query(
+                collection(db, COLLECTION_NAME),
+                where("userId", "in", allowedIds),
+                orderBy("date", "desc")
+            );
+            const querySnapshot = await getDocs(q);
+            return querySnapshot.docs.map(doc => this.mapDocumentToTransaction(doc));
+        } catch (error) {
+            console.error("Erro ao buscar todas as transações:", error);
+            throw error;
+        }
     },
 
     // --- CRIAR TRANSAÇÃO ---
@@ -110,7 +159,6 @@ const api = {
 
         const batch = writeBatch(db);
         const collectionRef = collection(db, COLLECTION_NAME);
-
         const firstDocRef = doc(collectionRef);
         const referenceId = firstDocRef.id;
 
@@ -125,15 +173,12 @@ const api = {
             reference: referenceId
         };
 
-        // --- LÓGICA 1: PARCELADO ---
         if (data.recurrence === 'PARCELADO' && data.numInstallments && data.numInstallments > 1) {
             const installmentValue = parseFloat((data.amount / data.numInstallments).toFixed(2));
-
             for (let i = 0; i < data.numInstallments; i++) {
                 const targetMonthIndex = (data.month - 1) + i;
                 const targetYear = data.year + Math.floor(targetMonthIndex / 12);
                 const targetMonth = (targetMonthIndex % 12) + 1;
-
                 const dateObj = new Date(targetYear, targetMonth - 1, 1, new Date().getHours(), new Date().getMinutes());
 
                 const payload = {
@@ -145,57 +190,28 @@ const api = {
                     currentInstallment: i + 1,
                     date: dateObj.toISOString()
                 };
-
                 const currentDocRef = i === 0 ? firstDocRef : doc(collectionRef);
                 batch.set(currentDocRef, sanitizeData(payload));
             }
-        }
-        // --- LÓGICA 2: FIXO ---
-        else if (data.recurrence === 'FIXO') {
+        } else if (data.recurrence === 'FIXO') {
             const startMonth = data.month;
-            const endMonth = 12;
-
-            for (let m = startMonth; m <= endMonth; m++) {
+            for (let m = startMonth; m <= 12; m++) {
                 const targetYear = data.year;
                 const dateObj = new Date(targetYear, m - 1, 1, new Date().getHours(), new Date().getMinutes());
-
-                const payload = {
-                    ...basePayload,
-                    amount: data.amount,
-                    month: m,
-                    year: targetYear,
-                    date: dateObj.toISOString()
-                };
-
+                const payload = { ...basePayload, amount: data.amount, month: m, year: targetYear, date: dateObj.toISOString() };
                 const currentDocRef = m === startMonth ? firstDocRef : doc(collectionRef);
                 batch.set(currentDocRef, sanitizeData(payload));
             }
-        }
-        // --- LÓGICA 3: ÚNICO ---
-        else {
+        } else {
             const dateObj = new Date(data.year, data.month - 1, 1, new Date().getHours(), new Date().getMinutes());
-
-            const payload = {
-                ...basePayload,
-                amount: data.amount,
-                month: data.month,
-                year: data.year,
-                date: dateObj.toISOString()
-            };
-
+            const payload = { ...basePayload, amount: data.amount, month: data.month, year: data.year, date: dateObj.toISOString() };
             batch.set(firstDocRef, sanitizeData(payload));
         }
 
         await batch.commit();
-
-        return {
-            id: referenceId,
-            ...data,
-            owner: ownerData
-        } as Transaction;
+        return { id: referenceId, ...data, owner: ownerData } as Transaction;
     },
 
-    // --- ATUALIZAR TRANSAÇÃO ---
     async updateTransaction(id: string, data: Partial<Transaction>): Promise<Transaction> {
         const transactionRef = doc(db, COLLECTION_NAME, id);
         let updateData: any = { ...data };
@@ -210,20 +226,16 @@ const api = {
         return { id, ...data } as Transaction;
     },
 
-    // --- DELETAR TRANSAÇÃO (LÓGICA ALTERADA: DELETAR DESTA PARA FRENTE) ---
     async deleteTransaction(id: string, deleteAll: boolean = false): Promise<void> {
         const user = auth.currentUser;
         if (!user) throw new Error("Usuário não autenticado");
 
-        // 1. Deleção Simples (Apenas o item selecionado)
         if (!deleteAll) {
             const transactionRef = doc(db, COLLECTION_NAME, id);
             await deleteDoc(transactionRef);
             return;
         }
 
-        // 2. Deleção Recorrente (Desta para frente)
-        // Primeiro, precisamos pegar a transação "Pivô" para saber a data e a referência dela
         const pivotDocRef = doc(db, COLLECTION_NAME, id);
         const pivotSnap = await getDoc(pivotDocRef);
 
@@ -231,16 +243,10 @@ const api = {
 
         const pivotData = pivotSnap.data();
         const groupReferenceId = pivotData.reference || id;
-
-        // A data de corte é a data da transação selecionada
         const pivotDateISO = pivotData.date;
 
-        // Busca todas as transações que pertencem a este grupo (Reference ID igual)
-        // Nota: Não usamos filtro de data na query do Firestore para evitar criar índices complexos compostos.
-        // Como um parcelamento tem no maximo 12-60 itens, filtrar no cliente é rápido e barato.
         const qChildren = query(
             collection(db, COLLECTION_NAME),
-            where("userId", "==", user.uid),
             where("reference", "==", groupReferenceId)
         );
 
@@ -249,26 +255,22 @@ const api = {
 
         childrenSnaps.forEach((childDoc) => {
             const childData = childDoc.data();
-
-            // LÓGICA DE CORTE:
-            // Comparamos as datas (Strings ISO funcionam bem com >=)
-            // Se a data do item for MAIOR ou IGUAL à data do pivô, deletamos.
             if (childData.date >= pivotDateISO) {
                 batch.delete(childDoc.ref);
             }
         });
 
-        // Executa a exclusão em lote
         await batch.commit();
     },
 
-    // --- FILTROS EXTRAS ---
     async getTransactionsByMonth(month: number): Promise<Transaction[]> {
         const user = auth.currentUser;
         if (!user) return [];
+        const allowedIds = await this.getAllowedUserIds();
+
         const q = query(
             collection(db, COLLECTION_NAME),
-            where("userId", "==", user.uid),
+            where("userId", "in", allowedIds),
             where("month", "==", month)
         );
         const querySnapshot = await getDocs(q);
@@ -278,11 +280,13 @@ const api = {
     async getTransactionsByYear(year: number): Promise<Transaction[]> {
         const user = auth.currentUser;
         if (!user) return [];
+        const allowedIds = await this.getAllowedUserIds();
         const startDate = new Date(year, 0, 1);
         const endDate = new Date(year, 11, 31, 23, 59, 59);
+
         const q = query(
             collection(db, COLLECTION_NAME),
-            where("userId", "==", user.uid),
+            where("userId", "in", allowedIds),
             where("date", ">=", startDate.toISOString()),
             where("date", "<=", endDate.toISOString()),
             orderBy("date", "desc")
@@ -336,7 +340,6 @@ export const useTransactionsByYear = (year: number) => {
 
 export const useCreateTransaction = () => {
     const queryClient = useQueryClient();
-
     return useMutation({
         mutationFn: (data: TransactionInput) => api.createTransaction(data),
         onSuccess: () => {
@@ -347,7 +350,6 @@ export const useCreateTransaction = () => {
 
 export const useUpdateTransaction = () => {
     const queryClient = useQueryClient();
-
     return useMutation({
         mutationFn: ({ id, data }: { id: string; data: Partial<Transaction> }) =>
             api.updateTransaction(id, data),
@@ -359,7 +361,6 @@ export const useUpdateTransaction = () => {
 
 export const useDeleteTransaction = () => {
     const queryClient = useQueryClient();
-
     return useMutation({
         mutationFn: ({ id, deleteAll = false }: { id: string; deleteAll?: boolean }) =>
             api.deleteTransaction(id, deleteAll),

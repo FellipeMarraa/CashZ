@@ -1,3 +1,5 @@
+"use client"
+
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { db, auth } from "../../firebase";
 import { Budget } from "@/model/types/Budget";
@@ -9,7 +11,8 @@ import {
     addDoc,
     setDoc,
     doc,
-    deleteDoc
+    deleteDoc,
+    getDoc
 } from "firebase/firestore/lite";
 import { useToast } from "@/hooks/use-toast";
 
@@ -18,17 +21,37 @@ export const useBudgets = (month?: number, year?: number) => {
     const { toast } = useToast();
     const user = auth.currentUser;
 
+    const getAllowedUserIds = async (): Promise<string[]> => {
+        if (!user?.email) return [];
+        try {
+            const emailId = user.email.trim().toLowerCase();
+            const shareRef = doc(db, 'sharing', emailId);
+            const shareSnap = await getDoc(shareRef);
+            if (shareSnap.exists()) {
+                return [user.uid, shareSnap.data().ownerId];
+            }
+            return [user.uid];
+        } catch (error) {
+            return [user.uid];
+        }
+    };
+
     const budgetsQuery = useQuery({
         queryKey: ["budgets", month, year, user?.uid],
         queryFn: async () => {
             if (!user || !year || !db) return [];
+            const allowedIds = await getAllowedUserIds();
             const budgetsRef = collection(db, "budgets");
-            let q;
+
+            let q = query(budgetsRef,
+                where("userId", "in", allowedIds),
+                where("year", "==", year)
+            );
+
             if (month !== undefined && month !== null) {
-                q = query(budgetsRef, where("userId", "==", user.uid), where("month", "==", month), where("year", "==", year));
-            } else {
-                q = query(budgetsRef, where("userId", "==", user.uid), where("year", "==", year));
+                q = query(q, where("month", "==", month));
             }
+
             const querySnapshot = await getDocs(q);
             return querySnapshot.docs.map(document => ({
                 id: document.id,
@@ -42,24 +65,26 @@ export const useBudgets = (month?: number, year?: number) => {
         mutationFn: async (payload: Omit<Budget, 'id' | 'userId'> & { replicateAllMonths?: boolean }) => {
             if (!user || !db) throw new Error("Usuário não autenticado");
             const budgetsRef = collection(db, "budgets");
-
-            // Define quais meses serão afetados
             const targetMonths = payload.replicateAllMonths ? Array.from({ length: 12 }, (_, i) => i + 1) : [payload.month];
 
             const promises = targetMonths.map(async (m) => {
-                const q = query(
-                    budgetsRef,
+                // Buscamos se JÁ EXISTE um orçamento para ESTE usuário específico nesta categoria/mês
+                const q = query(budgetsRef,
                     where("userId", "==", user.uid),
                     where("categoryId", "==", payload.categoryId),
                     where("month", "==", m),
                     where("year", "==", payload.year)
                 );
+
                 const querySnapshot = await getDocs(q);
 
                 if (!querySnapshot.empty) {
-                    const existingDoc = querySnapshot.docs[0];
-                    const docRef = doc(db, "budgets", existingDoc.id);
-                    return await setDoc(docRef, { amount: payload.amount }, { merge: true });
+                    const docRef = doc(db, "budgets", querySnapshot.docs[0].id);
+                    return await setDoc(docRef, {
+                        amount: payload.amount,
+                        categoryName: payload.categoryName,
+                        updatedAt: new Date().toISOString()
+                    }, { merge: true });
                 } else {
                     return await addDoc(budgetsRef, {
                         categoryId: payload.categoryId,
@@ -67,7 +92,8 @@ export const useBudgets = (month?: number, year?: number) => {
                         amount: payload.amount,
                         month: m,
                         year: payload.year,
-                        userId: user.uid
+                        userId: user.uid,
+                        ownerEmail: user.email // Importante para o filtro visual
                     });
                 }
             });
@@ -76,7 +102,11 @@ export const useBudgets = (month?: number, year?: number) => {
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ["budgets"] });
-            toast({ title: "Sucesso!", description: "Orçamento(s) atualizado(s)." });
+            toast({ title: "Sucesso!", description: "Orçamento atualizado." });
+        },
+        onError: (error) => {
+            console.error("Erro ao salvar orçamento:", error);
+            toast({ variant: "destructive", title: "Erro!", description: "Não foi possível salvar a meta." });
         }
     });
 

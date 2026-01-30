@@ -11,21 +11,42 @@ import {
     deleteDoc,
     doc,
     query,
-    where
+    where,
+    getDoc
 } from 'firebase/firestore/lite';
 import { useMemo } from "react";
 
 const COLLECTION_NAME = 'categories';
 
 const api = {
-    // --- BUSCAR CATEGORIAS (DO USUÁRIO + PADRÕES) ---
+    // Busca IDs de quem compartilhou dados com o usuário atual
+    async getAllowedUserIds(): Promise<string[]> {
+        const user = auth.currentUser;
+        if (!user || !user.email) return [];
+        try {
+            const emailId = user.email.trim().toLowerCase();
+            const shareRef = doc(db, 'sharing', emailId);
+            const shareSnap = await getDoc(shareRef);
+            if (shareSnap.exists()) {
+                return [user.uid, shareSnap.data().ownerId];
+            }
+            return [user.uid];
+        } catch (error) {
+            console.error("Erro ao buscar permissões de categorias:", error);
+            return [user.uid];
+        }
+    },
+
+    // --- BUSCAR CATEGORIAS (DO USUÁRIO + COMPARTILHADAS + PADRÕES) ---
     async getCategories(): Promise<CategoryDTO[]> {
         const user = auth.currentUser;
         if (!user) return [];
 
+        const allowedIds = await this.getAllowedUserIds();
+
         const userQuery = query(
             collection(db, COLLECTION_NAME),
-            where("userId", "==", user.uid)
+            where("userId", "in", allowedIds)
         );
 
         const defaultQuery = query(
@@ -48,62 +69,40 @@ const api = {
             ...doc.data()
         })) as CategoryDTO[];
 
-        return [...defaultCategories, ...userCategories];
+        // Merge de categorias removendo possíveis duplicatas de ID
+        const allCats = [...defaultCategories, ...userCategories];
+        return Array.from(new Map(allCats.map(item => [item.id, item])).values());
     },
 
-    // --- CRIAR CATEGORIA ---
     async createCategory(data: Omit<CategoryDTO, 'id'>): Promise<CategoryDTO> {
         const user = auth.currentUser;
         if (!user) throw new Error("Usuário não autenticado");
-
-        const newCategoryData = {
-            ...data,
-            userId: user.uid,
-            isDefault: false
-        };
-
+        const newCategoryData = { ...data, userId: user.uid, isDefault: false };
         const docRef = await addDoc(collection(db, COLLECTION_NAME), newCategoryData);
         return { id: docRef.id, ...newCategoryData } as CategoryDTO;
     },
 
-    // --- ATUALIZAR CATEGORIA ---
     async updateCategory(id: string, data: Partial<CategoryDTO>): Promise<void> {
         const categoryRef = doc(db, COLLECTION_NAME, id);
         await updateDoc(categoryRef, data);
     },
 
-    // --- DELETAR CATEGORIA COM CASCATA (BUDGETS) ---
     async deleteCategory(id: string): Promise<void> {
         const user = auth.currentUser;
         if (!user) throw new Error("Usuário não autenticado");
-
         const categoryRef = doc(db, COLLECTION_NAME, id);
         const budgetsRef = collection(db, "budgets");
-
-        const q = query(
-            budgetsRef,
-            where("userId", "==", user.uid),
-            where("categoryId", "==", id)
-        );
-
+        const q = query(budgetsRef, where("userId", "==", user.uid), where("categoryId", "==", id));
         const budgetSnapshot = await getDocs(q);
         const deleteBudgetsPromises = budgetSnapshot.docs.map(budgetDoc =>
             deleteDoc(doc(db, "budgets", budgetDoc.id))
         );
-
-        await Promise.all([
-            ...deleteBudgetsPromises,
-            deleteDoc(categoryRef)
-        ]);
+        await Promise.all([...deleteBudgetsPromises, deleteDoc(categoryRef)]);
     }
 };
 
-// --- HOOKS ---
-
 export const useCategories = () => {
     const user = auth.currentUser;
-
-    // 1. Busca Categorias Brutas
     const categoriesQuery = useQuery({
         queryKey: ['categories-raw', user?.uid],
         queryFn: () => api.getCategories(),
@@ -111,7 +110,6 @@ export const useCategories = () => {
         enabled: !!user
     });
 
-    // 2. Busca IDs Ocultos
     const hiddenQuery = useQuery({
         queryKey: ['hidden-categories', user?.uid],
         queryFn: async () => {
@@ -123,18 +121,16 @@ export const useCategories = () => {
         enabled: !!user
     });
 
-    // 3. Filtra as categorias para uso geral nos Selects
     const filteredCategories = useMemo(() => {
         const cats = categoriesQuery.data || [];
         const hiddenIds = hiddenQuery.data || [];
-        if (hiddenIds.length === 0) return cats;
         return cats.filter(cat => !hiddenIds.includes(cat.id!));
     }, [categoriesQuery.data, hiddenQuery.data]);
 
     return {
         ...categoriesQuery,
-        data: filteredCategories, // Dados filtrados (usado nos selects)
-        allCategories: categoriesQuery.data || [], // Dados brutos (usado no Perfil)
+        data: filteredCategories,
+        allCategories: categoriesQuery.data || [],
         isLoading: categoriesQuery.isLoading || hiddenQuery.isLoading
     };
 };
@@ -143,20 +139,15 @@ export const useCreateCategory = () => {
     const queryClient = useQueryClient();
     return useMutation({
         mutationFn: (data: Omit<CategoryDTO, 'id'>) => api.createCategory(data),
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['categories-raw'] });
-        }
+        onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['categories-raw'] }); }
     });
 };
 
 export const useUpdateCategory = () => {
     const queryClient = useQueryClient();
     return useMutation({
-        mutationFn: ({ id, data }: { id: string; data: Partial<CategoryDTO> }) =>
-            api.updateCategory(id, data),
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['categories-raw'] });
-        }
+        mutationFn: ({ id, data }: { id: string; data: Partial<CategoryDTO> }) => api.updateCategory(id, data),
+        onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['categories-raw'] }); }
     });
 };
 
@@ -188,22 +179,15 @@ export const useHiddenCategories = () => {
 export const useToggleCategoryVisibility = () => {
     const queryClient = useQueryClient();
     const user = auth.currentUser;
-
     return useMutation({
         mutationFn: async (categoryId: string) => {
             if (!user) return;
-            const q = query(collection(db, 'hidden_categories'),
-                where("userId", "==", user.uid),
-                where("categoryId", "==", categoryId));
+            const q = query(collection(db, 'hidden_categories'), where("userId", "==", user.uid), where("categoryId", "==", categoryId));
             const snapshot = await getDocs(q);
-
             if (!snapshot.empty) {
                 await deleteDoc(doc(db, 'hidden_categories', snapshot.docs[0].id));
             } else {
-                await addDoc(collection(db, 'hidden_categories'), {
-                    userId: user.uid,
-                    categoryId: categoryId
-                });
+                await addDoc(collection(db, 'hidden_categories'), { userId: user.uid, categoryId: categoryId });
             }
         },
         onSuccess: () => {
