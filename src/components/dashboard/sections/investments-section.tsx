@@ -456,7 +456,6 @@ export const InvestmentsSection = () => {
 
                                 <div className="grid grid-cols-1 gap-3 p-4 md:hidden">
                                     {investmentsList.map((inv) => {
-                                        const profit = inv.currentValue - inv.amountInvested;
                                         return (
                                             <div
                                                 key={inv.id}
