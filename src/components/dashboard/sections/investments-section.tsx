@@ -12,13 +12,14 @@ import {
     Info,
     Landmark,
     List,
+    Loader2,
     PieChart,
     Plus,
     ShieldCheck,
     Target,
+    Trash2,
     TrendingUp,
-    Zap,
-    Loader2
+    Zap
 } from 'lucide-react';
 import {cn} from "@/lib/utils";
 import {formatTransactionAmount} from '@/hooks/useTransactions';
@@ -26,10 +27,11 @@ import {useDialogManager} from "@/context/DialogManagerContext";
 import {TutorialWizard} from "@/components/tutorial-wizard";
 import {AddInvestmentForm} from "@/components/add-Investment-form.tsx";
 import {useAuth} from "@/context/AuthContext.tsx";
-import {useInvestments, useSaveInvestment} from "@/hooks/useInvestments.ts";
+import {useDeleteInvestment, useInvestments, useSaveInvestment} from "@/hooks/useInvestments.ts";
 import {getDeepAnalysis} from "@/service/aiService.ts";
+import {ConfirmDialog} from "@/components/confirm-dialog";
+import {useToast} from "@/hooks/use-toast";
 
-// --- TIPAGEM ---
 type InvestmentClass = 'fixed' | 'stocks' | 'international' | 'crypto';
 
 export interface InvestmentItem {
@@ -78,14 +80,16 @@ const CATEGORY_LABELS: Record<InvestmentClass, string> = {
 
 export const InvestmentsSection = () => {
     useAuth();
+    const { toast } = useToast();
     const { setActiveDialog } = useDialogManager();
-    const { data: investmentsList = [] } = useInvestments();
+    const { data: investmentsList = [], isLoading } = useInvestments();
     const { mutate: saveInvestment } = useSaveInvestment();
+    const { mutate: deleteInvestment, isPending: isDeleting } = useDeleteInvestment();
+
     const [profile, setProfile] = useState<keyof typeof INVESTMENT_PROFILES>('moderate');
-
     const [investmentToEdit, setInvestmentToEdit] = useState<InvestmentItem | null>(null);
+    const [investmentToDelete, setInvestmentToDelete] = useState<InvestmentItem | null>(null);
 
-    // --- ESTADOS DA IA ---
     const [aiAnalysis, setAiAnalysis] = useState<string | null>(null);
     const [isAnalyzing, setIsAnalyzing] = useState(false);
 
@@ -100,7 +104,6 @@ export const InvestmentsSection = () => {
             Object.values(totalsByCategory).reduce((a, b) => a + b, 0),
         [totalsByCategory]);
 
-    // LÓGICA ATUALIZADA: Analisa todas as classes e sugere o maior desvio negativo
     const agentInsight = useMemo(() => {
         if (totalPortfolio === 0) return null;
 
@@ -112,18 +115,15 @@ export const InvestmentsSection = () => {
             const targetPct = targetAllocation[cat];
             const currentAmt = totalsByCategory[cat] || 0;
             const currentPct = (currentAmt / totalPortfolio) * 100;
-
-            // Calculamos a distância para o alvo
             const gap = targetPct - currentPct;
 
-            // Se o gap for positivo, significa que falta dinheiro nessa categoria
             if (gap > biggestGap) {
                 biggestGap = gap;
                 suggestedCategory = cat;
             }
         });
 
-        if (suggestedCategory && biggestGap > 1) { // Só sugere se o desvio for maior que 1%
+        if (suggestedCategory && biggestGap > 1) {
             const diffAmount = (biggestGap / 100) * totalPortfolio;
             return {
                 class: CATEGORY_LABELS[suggestedCategory],
@@ -169,18 +169,27 @@ export const InvestmentsSection = () => {
         }
     };
 
-    // --- FUNÇÃO DE ANÁLISE IA REAL ---
+    const handleConfirmDeleteInvestment = () => {
+        if (investmentToDelete) {
+            deleteInvestment(investmentToDelete.id, {
+                onSuccess: () => {
+                    setActiveDialog(null);
+                    setInvestmentToDelete(null);
+                    toast({ title: "Removido", description: "Ativo excluído da sua carteira." });
+                }
+            });
+        }
+    };
+
     const handleDeepAnalysis = async () => {
         setIsAnalyzing(true);
         setAiAnalysis(null);
-
         const summary = {
             perfil: INVESTMENT_PROFILES[profile].label,
             total: totalPortfolio,
             distribuicao: totalsByCategory,
             ativos: investmentsList.map(i => ({ nome: i.name, valor: i.currentValue }))
         };
-
         try {
             const result = await getDeepAnalysis(summary);
             setAiAnalysis(result);
@@ -191,15 +200,44 @@ export const InvestmentsSection = () => {
         }
     };
 
+    if (isLoading) {
+        return (
+            <div className="flex h-[400px] items-center justify-center">
+                <Loader2 className="h-8 w-8 animate-spin text-emerald-500" />
+            </div>
+        );
+    }
+
     return (
         <div className="space-y-6 animate-in fade-in duration-700 pb-10 text-left">
             <TutorialWizard
                 tutorialKey="investments-page"
                 steps={[
-                    { element: '#investment-tabs-list', title: 'Modos de Visão', description: 'Alterne entre estratégia e lista de ativos.' },
-                    { element: '#agent-insight-card', title: 'Agente Financeiro', description: 'Nossa inteligência sugere onde aportar.' },
-                    { element: '#portfolio-card', title: 'Patrimônio Total', description: 'O valor total que você tem investido.' },
-                    { element: '#btn-add-investment', title: 'Novo Ativo', description: 'Adicione novos ativos ou atualize existentes.' }
+                    {
+                        element: '#investment-tabs-list',
+                        title: 'Modos de Visão',
+                        description: 'Alterne entre sua estratégia ideal e a lista detalhada dos seus ativos.'
+                    },
+                    {
+                        element: '#agent-insight-card',
+                        title: 'Agente Financeiro',
+                        description: 'Nossa inteligência analisa o equilíbrio da sua carteira e sugere exatamente onde você deve focar seu próximo aporte.'
+                    },
+                    {
+                        element: '#allocation-target-card',
+                        title: 'Alocação Atual vs Alvo',
+                        description: 'Aqui você compara sua realidade com seu objetivo. O primeiro número representa qual a porcentagem real desse ativo na sua carteira hoje. O segundo número indica o limite máximo sugerido pelo seu perfil. Se o primeiro for maior que o segundo, significa que você está com excesso de exposição nesta categoria.'
+                    },
+                    {
+                        element: '#portfolio-card',
+                        title: 'Patrimônio Total',
+                        description: 'O valor total acumulado em todos os seus investimentos registrados no CashZ.'
+                    },
+                    {
+                        element: '#btn-add-investment',
+                        title: 'Novo Ativo',
+                        description: 'Adicione novos investimentos ou atualize os atuais para que o sistema recalcule sua estratégia instantaneamente.'
+                    }
                 ]}
             />
 
@@ -244,23 +282,16 @@ export const InvestmentsSection = () => {
                             <CardContent className="space-y-4">
                                 {aiAnalysis ? (
                                     <div className="p-4 bg-white rounded-xl border border-emerald-100 shadow-sm animate-in zoom-in-95 duration-300 relative text-left">
-                                        <p className="text-xs text-emerald-900 leading-relaxed italic pr-6 whitespace-pre-wrap">
-                                            {aiAnalysis}
-                                        </p>
-                                        <button
-                                            onClick={() => setAiAnalysis(null)}
-                                            className="absolute top-2 right-2 text-emerald-300 hover:text-emerald-500 text-[10px]"
-                                        >
-                                            Limpar
-                                        </button>
+                                        <p className="text-xs text-emerald-900 leading-relaxed italic pr-6 whitespace-pre-wrap">{aiAnalysis}</p>
+                                        <button onClick={() => setAiAnalysis(null)} className="absolute top-2 right-2 text-emerald-300 hover:text-emerald-500 text-[10px]">Limpar</button>
                                     </div>
                                 ) : agentInsight ? (
                                     <div className="flex items-start gap-3 p-4 bg-white rounded-xl border border-emerald-100 shadow-sm animate-in slide-in-from-left text-left">
                                         <ArrowUpCircle className="h-5 w-5 text-emerald-600 mt-1 shrink-0" />
                                         <div>
                                             <p className="text-sm font-bold text-emerald-900">Sugestão de Aporte</p>
-                                            <p className="text-xs text-emerald-800 leading-relaxed text-balance">
-                                                Invista aproximadamente <strong>{formatTransactionAmount(agentInsight.amount)}</strong> em <strong>{agentInsight.class}</strong>. {agentInsight.reason}
+                                            <p className="text-xs text-emerald-800 leading-relaxed text-balance italic">
+                                                Considere alocar <strong>{formatTransactionAmount(agentInsight.amount)}</strong> em <strong>{agentInsight.class}</strong>. {agentInsight.reason}
                                             </p>
                                         </div>
                                     </div>
@@ -294,8 +325,8 @@ export const InvestmentsSection = () => {
                         </Card>
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <Card className="shadow-none text-left">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
+                        <Card id="allocation-target-card" className="shadow-none text-left">
                             <CardHeader><CardTitle className="text-lg flex items-center gap-2"><Target className="h-5 w-5 text-emerald-500" /> Alocação Atual vs Alvo</CardTitle></CardHeader>
                             <CardContent className="space-y-6">
                                 {Object.entries(INVESTMENT_PROFILES[profile].allocation).map(([key, targetPct]) => {
@@ -304,7 +335,7 @@ export const InvestmentsSection = () => {
                                     return (
                                         <div key={key} className="space-y-2 text-left">
                                             <div className="flex justify-between text-xs font-bold text-left">
-                                                <span className="capitalize">{key === 'fixed' ? 'Renda Fixa' : key}</span>
+                                                <span className="capitalize">{CATEGORY_LABELS[key as InvestmentClass]}</span>
                                                 <span>{currentPct.toFixed(1)}% de {targetPct}%</span>
                                             </div>
                                             <Progress value={currentPct} className="h-2" />
@@ -344,8 +375,6 @@ export const InvestmentsSection = () => {
 
                         <CardContent className="p-0 md:p-6">
                             <div className="max-h-[600px] overflow-y-auto scrollbar-thin scrollbar-thumb-muted-foreground/20">
-
-                                {/* VIEW: DESKTOP TABLE */}
                                 <div className="hidden md:block text-left">
                                     <table className="w-full text-sm">
                                         <thead className="sticky top-0 bg-background z-10 shadow-sm">
@@ -354,102 +383,103 @@ export const InvestmentsSection = () => {
                                             <th className="pb-3 px-2">Classe</th>
                                             <th className="pb-3 px-2 text-right">Aplicado</th>
                                             <th className="pb-3 px-2 text-right">Atual</th>
-                                            <th className="pb-3 px-2 text-right">Resultado</th>
                                             <th className="pb-3 px-2 text-right">Ações</th>
                                         </tr>
                                         </thead>
                                         <tbody className="divide-y">
-                                        {investmentsList.map((inv) => {
-                                            const profit = inv.currentValue - inv.amountInvested;
-                                            const profitPct = inv.amountInvested > 0 ? (profit / inv.amountInvested) * 100 : 0;
-                                            return (
-                                                <tr key={inv.id} className="group hover:bg-muted/30 transition-colors">
-                                                    <td className="py-4 px-2 text-left">
-                                                        <div className="flex items-center gap-3 text-left">
-                                                            <div className="p-2 bg-muted rounded-lg group-hover:bg-background transition-colors"><Landmark className="h-4 w-4 text-muted-foreground" /></div>
-                                                            <div className="text-left">
-                                                                <p className="font-bold text-sm leading-tight">{inv.name}</p>
-                                                                <p className="text-[10px] text-muted-foreground">{inv.institution}</p>
-                                                            </div>
-                                                        </div>
-                                                    </td>
-                                                    <td className="px-2 text-left">
-                                                            <span className="text-[10px] bg-muted px-2 py-1 rounded-full font-bold uppercase whitespace-nowrap">
-                                                                {inv.category === 'fixed' ? 'Renda Fixa' : inv.category}
-                                                            </span>
-                                                    </td>
-                                                    <td className="px-2 text-right text-muted-foreground whitespace-nowrap">{formatTransactionAmount(inv.amountInvested)}</td>
-                                                    <td className="px-2 text-right font-bold whitespace-nowrap">{formatTransactionAmount(inv.currentValue)}</td>
-                                                    <td className={cn("px-2 text-right font-bold whitespace-nowrap", profit >= 0 ? "text-emerald-600" : "text-rose-600")}>
-                                                        <div className="flex flex-col items-end text-right">
-                                                            <span>{profitPct > 0 ? "+" : ""}{profitPct.toFixed(2)}%</span>
-                                                            <span className="text-[10px] font-normal opacity-70">{formatTransactionAmount(profit)}</span>
-                                                        </div>
-                                                    </td>
-                                                    <td className="px-2 text-right">
-                                                        <Button
-                                                            variant="ghost"
-                                                            size="icon"
-                                                            className="h-8 w-8 text-emerald-600 hover:bg-emerald-50 hover:text-emerald-700"
-                                                            onClick={() => { setInvestmentToEdit(inv); setActiveDialog("add-investment"); }}
-                                                        >
-                                                            <Plus className="h-4 w-4" />
-                                                        </Button>
-                                                    </td>
-                                                </tr>
-                                            );
-                                        })}
-                                        </tbody>
-                                    </table>
-                                </div>
-
-                                <div className="grid grid-cols-1 gap-3 p-4 md:hidden">
-                                    {investmentsList.map((inv) => {
-                                        const profit = inv.currentValue - inv.amountInvested;
-                                        const profitPct = inv.amountInvested > 0 ? (profit / inv.amountInvested) * 100 : 0;
-                                        return (
-                                            <div
-                                                key={inv.id}
-                                                className="bg-muted/30 border rounded-xl p-4 space-y-3 active:scale-[0.98] transition-all cursor-pointer text-left"
-                                                onClick={() => { setInvestmentToEdit(inv); setActiveDialog("add-investment"); }}
-                                            >
-                                                <div className="flex justify-between items-start">
-                                                    <div className="flex gap-3">
-                                                        <div className="p-2 bg-white rounded-lg border shadow-sm"><Landmark className="h-5 w-5 text-emerald-600" /></div>
+                                        {investmentsList.map((inv) => (
+                                            <tr key={inv.id} className="group hover:bg-muted/30 transition-colors">
+                                                <td className="py-4 px-2 text-left">
+                                                    <div className="flex items-center gap-3 text-left">
+                                                        <div className="p-2 bg-muted rounded-lg group-hover:bg-background transition-colors"><Landmark className="h-4 w-4 text-muted-foreground" /></div>
                                                         <div className="text-left">
                                                             <p className="font-bold text-sm leading-tight">{inv.name}</p>
                                                             <p className="text-[10px] text-muted-foreground">{inv.institution}</p>
                                                         </div>
                                                     </div>
-                                                    <span className="text-[9px] bg-white border px-2 py-0.5 rounded-full font-bold uppercase text-muted-foreground">
-                                                        {inv.category === 'fixed' ? 'Renda Fixa' : inv.category}
+                                                </td>
+                                                <td className="px-2 text-left">
+                                                    <span className="text-[10px] bg-muted px-2 py-1 rounded-full font-bold uppercase whitespace-nowrap">
+                                                        {CATEGORY_LABELS[inv.category]}
                                                     </span>
-                                                </div>
+                                                </td>
+                                                <td className="px-2 text-right text-muted-foreground whitespace-nowrap">{formatTransactionAmount(inv.amountInvested)}</td>
+                                                <td className="px-2 text-right font-bold whitespace-nowrap">{formatTransactionAmount(inv.currentValue)}</td>
+                                                <td className="px-2 text-right">
+                                                    <div className="flex justify-end gap-2">
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="icon"
+                                                            className="h-8 w-8 text-emerald-600 hover:bg-emerald-50"
+                                                            onClick={() => { setInvestmentToEdit(inv); setActiveDialog("add-investment"); }}
+                                                        >
+                                                            <Plus className="h-4 w-4" />
+                                                        </Button>
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="icon"
+                                                            className="h-8 w-8 text-red-500 hover:bg-red-50"
+                                                            onClick={() => {
+                                                                setInvestmentToDelete(inv);
+                                                                setActiveDialog("confirm-dialog");
+                                                            }}
+                                                        >
+                                                            <Trash2 className="h-4 w-4" />
+                                                        </Button>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        ))}
+                                        </tbody>
+                                    </table>
+                                </div>
 
-                                                <div className="grid grid-cols-2 gap-4 pt-2 border-t border-dashed">
+                                <div className="grid grid-cols-1 gap-3 p-4 md:hidden">
+                                    {investmentsList.map((inv) => (
+                                        <div key={inv.id} className="bg-muted/30 border rounded-xl p-4 space-y-3 active:scale-[0.98] transition-all text-left">
+                                            <div className="flex justify-between items-start">
+                                                <div className="flex gap-3">
+                                                    <div className="p-2 bg-white rounded-lg border shadow-sm"><Landmark className="h-5 w-5 text-emerald-600" /></div>
                                                     <div className="text-left">
-                                                        <p className="text-[9px] uppercase font-bold text-muted-foreground tracking-tighter">Valor Atual</p>
-                                                        <p className="text-sm font-bold text-slate-900">{formatTransactionAmount(inv.currentValue)}</p>
-                                                    </div>
-                                                    <div className="text-right">
-                                                        <p className="text-[9px] uppercase font-bold text-muted-foreground tracking-tighter">Resultado</p>
-                                                        <p className={cn("text-sm font-bold", profit >= 0 ? "text-emerald-600" : "text-rose-600")}>
-                                                            {profitPct > 0 ? "+" : ""}{profitPct.toFixed(1)}%
-                                                        </p>
+                                                        <p className="font-bold text-sm leading-tight">{inv.name}</p>
+                                                        <p className="text-[10px] text-muted-foreground">{inv.institution}</p>
                                                     </div>
                                                 </div>
-
-                                                <div className="flex items-center justify-between pt-1">
-                                                    <p className="text-[10px] text-muted-foreground italic">
-                                                        Custo: {formatTransactionAmount(inv.amountInvested)}
-                                                    </p>
-                                                    <div className="flex items-center gap-1 text-emerald-600 text-[10px] font-bold bg-emerald-50 px-2 py-1 rounded-lg">
-                                                        <Plus className="h-3 w-3" /> Aporte
-                                                    </div>
+                                                <div className="flex gap-1">
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="icon"
+                                                        className="h-8 w-8 text-emerald-600"
+                                                        onClick={() => { setInvestmentToEdit(inv); setActiveDialog("add-investment"); }}
+                                                    >
+                                                        <Plus className="h-4 w-4" />
+                                                    </Button>
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="icon"
+                                                        className="h-8 w-8 text-red-500"
+                                                        onClick={() => {
+                                                            setInvestmentToDelete(inv);
+                                                            setActiveDialog("confirm-dialog");
+                                                        }}
+                                                    >
+                                                        <Trash2 className="h-4 w-4" />
+                                                    </Button>
                                                 </div>
                                             </div>
-                                        );
-                                    })}
+                                            <div className="grid grid-cols-2 gap-4 pt-2 border-t border-dashed">
+                                                <div className="text-left">
+                                                    <p className="text-[9px] uppercase font-bold text-muted-foreground tracking-tighter">Valor Atual</p>
+                                                    <p className="text-sm font-bold text-slate-900">{formatTransactionAmount(inv.currentValue)}</p>
+                                                </div>
+                                                <div className="text-right flex flex-col justify-end">
+                                                    <span className="text-[9px] bg-white border px-2 py-0.5 rounded-full font-bold uppercase text-muted-foreground inline-block">
+                                                        {CATEGORY_LABELS[inv.category]}
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ))}
                                 </div>
 
                                 {investmentsList.length === 0 && (
@@ -465,6 +495,14 @@ export const InvestmentsSection = () => {
             </Tabs>
 
             <AddInvestmentForm initialData={investmentToEdit} onAdd={handleSaveInvestment} />
+
+            <ConfirmDialog
+                title="Excluir Investimento?"
+                description={`Tem certeza que deseja remover ${investmentToDelete?.name} da sua carteira? Esta ação não pode ser desfeita.`}
+                onConfirm={handleConfirmDeleteInvestment}
+                isLoading={isDeleting}
+                variant="destructive"
+            />
         </div>
     );
 };

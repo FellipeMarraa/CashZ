@@ -14,7 +14,7 @@ export const getDeepAnalysis = async (portfolioData: any) => {
         Sua resposta deve:
         1. Avaliar se a alocação atual bate com o perfil informado.
         2. Identificar se o lucro/prejuízo está saudável.
-        3. Dar uma dica prática de qual classe de ativo focar no próximo aporte. Indicando nomes de ativos e porcentagem de aporte.
+        3. Dar uma dica prática de qual classe de ativo focar no próximo aporte. Indicando os nomes e porcentagem de aporte.
         4. Ser curto (máximo 4 frases), direto e usar tom profissional.
         Responda em Português Brasileiro.
     `;
