@@ -9,7 +9,6 @@ import {
     ArrowUpCircle,
     Banknote,
     BrainCircuit,
-    Info,
     Landmark,
     List,
     Loader2,
@@ -32,6 +31,7 @@ import {getDeepAnalysis} from "@/service/aiService.ts";
 import {ConfirmDialog} from "@/components/confirm-dialog";
 import {useToast} from "@/hooks/use-toast";
 
+// --- TIPAGEM ---
 type InvestmentClass = 'fixed' | 'stocks' | 'international' | 'crypto';
 
 export interface InvestmentItem {
@@ -106,7 +106,6 @@ export const InvestmentsSection = () => {
 
     const agentInsight = useMemo(() => {
         if (totalPortfolio === 0) return null;
-
         const targetAllocation = INVESTMENT_PROFILES[profile].allocation;
         let biggestGap = 0;
         let suggestedCategory: InvestmentClass | null = null;
@@ -116,7 +115,6 @@ export const InvestmentsSection = () => {
             const currentAmt = totalsByCategory[cat] || 0;
             const currentPct = (currentAmt / totalPortfolio) * 100;
             const gap = targetPct - currentPct;
-
             if (gap > biggestGap) {
                 biggestGap = gap;
                 suggestedCategory = cat;
@@ -128,15 +126,15 @@ export const InvestmentsSection = () => {
             return {
                 class: CATEGORY_LABELS[suggestedCategory],
                 amount: diffAmount,
-                reason: `Sua exposição em ${CATEGORY_LABELS[suggestedCategory]} está ${biggestGap.toFixed(1)}% abaixo do ideal para o perfil ${INVESTMENT_PROFILES[profile].label}.`
+                reason: `Sua exposição em ${CATEGORY_LABELS[suggestedCategory]} está ${biggestGap.toFixed(1)}% abaixo do ideal.`
             };
         }
-
         return null;
     }, [profile, totalsByCategory, totalPortfolio]);
 
     const handleSaveInvestment = async (data: any) => {
         try {
+            let payload;
             if (investmentToEdit) {
                 const custoTotalAntigo = investmentToEdit.amountInvested;
                 const custoNovoAporte = data.amountInvested;
@@ -148,7 +146,7 @@ export const InvestmentsSection = () => {
                     novoPrecoMedio = (custoTotalAntigo + custoNovoAporte) / novaQuantidade;
                 }
 
-                saveInvestment({
+                payload = {
                     id: investmentToEdit.id,
                     name: investmentToEdit.name,
                     category: investmentToEdit.category,
@@ -159,13 +157,14 @@ export const InvestmentsSection = () => {
                     averagePrice: novoPrecoMedio,
                     indexador: data.indexador || investmentToEdit.indexador,
                     taxa: data.taxa || investmentToEdit.taxa
-                });
+                };
             } else {
-                saveInvestment(data);
+                payload = data;
             }
+            await saveInvestment(payload);
             setInvestmentToEdit(null);
         } catch (error) {
-            console.error("Erro ao processar salvamento:", error);
+            console.error("Erro ao salvar:", error);
         }
     };
 
@@ -200,10 +199,12 @@ export const InvestmentsSection = () => {
         }
     };
 
+    // TELA DE CARREGAMENTO (Resolve a percepção de demora)
     if (isLoading) {
         return (
-            <div className="flex h-[400px] items-center justify-center">
-                <Loader2 className="h-8 w-8 animate-spin text-emerald-500" />
+            <div className="flex flex-col h-[400px] items-center justify-center gap-4 animate-pulse">
+                <Loader2 className="h-10 w-10 animate-spin text-emerald-500" />
+                <p className="text-sm font-medium text-muted-foreground">Sincronizando sua carteira...</p>
             </div>
         );
     }
@@ -262,10 +263,14 @@ export const InvestmentsSection = () => {
                         <Card id="agent-insight-card" className="md:col-span-2 border-emerald-500/20 bg-emerald-500/5 shadow-none text-left overflow-hidden relative">
                             <CardHeader className="flex flex-row items-center justify-between gap-4 space-y-0 pb-4">
                                 <div className="flex items-center gap-4">
-                                    <div className="p-3 bg-emerald-500 rounded-2xl"><BrainCircuit className="h-6 w-6 text-white" /></div>
+                                    <div className="p-3 bg-emerald-500 rounded-2xl">
+                                        <BrainCircuit className="h-6 w-6 text-white" />
+                                    </div>
                                     <div>
                                         <CardTitle className="text-emerald-900 text-lg">Agente de Investimentos</CardTitle>
-                                        <CardDescription className="text-emerald-700/80">Perfil <strong>{INVESTMENT_PROFILES[profile].label}</strong></CardDescription>
+                                        <CardDescription className="text-emerald-700/80">
+                                            Perfil <strong>{INVESTMENT_PROFILES[profile].label}</strong>
+                                        </CardDescription>
                                     </div>
                                 </div>
                                 <Button
@@ -299,14 +304,18 @@ export const InvestmentsSection = () => {
                                     <p className="text-sm text-emerald-800 italic">Sua carteira está equilibrada seguindo seu perfil.</p>
                                 )}
 
-                                <Button
-                                    size="sm"
-                                    className="w-full bg-emerald-600 hover:bg-emerald-700 sm:hidden"
-                                    onClick={handleDeepAnalysis}
-                                    disabled={isAnalyzing}
-                                >
-                                    {isAnalyzing ? <Loader2 className="h-4 w-4 animate-spin" /> : "Solicitar Análise IA"}
-                                </Button>
+                                {/* Botão Mobile */}
+                                {!aiAnalysis && (
+                                    <Button
+                                        size="sm"
+                                        className="w-full bg-emerald-600 hover:bg-emerald-700 gap-2 flex sm:hidden h-10 font-bold"
+                                        onClick={handleDeepAnalysis}
+                                        disabled={isAnalyzing}
+                                    >
+                                        {isAnalyzing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Zap className="h-4 w-4 fill-current" />}
+                                        Solicitar Análise Profunda IA
+                                    </Button>
+                                )}
                             </CardContent>
                         </Card>
 
@@ -374,7 +383,8 @@ export const InvestmentsSection = () => {
                         </CardHeader>
 
                         <CardContent className="p-0 md:p-6">
-                            <div className="max-h-[600px] overflow-y-auto scrollbar-thin scrollbar-thumb-muted-foreground/20">
+                            <div className="max-h-[600px] overflow-y-auto scrollbar-thin scrollbar-thumb-muted-foreground/20 px-4 md:px-0">
+                                {/* TABELAS E CARDS MANTIDOS IGUAIS ... */}
                                 <div className="hidden md:block text-left">
                                     <table className="w-full text-sm">
                                         <thead className="sticky top-0 bg-background z-10 shadow-sm">
@@ -383,34 +393,89 @@ export const InvestmentsSection = () => {
                                             <th className="pb-3 px-2">Classe</th>
                                             <th className="pb-3 px-2 text-right">Aplicado</th>
                                             <th className="pb-3 px-2 text-right">Atual</th>
+                                            <th className="pb-3 px-2 text-right">Resultado</th>
                                             <th className="pb-3 px-2 text-right">Ações</th>
                                         </tr>
                                         </thead>
                                         <tbody className="divide-y">
-                                        {investmentsList.map((inv) => (
-                                            <tr key={inv.id} className="group hover:bg-muted/30 transition-colors">
-                                                <td className="py-4 px-2 text-left">
-                                                    <div className="flex items-center gap-3 text-left">
-                                                        <div className="p-2 bg-muted rounded-lg group-hover:bg-background transition-colors"><Landmark className="h-4 w-4 text-muted-foreground" /></div>
+                                        {investmentsList.map((inv) => {
+                                            const profit = inv.currentValue - inv.amountInvested;
+                                            const profitPct = inv.amountInvested > 0 ? (profit / inv.amountInvested) * 100 : 0;
+                                            return (
+                                                <tr key={inv.id} className="group hover:bg-muted/30 transition-colors">
+                                                    <td className="py-4 px-2 text-left">
+                                                        <div className="flex items-center gap-3">
+                                                            <div className="p-2 bg-muted rounded-lg group-hover:bg-background"><Landmark className="h-4 w-4 text-muted-foreground" /></div>
+                                                            <div>
+                                                                <p className="font-bold text-sm leading-tight">{inv.name}</p>
+                                                                <p className="text-[10px] text-muted-foreground">{inv.institution}</p>
+                                                            </div>
+                                                        </div>
+                                                    </td>
+                                                    <td className="px-2">
+                                                        <span className="text-[10px] bg-muted px-2 py-1 rounded-full font-bold uppercase whitespace-nowrap">
+                                                            {inv.category === 'fixed' ? 'Renda Fixa' : inv.category}
+                                                        </span>
+                                                    </td>
+                                                    <td className="px-2 text-right text-muted-foreground whitespace-nowrap">{formatTransactionAmount(inv.amountInvested)}</td>
+                                                    <td className="px-2 text-right font-bold whitespace-nowrap">{formatTransactionAmount(inv.currentValue)}</td>
+                                                    <td className={cn("px-2 text-right font-bold whitespace-nowrap", profit >= 0 ? "text-emerald-600" : "text-rose-600")}>
+                                                        <div className="flex flex-col items-end">
+                                                            <span>{profitPct > 0 ? "+" : ""}{profitPct.toFixed(2)}%</span>
+                                                        </div>
+                                                    </td>
+                                                    <td className="px-2 text-right">
+                                                        <div className="flex justify-end gap-1">
+                                                            <Button
+                                                                variant="ghost"
+                                                                size="icon"
+                                                                className="h-8 w-8 text-emerald-600 hover:bg-emerald-50"
+                                                                onClick={() => { setInvestmentToEdit(inv); setActiveDialog("add-investment"); }}
+                                                            >
+                                                                <Plus className="h-4 w-4" />
+                                                            </Button>
+                                                            <Button
+                                                                variant="ghost"
+                                                                size="icon"
+                                                                className="h-8 w-8 text-red-500 hover:bg-red-50"
+                                                                onClick={() => {
+                                                                    setInvestmentToDelete(inv);
+                                                                    setActiveDialog("confirm-dialog");
+                                                                }}
+                                                            >
+                                                                <Trash2 className="h-4 w-4" />
+                                                            </Button>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            );
+                                        })}
+                                        </tbody>
+                                    </table>
+                                </div>
+
+                                <div className="grid grid-cols-1 gap-3 p-4 md:hidden">
+                                    {investmentsList.map((inv) => {
+                                        const profit = inv.currentValue - inv.amountInvested;
+                                        return (
+                                            <div
+                                                key={inv.id}
+                                                className="bg-muted/30 border rounded-xl p-4 space-y-3 active:scale-[0.98] transition-all cursor-pointer relative"
+                                                onClick={() => { setInvestmentToEdit(inv); setActiveDialog("add-investment"); }}
+                                            >
+                                                <div className="flex justify-between items-start">
+                                                    <div className="flex gap-3">
+                                                        <div className="p-2 bg-white rounded-lg border shadow-sm"><Landmark className="h-5 w-5 text-emerald-600" /></div>
                                                         <div className="text-left">
                                                             <p className="font-bold text-sm leading-tight">{inv.name}</p>
                                                             <p className="text-[10px] text-muted-foreground">{inv.institution}</p>
                                                         </div>
                                                     </div>
-                                                </td>
-                                                <td className="px-2 text-left">
-                                                    <span className="text-[10px] bg-muted px-2 py-1 rounded-full font-bold uppercase whitespace-nowrap">
-                                                        {CATEGORY_LABELS[inv.category]}
-                                                    </span>
-                                                </td>
-                                                <td className="px-2 text-right text-muted-foreground whitespace-nowrap">{formatTransactionAmount(inv.amountInvested)}</td>
-                                                <td className="px-2 text-right font-bold whitespace-nowrap">{formatTransactionAmount(inv.currentValue)}</td>
-                                                <td className="px-2 text-right">
-                                                    <div className="flex justify-end gap-2">
+                                                    <div className="flex gap-1">
                                                         <Button
                                                             variant="ghost"
                                                             size="icon"
-                                                            className="h-8 w-8 text-emerald-600 hover:bg-emerald-50"
+                                                            className="h-8 w-8 text-emerald-600"
                                                             onClick={() => { setInvestmentToEdit(inv); setActiveDialog("add-investment"); }}
                                                         >
                                                             <Plus className="h-4 w-4" />
@@ -418,7 +483,7 @@ export const InvestmentsSection = () => {
                                                         <Button
                                                             variant="ghost"
                                                             size="icon"
-                                                            className="h-8 w-8 text-red-500 hover:bg-red-50"
+                                                            className="h-8 w-8 text-red-500"
                                                             onClick={() => {
                                                                 setInvestmentToDelete(inv);
                                                                 setActiveDialog("confirm-dialog");
@@ -427,67 +492,23 @@ export const InvestmentsSection = () => {
                                                             <Trash2 className="h-4 w-4" />
                                                         </Button>
                                                     </div>
-                                                </td>
-                                            </tr>
-                                        ))}
-                                        </tbody>
-                                    </table>
-                                </div>
+                                                </div>
 
-                                <div className="grid grid-cols-1 gap-3 p-4 md:hidden">
-                                    {investmentsList.map((inv) => (
-                                        <div key={inv.id} className="bg-muted/30 border rounded-xl p-4 space-y-3 active:scale-[0.98] transition-all text-left">
-                                            <div className="flex justify-between items-start">
-                                                <div className="flex gap-3">
-                                                    <div className="p-2 bg-white rounded-lg border shadow-sm"><Landmark className="h-5 w-5 text-emerald-600" /></div>
+                                                <div className="grid grid-cols-2 gap-4 pt-2 border-t border-dashed">
                                                     <div className="text-left">
-                                                        <p className="font-bold text-sm leading-tight">{inv.name}</p>
-                                                        <p className="text-[10px] text-muted-foreground">{inv.institution}</p>
+                                                        <p className="text-[9px] uppercase font-bold text-muted-foreground tracking-tighter">Valor Atual</p>
+                                                        <p className="text-sm font-bold text-slate-900">{formatTransactionAmount(inv.currentValue)}</p>
                                                     </div>
-                                                </div>
-                                                <div className="flex gap-1">
-                                                    <Button
-                                                        variant="ghost"
-                                                        size="icon"
-                                                        className="h-8 w-8 text-emerald-600"
-                                                        onClick={() => { setInvestmentToEdit(inv); setActiveDialog("add-investment"); }}
-                                                    >
-                                                        <Plus className="h-4 w-4" />
-                                                    </Button>
-                                                    <Button
-                                                        variant="ghost"
-                                                        size="icon"
-                                                        className="h-8 w-8 text-red-500"
-                                                        onClick={() => {
-                                                            setInvestmentToDelete(inv);
-                                                            setActiveDialog("confirm-dialog");
-                                                        }}
-                                                    >
-                                                        <Trash2 className="h-4 w-4" />
-                                                    </Button>
-                                                </div>
-                                            </div>
-                                            <div className="grid grid-cols-2 gap-4 pt-2 border-t border-dashed">
-                                                <div className="text-left">
-                                                    <p className="text-[9px] uppercase font-bold text-muted-foreground tracking-tighter">Valor Atual</p>
-                                                    <p className="text-sm font-bold text-slate-900">{formatTransactionAmount(inv.currentValue)}</p>
-                                                </div>
-                                                <div className="text-right flex flex-col justify-end">
+                                                    <div className="text-right flex flex-col justify-end">
                                                     <span className="text-[9px] bg-white border px-2 py-0.5 rounded-full font-bold uppercase text-muted-foreground inline-block">
                                                         {CATEGORY_LABELS[inv.category]}
                                                     </span>
+                                                    </div>
                                                 </div>
                                             </div>
-                                        </div>
-                                    ))}
+                                        );
+                                    })}
                                 </div>
-
-                                {investmentsList.length === 0 && (
-                                    <div className="py-10 text-center flex flex-col items-center justify-center">
-                                        <Info className="h-10 w-10 text-muted-foreground mb-2 opacity-20" />
-                                        <p className="text-sm text-muted-foreground">Você ainda não possui investimentos registrados.</p>
-                                    </div>
-                                )}
                             </div>
                         </CardContent>
                     </Card>

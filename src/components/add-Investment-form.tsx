@@ -75,19 +75,24 @@ export const AddInvestmentForm = ({ onAdd, initialData }: { onAdd: (data: any) =
 
     const onSubmit = async (data: any) => {
         setIsSubmitting(true);
-        await new Promise(resolve => setTimeout(resolve, 600));
+        try {
+            // Aguarda a execução da função de salvamento que vem por props
+            await onAdd({
+                ...data,
+                amountInvested: Number(data.amountInvested || 0),
+                currentValue: Number(data.currentValue || 0),
+                taxa: Number(data.taxa || 0),
+                quantity: Number(data.quantity || 0),
+                averagePrice: Number(data.averagePrice || 0)
+            });
 
-        onAdd({
-            ...data,
-            amountInvested: Number(data.amountInvested || 0),
-            currentValue: Number(data.currentValue || 0),
-            taxa: Number(data.taxa || 0),
-            quantity: Number(data.quantity || 0),
-            averagePrice: Number(data.averagePrice || 0)
-        });
-
-        setIsSubmitting(false);
-        setActiveDialog(null);
+            // SÓ FECHA após o sucesso do onAdd
+            setActiveDialog(null);
+        } catch (error) {
+            console.error("Erro no formulário:", error);
+        } finally {
+            setIsSubmitting(false);
+        }
     };
 
     return (

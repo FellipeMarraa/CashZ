@@ -3,11 +3,11 @@
 import {cn} from '@/lib/utils';
 import {Button} from '@/components/ui/button';
 import {ScrollArea} from '@/components/ui/scroll-area';
-import {ArrowLeftRight, CreditCard, LayoutDashboard, LineChart, PieChart} from 'lucide-react';
+import {ArrowLeftRight, LayoutDashboard, LineChart, PieChart} from 'lucide-react';
 import {forwardRef} from "react";
 import {Tooltip, TooltipContent, TooltipTrigger} from "@/components/ui/tooltip.tsx";
 
-type DashboardSection = 'overview' | 'transactions' | 'budget' | 'accounts' | 'investments' | 'profile' | 'settings';
+type DashboardSection = 'overview' | 'transactions' | 'budget' | 'investments' | 'profile' | 'settings';
 
 interface DashboardSidebarProps {
     collapsed: boolean;
@@ -23,7 +23,6 @@ export const DashboardSidebar = forwardRef<HTMLDivElement, DashboardSidebarProps
         const navItems = [
             {id: 'overview', label: 'Dashboard', icon: <LayoutDashboard className="h-5 w-5"/>},
             {id: 'transactions', label: 'Transações', icon: <ArrowLeftRight className="h-5 w-5"/>},
-            {id: 'accounts', label: 'Carteira', icon: <CreditCard className="h-5 w-5"/>},
             {id: 'budget', label: 'Orçamentos', icon: <PieChart className="h-5 w-5"/>},
             {id: 'investments', label: 'Investimentos', icon: <LineChart className="h-5 w-5"/>},
         ] as const;

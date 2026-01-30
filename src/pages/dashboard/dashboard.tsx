@@ -1,14 +1,13 @@
 "use client"
 
 import {useEffect, useRef, useState} from 'react';
-import { AnimatePresence } from '@/components/ui/animate-presence';
-import { DashboardHeader } from '@/components/dashboard/dashboard-header';
-import { DashboardSidebar } from '@/components/dashboard/dashboard-sidebar';
-import { OverviewSection } from '@/components/dashboard/sections/overview-section';
-import { TransactionsSection } from '@/components/dashboard/sections/transactions-section';
-import { AccountsSection } from '@/components/dashboard/sections/accounts-section';
-import { BudgetSection } from '@/components/dashboard/sections/budget-section';
-import { InvestmentsSection } from '@/components/dashboard/sections/investments-section';
+import {AnimatePresence} from '@/components/ui/animate-presence';
+import {DashboardHeader} from '@/components/dashboard/dashboard-header';
+import {DashboardSidebar} from '@/components/dashboard/dashboard-sidebar';
+import {OverviewSection} from '@/components/dashboard/sections/overview-section';
+import {TransactionsSection} from '@/components/dashboard/sections/transactions-section';
+import {BudgetSection} from '@/components/dashboard/sections/budget-section';
+import {InvestmentsSection} from '@/components/dashboard/sections/investments-section';
 import {ProfileSection} from "@/pages/profile/profile.tsx";
 import {SettingsSection} from "@/pages/settings/settings.tsx";
 
@@ -19,7 +18,7 @@ interface DashboardProps {
 export const Dashboard = ({ onNavigateToLanding }: DashboardProps) => {
   // Inicializamos como true (colapsado) para que a barra comece oculta
   const [collapsed, setCollapsed] = useState(true);
-  const [activeSection, setActiveSection] = useState<'overview' | 'transactions' | 'accounts' | 'budget' | 'investments' | 'profile' | 'settings'>('overview');
+  const [activeSection, setActiveSection] = useState<'overview' | 'transactions' | 'budget' | 'investments' | 'profile' | 'settings'>('overview');
   const sidebarRef = useRef<HTMLDivElement>(null);
 
   const sectionMeta = {
@@ -86,8 +85,6 @@ export const Dashboard = ({ onNavigateToLanding }: DashboardProps) => {
         return <OverviewSection />;
       case 'transactions':
         return <TransactionsSection />;
-      case 'accounts':
-        return <AccountsSection />;
       case 'budget':
         return <BudgetSection />;
       case 'investments':
