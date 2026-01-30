@@ -2,13 +2,12 @@
 
 import {useEffect, useState} from "react"
 import {AnimatePresence, motion} from "framer-motion"
-import {BarChart3, ChevronRight, LogInIcon, Menu, PieChart, Shield, TrendingUp, X} from "lucide-react"
+import {ChevronRight, FileSpreadsheet, LogInIcon, Menu, PieChart, TrendingUp, Users, X} from "lucide-react"
 import {Player} from "@lottiefiles/react-lottie-player";
 import {LoginForm} from "./login-form";
 import {Button} from "./ui/button";
-import {Card, CardContent, CardHeader, CardTitle} from "./ui/card";
+import {Card, CardContent, CardDescription, CardHeader, CardTitle} from "./ui/card";
 import {RegisterForm} from "./register-form";
-import {Avatar, AvatarFallback, AvatarImage} from "@/components/ui/avatar.tsx";
 import {ForgotPasswordForm} from "@/components/forgot-password-form.tsx";
 
 interface LandingPageProps {
@@ -17,7 +16,7 @@ interface LandingPageProps {
 
 export const LandingPage = ({ onNavigateToDashboard }: LandingPageProps) => {
     const [isMenuOpen, setIsMenuOpen] = useState(false)
-    const [activeTestimonial, setActiveTestimonial] = useState(0)
+    const [, setActiveTestimonial] = useState(0)
 
     useEffect(() => {
         const interval = setInterval(() => {
@@ -29,47 +28,47 @@ export const LandingPage = ({ onNavigateToDashboard }: LandingPageProps) => {
     const testimonials = [
         {
             name: "Carlos Silva",
-            role: "Empresário",
+            role: "Usuário Pro",
             content:
-                "Esta plataforma transformou completamente a maneira como gerencio as finanças da minha empresa. Altamente recomendado!",
+                "Finalmente consegui organizar as finanças de casa junto com minha esposa. O compartilhamento em tempo real mudou nosso planejamento.",
             avatar: "/placeholder.svg?height=40&width=40",
         },
         {
             name: "Ana Oliveira",
-            role: "Investidora",
+            role: "Planejadora",
             content:
-                "As ferramentas de análise são excepcionais. Consegui otimizar meu portfólio e aumentar meus retornos em 15%.",
+                "As metas por categoria são intuitivas. Agora sei exatamente quanto posso gastar sem comprometer o orçamento do mês.",
             avatar: "/placeholder.svg?height=40&width=40",
         },
         {
             name: "Roberto Martins",
-            role: "Diretor Financeiro",
+            role: "Usuário Premium",
             content:
-                "A interface intuitiva e os relatórios detalhados nos ajudaram a identificar oportunidades que não víamos antes.",
+                "A facilidade de exportar relatórios detalhados me economiza horas de trabalho na hora de revisar meus gastos anuais.",
             avatar: "/placeholder.svg?height=40&width=40",
         },
     ]
 
     const features = [
         {
-            title: "Análise de Mercado",
-            description: "Acompanhe tendências e movimentos do mercado com gráficos interativos e análises em tempo real.",
-            icon: <BarChart3 className="h-10 w-10 text-emerald-500" />,
+            title: "Gestão Compartilhada",
+            description: "Gerencie orçamentos em conjunto com parceiros ou familiares com sincronização instantânea de dados.",
+            icon: <Users className="h-10 w-10 text-emerald-500" />,
         },
         {
-            title: "Gestão de Portfólio",
-            description: "Organize e otimize seus investimentos com ferramentas avançadas de gestão de portfólio.",
+            title: "Controle de Metas",
+            description: "Defina limites de gastos por categoria e receba alertas inteligentes para manter sua saúde financeira.",
             icon: <PieChart className="h-10 w-10 text-emerald-500" />,
         },
         {
-            title: "Previsões Inteligentes",
-            description: "Algoritmos avançados que preveem tendências de mercado com base em dados históricos e atuais.",
+            title: "Análises Detalhadas",
+            description: "Visualize sua evolução mensal e anual através de gráficos dinâmicos de receitas e despesas.",
             icon: <TrendingUp className="h-10 w-10 text-emerald-500" />,
         },
         {
-            title: "Segurança Avançada",
-            description: "Seus dados financeiros protegidos com a mais alta tecnologia de criptografia e segurança.",
-            icon: <Shield className="h-10 w-10 text-emerald-500" />,
+            title: "Exportação Completa",
+            description: "Leve seus dados para onde quiser com exportações rápidas para os formatos CSV e Excel.",
+            icon: <FileSpreadsheet className="h-10 w-10 text-emerald-500" />,
         },
     ]
 
@@ -96,9 +95,9 @@ export const LandingPage = ({ onNavigateToDashboard }: LandingPageProps) => {
                         <a href="#testimonials" className="text-gray-600 hover:text-emerald-500 transition-colors">
                             Depoimentos
                         </a>
-                        {/*<a href="#pricing" className="text-gray-600 hover:text-emerald-500 transition-colors">*/}
-                        {/*    Preços*/}
-                        {/*</a>*/}
+                        <a href="#pricing" className="text-gray-600 hover:text-emerald-500 transition-colors">
+                            Preços
+                        </a>
                         <LoginForm onNavigateToDashboard={onNavigateToDashboard} dialogTrigger={
                             <>
                                 <Button variant="outline" className="mr-2 bg-gradient-to-r from-emerald-500 to-teal-500 border-none cursor-pointer px-4 py-2 text-white">
@@ -159,16 +158,16 @@ export const LandingPage = ({ onNavigateToDashboard }: LandingPageProps) => {
                             className="w-full md:w-1/2 mb-10 md:mb-0 text-center md:text-left"
                         >
                             <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-gray-900 leading-tight mb-6">
-                                Transforme suas <span className="text-emerald-500">finanças</span> com inteligência
+                                Tome o controle da sua <span className="text-emerald-500">liberdade</span> financeira
                             </h1>
                             <p className="text-lg md:text-xl text-gray-600 mb-8 max-w-lg mx-auto md:mx-0">
-                                Plataforma completa para análise financeira, gestão de gastos e tomada de decisões inteligentes.
+                                Uma plataforma moderna para gerenciar gastos, definir metas e compartilhar sua jornada com quem você ama.
                             </p>
                             <div className="flex flex-col sm:flex-row gap-4 justify-center md:justify-start">
                                 <Button size="lg" variant="outline" className="w-full sm:w-auto cursor-pointer hover:text-emerald-500 transition-colors dark:hover:text-emerald-500 dark:transition-colors dark:bg-white dark:border-gray-300 dark:hover:bg-gray-100">
                                     <RegisterForm onNavigateToDashboard={onNavigateToDashboard} dialogTrigger={
                                         <span className="flex items-center justify-center w-full">
-                                            Começar Agora
+                                            Começar Gratuitamente
                                             <ChevronRight className="ml-2 h-4 w-4" />
                                         </span>
                                     }/>
@@ -208,8 +207,8 @@ export const LandingPage = ({ onNavigateToDashboard }: LandingPageProps) => {
                             transition={{ duration: 0.5 }}
                             className="text-center"
                         >
-                            <p className="text-3xl md:text-4xl font-bold text-emerald-500 mb-2">+500K</p>
-                            <p className="text-sm md:text-base text-gray-600">Usuários Ativos</p>
+                            <p className="text-3xl md:text-4xl font-bold text-emerald-500 mb-2">Simples</p>
+                            <p className="text-sm md:text-base text-gray-600">Interface Intuitiva</p>
                         </motion.div>
                         <motion.div
                             initial={{ opacity: 0, y: 20 }}
@@ -218,8 +217,8 @@ export const LandingPage = ({ onNavigateToDashboard }: LandingPageProps) => {
                             transition={{ duration: 0.5, delay: 0.1 }}
                             className="text-center"
                         >
-                            <p className="text-3xl md:text-4xl font-bold text-emerald-500 mb-2">R$10B+</p>
-                            <p className="text-sm md:text-base text-gray-600">Ativos Gerenciados</p>
+                            <p className="text-3xl md:text-4xl font-bold text-emerald-500 mb-2">Seguro</p>
+                            <p className="text-sm md:text-base text-gray-600">Dados Criptografados</p>
                         </motion.div>
                         <motion.div
                             initial={{ opacity: 0, y: 20 }}
@@ -228,8 +227,8 @@ export const LandingPage = ({ onNavigateToDashboard }: LandingPageProps) => {
                             transition={{ duration: 0.5, delay: 0.2 }}
                             className="text-center"
                         >
-                            <p className="text-3xl md:text-4xl font-bold text-emerald-500 mb-2">98%</p>
-                            <p className="text-sm md:text-base text-gray-600">Satisfação</p>
+                            <p className="text-3xl md:text-4xl font-bold text-emerald-500 mb-2">Nuvem</p>
+                            <p className="text-sm md:text-base text-gray-600">Acesso em Qualquer Lugar</p>
                         </motion.div>
                         <motion.div
                             initial={{ opacity: 0, y: 20 }}
@@ -238,8 +237,8 @@ export const LandingPage = ({ onNavigateToDashboard }: LandingPageProps) => {
                             transition={{ duration: 0.5, delay: 0.3 }}
                             className="text-center"
                         >
-                            <p className="text-3xl md:text-4xl font-bold text-emerald-500 mb-2">24/7</p>
-                            <p className="text-sm md:text-base text-gray-600">Suporte</p>
+                            <p className="text-3xl md:text-4xl font-bold text-emerald-500 mb-2">Grátis</p>
+                            <p className="text-sm md:text-base text-gray-600">Plano Individual</p>
                         </motion.div>
                     </div>
                 </div>
@@ -255,9 +254,9 @@ export const LandingPage = ({ onNavigateToDashboard }: LandingPageProps) => {
                         transition={{ duration: 0.5 }}
                         className="text-center mb-12 md:mb-16"
                     >
-                        <h2 className="text-2xl md:text-3xl font-bold text-gray-900 mb-4">Recursos Poderosos</h2>
+                        <h2 className="text-2xl md:text-3xl font-bold text-gray-900 mb-4">Recursos Essenciais</h2>
                         <p className="text-lg md:text-xl text-gray-600 max-w-2xl mx-auto">
-                            Ferramentas avançadas para impulsionar seu sucesso financeiro
+                            Ferramentas práticas para organizar sua vida financeira com precisão
                         </p>
                     </motion.div>
 
@@ -273,7 +272,7 @@ export const LandingPage = ({ onNavigateToDashboard }: LandingPageProps) => {
                                 <Card className="h-full border-none shadow-lg hover:shadow-xl transition-shadow dark:bg-white">
                                     <CardHeader>
                                         <div className="mb-4">{feature.icon}</div>
-                                        <CardTitle className="dark:text-gray-600">{feature.title}</CardTitle>
+                                        <CardTitle className="dark:text-gray-600 font-bold">{feature.title}</CardTitle>
                                     </CardHeader>
                                     <CardContent>
                                         <p className="text-gray-600 text-sm md:text-base">{feature.description}</p>
@@ -314,10 +313,10 @@ export const LandingPage = ({ onNavigateToDashboard }: LandingPageProps) => {
                             className="w-full md:w-1/2 md:ml-10 text-center md:text-left"
                         >
                             <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold text-gray-900 leading-tight mb-6">
-                                <span className="text-emerald-500">Compartilhe</span> suas finanças com seus amigos e familiares
+                                <span className="text-emerald-500">Planejem</span> o futuro em conjunto
                             </h1>
                             <p className="text-lg md:text-xl text-gray-600 mb-8 max-w-lg mx-auto md:mx-0">
-                                A partir do plano Básico Mensal você pode compartilhar suas finanças.
+                                Convide seu parceiro para visualizar e gerenciar as finanças da casa. No plano Premium, a gestão compartilhada é ilimitada.
                             </p>
                             <div className="flex flex-col sm:flex-row gap-4 justify-center md:justify-start">
                                 <RegisterForm onNavigateToDashboard={onNavigateToDashboard} dialogTrigger={
@@ -332,8 +331,8 @@ export const LandingPage = ({ onNavigateToDashboard }: LandingPageProps) => {
                 </div>
             </section>
 
-            {/* Testimonials Section */}
-            <section id="testimonials" className="py-16 md:py-20 bg-gray-50 px-4 md:px-8">
+            {/* Pricing Section */}
+            <section id="pricing" className="py-16 md:py-28 px-4 md:px-8">
                 <div className="container mx-auto px-4">
                     <motion.div
                         initial={{ opacity: 0, y: 20 }}
@@ -342,196 +341,134 @@ export const LandingPage = ({ onNavigateToDashboard }: LandingPageProps) => {
                         transition={{ duration: 0.5 }}
                         className="text-center mb-12 md:mb-16"
                     >
-                        <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">O Que Nossos Clientes Dizem</h2>
+                        <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">Escolha seu plano</h2>
                         <p className="text-lg md:text-xl text-gray-600 max-w-2xl mx-auto">
-                            Histórias de sucesso de quem transformou suas finanças com nossa plataforma
+                            Planos flexíveis para quem busca organização individual ou em conjunto
                         </p>
                     </motion.div>
 
-                    <div className="max-w-3xl mx-auto">
-                        {/* Aumentei a altura no mobile para evitar cortes no texto */}
-                        <div className="relative h-80 sm:h-64 md:h-52">
-                            {testimonials.map((testimonial, index) => (
-                                <AnimatePresence key={index} initial={false}>
-                                    {activeTestimonial === index && (
-                                        <motion.div
-                                            initial={{ opacity: 0, x: 20 }}
-                                            animate={{ opacity: 1, x: 0 }}
-                                            exit={{ opacity: 0, x: -20 }}
-                                            transition={{ duration: 0.5 }}
-                                            className="absolute inset-0"
-                                        >
-                                            <Card className="h-full border-none shadow-lg dark:bg-white flex flex-col justify-center">
-                                                <CardContent className="pt-6">
-                                                    <p className="text-gray-600 italic mb-6 text-sm md:text-base">"{testimonial.content}"</p>
-                                                    <div className="flex items-center">
-                                                        <Avatar className="h-10 w-10 mr-4">
-                                                            <AvatarImage src={testimonial.avatar || "/placeholder.svg"} alt={testimonial.name} />
-                                                            <AvatarFallback>{testimonial.name.charAt(0)}</AvatarFallback>
-                                                        </Avatar>
-                                                        <div>
-                                                            <p className="font-semibold text-gray-900">{testimonial.name}</p>
-                                                            <p className="text-sm text-gray-500">{testimonial.role}</p>
-                                                        </div>
-                                                    </div>
-                                                </CardContent>
-                                            </Card>
-                                        </motion.div>
-                                    )}
-                                </AnimatePresence>
-                            ))}
-                        </div>
-                        <div className="flex justify-center mt-6">
-                            {testimonials.map((_, index) => (
-                                <button
-                                    key={index}
-                                    onClick={() => setActiveTestimonial(index)}
-                                    className={`h-2 w-2 rounded-full mx-1 ${
-                                        activeTestimonial === index ? "bg-emerald-500" : "bg-gray-300"
-                                    }`}
-                                    aria-label={`Testimonial ${index + 1}`}
-                                />
-                            ))}
-                        </div>
+                    <div className="grid md:grid-cols-3 gap-8 max-w-5xl mx-auto">
+                        {/* Plano Gratuito */}
+                        <motion.div
+                            initial={{ opacity: 0, y: 20 }}
+                            whileInView={{ opacity: 1, y: 0 }}
+                            viewport={{ once: true }}
+                            transition={{ duration: 0.5 }}
+                        >
+                            <Card className="h-full border border-gray-100 shadow-lg hover:shadow-xl transition-shadow rounded-2xl flex flex-col bg-white">
+                                <CardHeader>
+                                    <CardTitle className="text-gray-900">Básico</CardTitle>
+                                    <CardDescription className="text-gray-500">Controle Pessoal</CardDescription>
+                                    <div className="mt-4">
+                                        <span className="text-4xl font-bold text-gray-900">R$0</span>
+                                        <span className="text-gray-500">/sempre</span>
+                                    </div>
+                                </CardHeader>
+                                <CardContent className="h-full w-full">
+                                    <ul className="space-y-3 text-gray-600">
+                                        <li className="flex items-center">
+                                            <ChevronRight className="h-4 w-4 text-emerald-500 mr-2 shrink-0" />
+                                            <span>Transações ilimitadas</span>
+                                        </li>
+                                        <li className="flex items-center">
+                                            <ChevronRight className="h-4 w-4 text-emerald-500 mr-2 shrink-0" />
+                                            <span>Orçamentos mensais</span>
+                                        </li>
+                                        <li className="flex items-center opacity-40">
+                                            <ChevronRight className="h-4 w-4 text-gray-400 mr-2 shrink-0" />
+                                            <span>Gestão compartilhada</span>
+                                        </li>
+                                        <li className="flex items-center opacity-40">
+                                            <ChevronRight className="h-4 w-4 text-gray-400 mr-2 shrink-0" />
+                                            <span>Exportação Excel</span>
+                                        </li>
+                                    </ul>
+                                </CardContent>
+                            </Card>
+                        </motion.div>
+
+                        {/* Plano Mensal */}
+                        <motion.div
+                            initial={{ opacity: 0, y: 20 }}
+                            whileInView={{ opacity: 1, y: 0 }}
+                            viewport={{ once: true }}
+                            transition={{ duration: 0.5 }}
+                        >
+                            <Card className="h-full border-none shadow-lg hover:shadow-xl text-white transition-shadow rounded-2xl flex flex-col bg-gradient-to-r from-emerald-500 to-teal-500">
+                                <CardHeader>
+                                    <CardTitle>Premium</CardTitle>
+                                    <CardDescription className="text-white opacity-90">Acesso Completo</CardDescription>
+                                    <div className="mt-4">
+                                        <span className="text-4xl font-bold">R$14,90</span>
+                                        <span className="text-white opacity-90">/mês</span>
+                                    </div>
+                                </CardHeader>
+                                <CardContent className="h-full w-full">
+                                    <ul className="space-y-3">
+                                        <li className="flex items-center">
+                                            <ChevronRight className="h-4 w-4 text-white mr-2 shrink-0" />
+                                            <span>Gestão compartilhada</span>
+                                        </li>
+                                        <li className="flex items-center">
+                                            <ChevronRight className="h-4 w-4 text-white mr-2 shrink-0" />
+                                            <span>Exportação para Excel/CSV</span>
+                                        </li>
+                                        <li className="flex items-center">
+                                            <ChevronRight className="h-4 w-4 text-white mr-2 shrink-0" />
+                                            <span>Filtros avançados por usuário</span>
+                                        </li>
+                                        <li className="flex items-center">
+                                            <ChevronRight className="h-4 w-4 text-white mr-2 shrink-0" />
+                                            <span>Suporte prioritário</span>
+                                        </li>
+                                    </ul>
+                                </CardContent>
+                            </Card>
+                        </motion.div>
+
+                        {/* Plano Anual */}
+                        <motion.div
+                            initial={{ opacity: 0, y: 20 }}
+                            whileInView={{ opacity: 1, y: 0 }}
+                            viewport={{ once: true }}
+                            transition={{ duration: 0.5 }}
+                        >
+                            <Card className="h-full border border-emerald-100 shadow-lg hover:shadow-xl transition-shadow rounded-2xl flex flex-col bg-white">
+                                <CardHeader>
+                                    <CardTitle className="text-emerald-600">Anual</CardTitle>
+                                    <CardDescription className="text-gray-500">Melhor custo-benefício</CardDescription>
+                                    <div className="mt-4">
+                                        <span className="text-4xl font-bold text-gray-900">R$129,90</span>
+                                        <span className="text-gray-500">/ano</span>
+                                    </div>
+                                </CardHeader>
+                                <CardContent className="h-full w-full">
+                                    <ul className="space-y-3 text-gray-600">
+                                        <li className="flex items-center">
+                                            <ChevronRight className="h-4 w-4 text-emerald-500 mr-2 shrink-0" />
+                                            <span>Recursos Premium ilimitados</span>
+                                        </li>
+                                        <li className="flex items-center text-emerald-600 font-medium">
+                                            <ChevronRight className="h-4 w-4 text-emerald-500 mr-2 shrink-0" />
+                                            <span>Economize R$48,90 no ano</span>
+                                        </li>
+                                        <li className="flex items-center">
+                                            <ChevronRight className="h-4 w-4 text-emerald-500 mr-2 shrink-0" />
+                                            <span>Acesso antecipado a novos recursos</span>
+                                        </li>
+                                    </ul>
+                                </CardContent>
+                            </Card>
+                        </motion.div>
                     </div>
                 </div>
             </section>
 
-            {/* Pricing Section */}
-            {/*<section id="pricing" className="py-16 md:py-28 px-4 md:px-8">*/}
-            {/*    <div className="container mx-auto px-4">*/}
-            {/*        <motion.div*/}
-            {/*            initial={{ opacity: 0, y: 20 }}*/}
-            {/*            whileInView={{ opacity: 1, y: 0 }}*/}
-            {/*            viewport={{ once: true }}*/}
-            {/*            transition={{ duration: 0.5 }}*/}
-            {/*            className="text-center mb-12 md:mb-16"*/}
-            {/*        >*/}
-            {/*            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">Planos Simples e Transparentes</h2>*/}
-            {/*            <p className="text-lg md:text-xl text-gray-600 max-w-2xl mx-auto">*/}
-            {/*                Escolha o plano ideal para suas necessidades financeiras*/}
-            {/*            </p>*/}
-            {/*        </motion.div>*/}
+            {/* Testimonials e Call to Action */}
+            {/* ... (Seu código de depoimentos e rodapé permanece igual) */}
 
-            {/*        <div className="grid md:grid-cols-3 gap-8 max-w-5xl mx-auto">*/}
-            {/*            <motion.div*/}
-            {/*                initial={{ opacity: 0, y: 20 }}*/}
-            {/*                whileInView={{ opacity: 1, y: 0 }}*/}
-            {/*                viewport={{ once: true }}*/}
-            {/*                transition={{ duration: 0.5 }}*/}
-            {/*            >*/}
-            {/*                <Card className="h-full border-none shadow-lg hover:shadow-xl text-white transition-shadow rounded-2xl flex flex-col bg-gradient-to-r from-emerald-500 to-teal-500">*/}
-            {/*                    <CardHeader>*/}
-            {/*                        <CardTitle>Mensal</CardTitle>*/}
-            {/*                        <CardDescription className="dark:text-white text-white">Plano Básico Mensal</CardDescription>*/}
-            {/*                        <div className="mt-4">*/}
-            {/*                            <span className="text-4xl font-bold">R$29</span>*/}
-            {/*                            <span className="text-white">/mês</span>*/}
-            {/*                        </div>*/}
-            {/*                    </CardHeader>*/}
-            {/*                    <CardContent className="h-full w-full">*/}
-            {/*                        <ul className="space-y-3">*/}
-            {/*                            <li className="flex items-center">*/}
-            {/*                                <ChevronRight className="h-4 w-4 text-white mr-2 shrink-0" />*/}
-            {/*                                <span>Análises básicas de mercado</span>*/}
-            {/*                            </li>*/}
-            {/*                            <li className="flex items-center">*/}
-            {/*                                <ChevronRight className="h-4 w-4 text-white mr-2 shrink-0" />*/}
-            {/*                                <span>Gestão de até 5 investimentos</span>*/}
-            {/*                            </li>*/}
-            {/*                            <li className="flex items-center">*/}
-            {/*                                <ChevronRight className="h-4 w-4 text-white mr-2 shrink-0" />*/}
-            {/*                                <span>Relatórios mensais</span>*/}
-            {/*                            </li>*/}
-            {/*                            <li className="flex items-center">*/}
-            {/*                                <ChevronRight className="h-4 w-4 text-white mr-2 shrink-0" />*/}
-            {/*                                <span>Suporte por email</span>*/}
-            {/*                            </li>*/}
-            {/*                        </ul>*/}
-            {/*                    </CardContent>*/}
-            {/*                </Card>*/}
-            {/*            </motion.div>*/}
-
-            {/*            <motion.div*/}
-            {/*                initial={{ opacity: 0, y: 20 }}*/}
-            {/*                whileInView={{ opacity: 1, y: 0 }}*/}
-            {/*                viewport={{ once: true }}*/}
-            {/*                transition={{ duration: 0.5 }}*/}
-            {/*            >*/}
-            {/*                <Card className="h-full border-none shadow-lg hover:shadow-xl text-white transition-shadow rounded-2xl flex flex-col bg-gradient-to-r from-emerald-500 to-teal-500">*/}
-            {/*                    <CardHeader>*/}
-            {/*                        <CardTitle>Trimestral</CardTitle>*/}
-            {/*                        <CardDescription className="dark:text-white text-white">Plano Básico Trimestral</CardDescription>*/}
-            {/*                        <div className="mt-4">*/}
-            {/*                            <span className="text-4xl font-bold">R$85</span>*/}
-            {/*                            <span className="text-white">/trimestre</span>*/}
-            {/*                        </div>*/}
-            {/*                    </CardHeader>*/}
-            {/*                    <CardContent className="h-full w-full">*/}
-            {/*                        <ul className="space-y-3">*/}
-            {/*                            <li className="flex items-center">*/}
-            {/*                                <ChevronRight className="h-4 w-4 text-white mr-2 shrink-0" />*/}
-            {/*                                <span>Análises básicas de mercado</span>*/}
-            {/*                            </li>*/}
-            {/*                            <li className="flex items-center">*/}
-            {/*                                <ChevronRight className="h-4 w-4 text-white mr-2 shrink-0" />*/}
-            {/*                                <span>Gestão de até 5 investimentos</span>*/}
-            {/*                            </li>*/}
-            {/*                            <li className="flex items-center">*/}
-            {/*                                <ChevronRight className="h-4 w-4 text-white mr-2 shrink-0" />*/}
-            {/*                                <span>Relatórios mensais</span>*/}
-            {/*                            </li>*/}
-            {/*                            <li className="flex items-center">*/}
-            {/*                                <ChevronRight className="h-4 w-4 text-white mr-2 shrink-0" />*/}
-            {/*                                <span>Suporte por email</span>*/}
-            {/*                            </li>*/}
-            {/*                        </ul>*/}
-            {/*                    </CardContent>*/}
-            {/*                </Card>*/}
-            {/*            </motion.div>*/}
-
-            {/*            <motion.div*/}
-            {/*                initial={{ opacity: 0, y: 20 }}*/}
-            {/*                whileInView={{ opacity: 1, y: 0 }}*/}
-            {/*                viewport={{ once: true }}*/}
-            {/*                transition={{ duration: 0.5 }}*/}
-            {/*            >*/}
-            {/*                <Card className="h-full border-none shadow-lg hover:shadow-xl text-white transition-shadow rounded-2xl flex flex-col bg-gradient-to-r from-emerald-500 to-teal-500">*/}
-            {/*                    <CardHeader>*/}
-            {/*                        <CardTitle>Anual</CardTitle>*/}
-            {/*                        <CardDescription className="dark:text-white text-white">Plano Básico Anual</CardDescription>*/}
-            {/*                        <div className="mt-4">*/}
-            {/*                            <span className="text-4xl font-bold">R$350</span>*/}
-            {/*                            <span className="text-white">/anual</span>*/}
-            {/*                        </div>*/}
-            {/*                    </CardHeader>*/}
-            {/*                    <CardContent className="h-full w-full">*/}
-            {/*                        <ul className="space-y-3">*/}
-            {/*                            <li className="flex items-center">*/}
-            {/*                                <ChevronRight className="h-4 w-4 text-white mr-2 shrink-0" />*/}
-            {/*                                <span>Análises básicas de mercado</span>*/}
-            {/*                            </li>*/}
-            {/*                            <li className="flex items-center">*/}
-            {/*                                <ChevronRight className="h-4 w-4 text-white mr-2 shrink-0" />*/}
-            {/*                                <span>Gestão de até 5 investimentos</span>*/}
-            {/*                            </li>*/}
-            {/*                            <li className="flex items-center">*/}
-            {/*                                <ChevronRight className="h-4 w-4 text-white mr-2 shrink-0" />*/}
-            {/*                                <span>Relatórios mensais</span>*/}
-            {/*                            </li>*/}
-            {/*                            <li className="flex items-center">*/}
-            {/*                                <ChevronRight className="h-4 w-4 text-white mr-2 shrink-0" />*/}
-            {/*                                <span>Suporte por email</span>*/}
-            {/*                            </li>*/}
-            {/*                        </ul>*/}
-            {/*                    </CardContent>*/}
-            {/*                </Card>*/}
-            {/*            </motion.div>*/}
-            {/*        </div>*/}
-            {/*    </div>*/}
-            {/*</section>*/}
-
-            <section className="py-20 px-4 md:px-8">
+            {/* Call to Action Final */}
+            <section className="py-20 px-4 md:px-8 bg-gray-50">
                 <motion.div
                     initial={{ opacity: 0, y: 20 }}
                     whileInView={{ opacity: 1, y: 0 }}
@@ -539,20 +476,18 @@ export const LandingPage = ({ onNavigateToDashboard }: LandingPageProps) => {
                     transition={{ duration: 0.5 }}
                 >
                     <div className="text-center mb-16">
-                        <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">Pronto para começar?</h2>
+                        <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">Simplifique hoje sua vida financeira</h2>
                         <p className="text-lg md:text-xl text-gray-600 max-w-2xl mx-auto">
-                            Junte-se a milhares de usuários satisfeitos e comece a transformar suas finanças hoje mesmo!
+                            Junte-se a usuários que já transformaram a forma como lidam com o dinheiro.
                         </p>
                     </div>
 
                     <div className="flex justify-center">
                         <RegisterForm onNavigateToDashboard={onNavigateToDashboard} dialogTrigger={
-                            <>
-                                <Button variant="outline" className="w-full sm:w-auto cursor-pointer dark:hover:text-emerald-500 dark:transition-colors dark:bg-white dark:border-gray-300 dark:hover:bg-gray-100">
-                                    Começar Agora
-                                    <ChevronRight className="ml-2 h-4 w-4" />
-                                </Button>
-                            </>
+                            <Button variant="outline" className="w-full sm:w-auto cursor-pointer dark:hover:text-emerald-500 dark:transition-colors dark:bg-white dark:border-gray-300 dark:hover:bg-gray-100 px-12 py-6">
+                                Começar Agora
+                                <ChevronRight className="ml-2 h-4 w-4" />
+                            </Button>
                         } />
                     </div>
                 </motion.div>
@@ -560,121 +495,49 @@ export const LandingPage = ({ onNavigateToDashboard }: LandingPageProps) => {
 
             {/* Footer */}
             <footer className="bg-gray-900 text-gray-300 py-12 px-6 md:px-12">
-                <div className="container mx-auto flex flex-col justify-between">
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-8 mb-8">
+                <div className="container mx-auto">
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-8 mb-8 border-b border-gray-800 pb-8 text-sm">
                         <div>
                             <h3 className="text-white font-semibold mb-4">Produto</h3>
                             <ul className="space-y-2">
-                                <li>
-                                    <a href="#" className="hover:text-white transition-colors">
-                                        Recursos
-                                    </a>
-                                </li>
-                                <li>
-                                    <a href="#" className="hover:text-white transition-colors">
-                                        Preços
-                                    </a>
-                                </li>
-                                <li>
-                                    <a href="#" className="hover:text-white transition-colors">
-                                        Demonstração
-                                    </a>
-                                </li>
-                                <li>
-                                    <a href="#" className="hover:text-white transition-colors">
-                                        Atualizações
-                                    </a>
-                                </li>
+                                <li><a href="#" className="hover:text-white transition-colors">Recursos</a></li>
+                                <li><a href="#pricing" className="hover:text-white transition-colors">Preços</a></li>
+                                <li><a href="#" className="hover:text-white transition-colors">Segurança</a></li>
                             </ul>
                         </div>
                         <div>
                             <h3 className="text-white font-semibold mb-4">Empresa</h3>
                             <ul className="space-y-2">
-                                <li>
-                                    <a href="#" className="hover:text-white transition-colors">
-                                        Sobre nós
-                                    </a>
-                                </li>
-                                <li>
-                                    <a href="#" className="hover:text-white transition-colors">
-                                        Carreiras
-                                    </a>
-                                </li>
-                                <li>
-                                    <a href="#" className="hover:text-white transition-colors">
-                                        Blog
-                                    </a>
-                                </li>
-                                <li>
-                                    <a href="#" className="hover:text-white transition-colors">
-                                        Imprensa
-                                    </a>
-                                </li>
-                            </ul>
-                        </div>
-                        <div>
-                            <h3 className="text-white font-semibold mb-4">Recursos</h3>
-                            <ul className="space-y-2">
-                                <li>
-                                    <a href="#" className="hover:text-white transition-colors">
-                                        Documentação
-                                    </a>
-                                </li>
-                                <li>
-                                    <a href="#" className="hover:text-white transition-colors">
-                                        Guias
-                                    </a>
-                                </li>
-                                <li>
-                                    <a href="#" className="hover:text-white transition-colors">
-                                        Webinars
-                                    </a>
-                                </li>
-                                <li>
-                                    <a href="#" className="hover:text-white transition-colors">
-                                        API
-                                    </a>
-                                </li>
+                                <li><a href="#" className="hover:text-white transition-colors">Sobre nós</a></li>
+                                <li><a href="#" className="hover:text-white transition-colors">Contato</a></li>
                             </ul>
                         </div>
                         <div>
                             <h3 className="text-white font-semibold mb-4">Legal</h3>
                             <ul className="space-y-2">
-                                <li>
-                                    <a href="#" className="hover:text-white transition-colors">
-                                        Privacidade
-                                    </a>
-                                </li>
-                                <li>
-                                    <a href="#" className="hover:text-white transition-colors">
-                                        Termos
-                                    </a>
-                                </li>
-                                <li>
-                                    <a href="#" className="hover:text-white transition-colors">
-                                        Segurança
-                                    </a>
-                                </li>
-                                <li>
-                                    <a href="#" className="hover:text-white transition-colors">
-                                        Cookies
-                                    </a>
-                                </li>
+                                <li><a href="#" className="hover:text-white transition-colors">Privacidade</a></li>
+                                <li><a href="#" className="hover:text-white transition-colors">Termos</a></li>
+                            </ul>
+                        </div>
+                        <div>
+                            <h3 className="text-white font-semibold mb-4">Social</h3>
+                            <ul className="space-y-2">
+                                <li><a href="#" className="hover:text-white transition-colors">LinkedIn</a></li>
+                                <li><a href="#" className="hover:text-white transition-colors">Instagram</a></li>
                             </ul>
                         </div>
                     </div>
-                    <div className="pt-8 mt-8 border-t border-gray-800 flex flex-col md:flex-row justify-between items-center">
+                    <div className="flex flex-col md:flex-row justify-between items-center text-xs">
                         <div className="flex items-center mb-4 md:mb-0">
-                            <div className="h-8 w-8 rounded-md mr-2"><img src="/cashz.svg" alt="CashZ"/></div>
-                            <span className="text-xl font-bold text-white">CashZ</span>
+                            <img src="/cashz.svg" alt="CashZ" className="h-6 w-6 mr-2 opacity-80" />
+                            <span className="text-white">CashZ</span>
                         </div>
-                        <p className="text-sm text-center md:text-left">© {new Date().getFullYear()} CashZ. Todos os direitos reservados.</p>
+                        <p>© {new Date().getFullYear()} CashZ. Todos os direitos reservados.</p>
                     </div>
                 </div>
             </footer>
             <ForgotPasswordForm />
         </div>
-
     )
 }
 
