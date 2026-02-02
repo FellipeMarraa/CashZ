@@ -5,7 +5,7 @@ import {Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle} f
 import {Progress} from '@/components/ui/progress';
 import {Button} from '@/components/ui/button';
 import {Select, SelectContent, SelectItem, SelectTrigger, SelectValue} from '@/components/ui/select';
-import {AlertTriangle, CheckCircle2, Lightbulb, Plus, Target, Trash2, TrendingUp, Users} from 'lucide-react';
+import {AlertTriangle, CheckCircle2, Lightbulb, Plus, Target, Trash2, TrendingUp, Users, Lock} from 'lucide-react';
 import {IMes} from "@/model/IMes.ts";
 import {formatTransactionAmount, useTransactions} from '@/hooks/useTransactions';
 import {useCategories} from '@/hooks/useCategories';
@@ -16,15 +16,18 @@ import {AddBudgetForm} from "@/components/add-budget-form.tsx";
 import {ConfirmDialog} from "@/components/confirm-dialog.tsx";
 import {TutorialWizard} from "@/components/tutorial-wizard";
 import {useAuth} from "@/context/AuthContext";
+import {useUserPreferences} from "@/hooks/useUserPreferences.ts";
+import {UpgradePlanModal} from "@/components/upgrade-plan-modal.tsx";
 
 export const BudgetSection = () => {
     const { user: currentUser } = useAuth();
+    const { isPremium } = useUserPreferences(currentUser?.id);
     const currentDate = new Date();
     const [activeMonth, setActiveMonth] = useState(IMes[currentDate.getMonth()]);
     const [activeYear, setActiveYear] = useState(currentDate.getFullYear());
     const [selectedUser, setSelectedUser] = useState<string>("all");
 
-    const {setActiveDialog } = useDialogManager();
+    const { activeDialog, setActiveDialog } = useDialogManager();
     const { budgets, deleteBudget } = useBudgets(IMes.indexOf(activeMonth) + 1, activeYear);
     const { data: transactions = [] } = useTransactions(activeMonth, activeYear);
     const { data: categories = [] } = useCategories();
@@ -35,7 +38,7 @@ export const BudgetSection = () => {
         const usersMap = new Map();
         budgets.forEach(b => {
             if (b.userId !== currentUser?.id) {
-                usersMap.set(b.userId, currentUser?.name);
+                usersMap.set(b.userId, "Parceiro");
             }
         });
         return Array.from(usersMap.entries()).map(([id, label]) => ({ id, label }));
@@ -43,16 +46,14 @@ export const BudgetSection = () => {
 
     const budgetAnalysis = useMemo(() => {
         return categories.map(category => {
-            // Filtrar transações pelo usuário selecionado
             const spent = transactions
                 .filter(t => t.category.id === category.id && t.type === 'DESPESA' &&
-                    (selectedUser === "all" || (selectedUser === "me" ? t.owner.id === currentUser?.id : t.owner.id === selectedUser)))
+                    (!isPremium || selectedUser === "all" || (selectedUser === "me" ? t.owner.id === currentUser?.id : t.owner.id === selectedUser)))
                 .reduce((acc, t) => acc + Number(t.amount || 0), 0);
 
-            // Filtrar orçamentos pelo usuário selecionado
             const relevantBudgets = budgets.filter(b =>
                 b.categoryId === category.id &&
-                (selectedUser === "all" || (selectedUser === "me" ? b.userId === currentUser?.id : b.userId === selectedUser))
+                (!isPremium || selectedUser === "all" || (selectedUser === "me" ? b.userId === currentUser?.id : b.userId === selectedUser))
             );
 
             const allocated = relevantBudgets.reduce((acc, b) => acc + Number(b.amount || 0), 0);
@@ -65,14 +66,8 @@ export const BudgetSection = () => {
             return { ...category, allocated, spent, percentSpent, remaining, budgetId, isSharedBudget };
         })
             .filter(item => item.allocated > 0)
-            .sort((a, b) => {
-                if (selectedUser === "all") {
-                    if (!a.isSharedBudget && b.isSharedBudget) return -1;
-                    if (a.isSharedBudget && !b.isSharedBudget) return 1;
-                }
-                return b.percentSpent - a.percentSpent;
-            });
-    }, [categories, transactions, budgets, selectedUser, currentUser]);
+            .sort((a, b) => b.percentSpent - a.percentSpent);
+    }, [categories, transactions, budgets, selectedUser, currentUser, isPremium]);
 
     const totalAllocated = useMemo(() =>
             budgetAnalysis.reduce((sum, item) => sum + item.allocated, 0),
@@ -114,29 +109,31 @@ export const BudgetSection = () => {
 
             <div className="flex flex-col gap-4">
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                    <div>
+                    <div className="text-left">
                         <h2 className="text-2xl font-bold tracking-tight">Gestão de Orçamentos</h2>
                         <p className="text-sm text-muted-foreground">Controle seus limites de gastos reais.</p>
                     </div>
 
                     <div className="flex flex-col sm:flex-row items-center gap-2 w-full md:w-auto">
-                        <Select value={selectedUser} onValueChange={setSelectedUser}>
-                            <SelectTrigger className="w-full sm:w-[180px] border-blue-500/20">
-                                <div className="flex items-center gap-2">
-                                    <Users className="h-4 w-4 text-blue-500" />
-                                    <SelectValue placeholder="Usuário" />
-                                </div>
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="all">Todos Usuários</SelectItem>
-                                <SelectItem value="me">Apenas Eu</SelectItem>
-                                {budgetUsers.map(u => (
-                                    <SelectItem key={u.id} value={u.id}>{u.label}</SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
+                        {isPremium && (
+                            <Select value={selectedUser} onValueChange={setSelectedUser}>
+                                <SelectTrigger className="w-full sm:w-[180px] border-blue-500/20">
+                                    <div className="flex items-center gap-2">
+                                        <Users className="h-4 w-4 text-blue-500" />
+                                        <SelectValue placeholder="Usuário" />
+                                    </div>
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="all">Todos Usuários</SelectItem>
+                                    <SelectItem value="me">Apenas Eu</SelectItem>
+                                    {budgetUsers.map(u => (
+                                        <SelectItem key={u.id} value={u.id}>{u.label}</SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        )}
 
-                        <div className="flex flex-row items-center gap-2 w-full sm:w-auto" id="budget-period-select">
+                        <div className="flex flex-row items-center gap-2 w-full sm:w-auto">
                             <Select value={activeMonth} onValueChange={setActiveMonth}>
                                 <SelectTrigger className="flex-1 md:w-[140px]">
                                     <SelectValue />
@@ -158,21 +155,21 @@ export const BudgetSection = () => {
                 </div>
             </div>
 
-            <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3" id="budget-summary-cards">
-                <Card className="border-none shadow-sm md:border">
+            <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
+                <Card className="border-none shadow-sm md:border text-left">
                     <CardHeader className="pb-2">
                         <CardDescription className="text-xs uppercase font-bold text-muted-foreground">Total Planejado</CardDescription>
                         <CardTitle className="text-2xl font-bold">{formatTransactionAmount(totalAllocated)}</CardTitle>
                     </CardHeader>
                 </Card>
-                <Card className="border-none shadow-sm md:border">
+                <Card className="border-none shadow-sm md:border text-left">
                     <CardHeader className="pb-2">
                         <CardDescription className="text-xs uppercase font-bold text-muted-foreground">Total Gasto Real</CardDescription>
                         <CardTitle className="text-2xl font-bold">{formatTransactionAmount(totalSpent)}</CardTitle>
                     </CardHeader>
                 </Card>
                 <Card className={cn(
-                    "border-none shadow-sm md:border transition-colors",
+                    "border-none shadow-sm md:border transition-colors text-left",
                     isOverBudget ? "bg-red-50 border-red-200" : "text-emerald-500"
                 )}>
                     <CardHeader className="pb-2">
@@ -191,7 +188,7 @@ export const BudgetSection = () => {
             </div>
 
             <div className="grid gap-6 md:grid-cols-7">
-                <Card className="col-span-7 md:col-span-4 border-none shadow-none md:border md:shadow-sm" id="category-progress-list">
+                <Card className="col-span-7 md:col-span-4 border-none shadow-none md:border md:shadow-sm text-left">
                     <CardHeader>
                         <CardTitle className="text-lg">Progresso por Categoria</CardTitle>
                         <CardDescription>Baseado em suas despesas de {activeMonth}.</CardDescription>
@@ -251,17 +248,17 @@ export const BudgetSection = () => {
                     </CardContent>
                     <CardFooter>
                         <Button
-                            id="add-budget-btn"
                             variant="outline"
                             className="w-full border-dashed py-6 text-emerald-600 border-emerald-500/30 hover:bg-emerald-50"
                             onClick={() => setActiveDialog("add-budget")}
                         >
+                            {!isPremium && <Lock className="h-3 w-3 mr-2" />}
                             <Plus className="mr-2 h-4 w-4" /> Configurar Limites
                         </Button>
                     </CardFooter>
                 </Card>
 
-                <Card className="col-span-7 md:col-span-3 border-none shadow-none md:border md:shadow-sm" id="budget-insights">
+                <Card className="col-span-7 md:col-span-3 border-none shadow-none md:border md:shadow-sm text-left">
                     <CardHeader>
                         <CardTitle className="text-lg">Insights de {activeMonth}</CardTitle>
                     </CardHeader>
@@ -269,7 +266,7 @@ export const BudgetSection = () => {
                         {insights.totalBudgets > 0 ? (
                             <>
                                 {insights.critical && insights.critical.spent > insights.critical.allocated && (
-                                    <div className="p-4 rounded-xl bg-amber-50 dark:bg-amber-950/20 border border-amber-100 dark:border-amber-900">
+                                    <div className="p-4 rounded-xl bg-amber-50 border border-amber-100">
                                         <div className="flex items-center gap-3 mb-2">
                                             <AlertTriangle className="h-5 w-5 text-amber-600" />
                                             <span className="font-bold text-sm text-amber-900">Atenção em {insights.critical.name}</span>
@@ -281,7 +278,7 @@ export const BudgetSection = () => {
                                 )}
 
                                 {insights.saving && insights.saving.percentSpent < 80 && (
-                                    <div className="p-4 rounded-xl bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-100 dark:border-amber-900">
+                                    <div className="p-4 rounded-xl bg-emerald-50 border border-emerald-100">
                                         <div className="flex items-center gap-3 mb-2">
                                             <TrendingUp className="h-5 w-5 text-emerald-600" />
                                             <span className="font-bold text-sm text-emerald-900">Boa Economia em {insights.saving.name}</span>
@@ -292,7 +289,7 @@ export const BudgetSection = () => {
                                     </div>
                                 )}
 
-                                <div className="p-4 rounded-xl bg-blue-50 dark:bg-blue-950/20 border border-blue-100 dark:border-blue-900">
+                                <div className="p-4 rounded-xl bg-blue-50 border border-blue-100">
                                     <div className="flex items-center gap-3 mb-2">
                                         <CheckCircle2 className="h-5 w-5 text-blue-600" />
                                         <span className="font-bold text-sm text-blue-900">Status Geral</span>
@@ -313,7 +310,10 @@ export const BudgetSection = () => {
                     </CardContent>
                 </Card>
             </div>
-            <AddBudgetForm month={activeMonth} year={activeYear} />
+
+            {activeDialog === "add-budget" && <AddBudgetForm month={activeMonth} year={activeYear} />}
+            {activeDialog === "upgrade-plan" && <UpgradePlanModal isOpen={true} onClose={() => setActiveDialog(null)} />}
+
             <ConfirmDialog
                 title="Excluir Limite?"
                 description="Tem certeza que deseja remover esta meta? Isso afetará os insights de economia do mês."

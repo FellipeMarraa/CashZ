@@ -18,7 +18,8 @@ import {
     Target,
     Trash2,
     TrendingUp,
-    Zap
+    Zap,
+    Lock
 } from 'lucide-react';
 import {cn} from "@/lib/utils";
 import {formatTransactionAmount} from '@/hooks/useTransactions';
@@ -30,8 +31,9 @@ import {useDeleteInvestment, useInvestments, useSaveInvestment} from "@/hooks/us
 import {getDeepAnalysis} from "@/service/aiService.ts";
 import {ConfirmDialog} from "@/components/confirm-dialog";
 import {useToast} from "@/hooks/use-toast";
+import {useUserPreferences} from "@/hooks/useUserPreferences.ts";
+import {UpgradePlanModal} from "@/components/upgrade-plan-modal.tsx";
 
-// --- TIPAGEM ---
 type InvestmentClass = 'fixed' | 'stocks' | 'international' | 'crypto';
 
 export interface InvestmentItem {
@@ -79,9 +81,10 @@ const CATEGORY_LABELS: Record<InvestmentClass, string> = {
 };
 
 export const InvestmentsSection = () => {
-    useAuth();
+    const { user } = useAuth();
+    const { isPremium } = useUserPreferences(user?.id);
     const { toast } = useToast();
-    const { setActiveDialog } = useDialogManager();
+    const { activeDialog, setActiveDialog } = useDialogManager();
     const { data: investmentsList = [], isLoading } = useInvestments();
     const { mutate: saveInvestment } = useSaveInvestment();
     const { mutate: deleteInvestment, isPending: isDeleting } = useDeleteInvestment();
@@ -181,6 +184,11 @@ export const InvestmentsSection = () => {
     };
 
     const handleDeepAnalysis = async () => {
+        if (!isPremium) {
+            setActiveDialog("upgrade-plan");
+            return;
+        }
+
         setIsAnalyzing(true);
         setAiAnalysis(null);
         const summary = {
@@ -199,7 +207,15 @@ export const InvestmentsSection = () => {
         }
     };
 
-    // TELA DE CARREGAMENTO (Resolve a percepção de demora)
+    const handleNewAssetClick = () => {
+        if (!isPremium) {
+            setActiveDialog("upgrade-plan");
+            return;
+        }
+        setInvestmentToEdit(null);
+        setActiveDialog("add-investment");
+    };
+
     if (isLoading) {
         return (
             <div className="flex flex-col h-[400px] items-center justify-center gap-4 animate-pulse">
@@ -211,36 +227,7 @@ export const InvestmentsSection = () => {
 
     return (
         <div className="space-y-6 animate-in fade-in duration-700 pb-10 text-left">
-            <TutorialWizard
-                tutorialKey="investments-page"
-                steps={[
-                    {
-                        element: '#investment-tabs-list',
-                        title: 'Modos de Visão',
-                        description: 'Alterne entre sua estratégia ideal e a lista detalhada dos seus ativos.'
-                    },
-                    {
-                        element: '#agent-insight-card',
-                        title: 'Agente Financeiro',
-                        description: 'Nossa inteligência analisa o equilíbrio da sua carteira e sugere exatamente onde você deve focar seu próximo aporte.'
-                    },
-                    {
-                        element: '#allocation-target-card',
-                        title: 'Alocação Atual vs Alvo',
-                        description: 'Aqui você compara sua realidade com seu objetivo. O primeiro número representa qual a porcentagem real desse ativo na sua carteira hoje. O segundo número indica o limite máximo sugerido pelo seu perfil. Se o primeiro for maior que o segundo, significa que você está com excesso de exposição nesta categoria.'
-                    },
-                    {
-                        element: '#portfolio-card',
-                        title: 'Patrimônio Total',
-                        description: 'O valor total acumulado em todos os seus investimentos registrados no CashZ.'
-                    },
-                    {
-                        element: '#btn-add-investment',
-                        title: 'Novo Ativo',
-                        description: 'Adicione novos investimentos ou atualize os atuais para que o sistema recalcule sua estratégia instantaneamente.'
-                    }
-                ]}
-            />
+            <TutorialWizard tutorialKey="investments-page" steps={[]} />
 
             <Tabs defaultValue="overview" className="space-y-6 text-left">
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -251,9 +238,10 @@ export const InvestmentsSection = () => {
 
                     <Button
                         id="btn-add-investment"
-                        onClick={() => { setInvestmentToEdit(null); setActiveDialog("add-investment"); }}
+                        onClick={handleNewAssetClick}
                         className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold"
                     >
+                        {!isPremium && <Lock className="mr-2 h-3 w-3" />}
                         <Plus className="mr-2 h-4 w-4" /> Novo Ativo
                     </Button>
                 </div>
@@ -280,6 +268,7 @@ export const InvestmentsSection = () => {
                                     onClick={handleDeepAnalysis}
                                     disabled={isAnalyzing}
                                 >
+                                    {!isPremium && <Lock className="h-3 w-3" />}
                                     {isAnalyzing ? <Loader2 className="h-3 w-3 animate-spin" /> : <Zap className="h-3 w-3 fill-current" />}
                                     Análise Profunda
                                 </Button>
@@ -304,7 +293,6 @@ export const InvestmentsSection = () => {
                                     <p className="text-sm text-emerald-800 italic">Sua carteira está equilibrada seguindo seu perfil.</p>
                                 )}
 
-                                {/* Botão Mobile */}
                                 {!aiAnalysis && (
                                     <Button
                                         size="sm"
@@ -312,6 +300,7 @@ export const InvestmentsSection = () => {
                                         onClick={handleDeepAnalysis}
                                         disabled={isAnalyzing}
                                     >
+                                        {!isPremium && <Lock className="h-4 w-4" />}
                                         {isAnalyzing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Zap className="h-4 w-4 fill-current" />}
                                         Solicitar Análise Profunda IA
                                     </Button>
@@ -381,10 +370,8 @@ export const InvestmentsSection = () => {
                             <CardTitle>Meus Ativos</CardTitle>
                             <CardDescription>Gerencie suas posições e realize novos aportes.</CardDescription>
                         </CardHeader>
-
                         <CardContent className="p-0 md:p-6">
                             <div className="max-h-[600px] overflow-y-auto scrollbar-thin scrollbar-thumb-muted-foreground/20 px-4 md:px-0">
-                                {/* TABELAS E CARDS MANTIDOS IGUAIS ... */}
                                 <div className="hidden md:block text-left">
                                     <table className="w-full text-sm">
                                         <thead className="sticky top-0 bg-background z-10 shadow-sm">
@@ -414,15 +401,13 @@ export const InvestmentsSection = () => {
                                                     </td>
                                                     <td className="px-2">
                                                         <span className="text-[10px] bg-muted px-2 py-1 rounded-full font-bold uppercase whitespace-nowrap">
-                                                            {inv.category === 'fixed' ? 'Renda Fixa' : inv.category}
+                                                            {CATEGORY_LABELS[inv.category]}
                                                         </span>
                                                     </td>
                                                     <td className="px-2 text-right text-muted-foreground whitespace-nowrap">{formatTransactionAmount(inv.amountInvested)}</td>
                                                     <td className="px-2 text-right font-bold whitespace-nowrap">{formatTransactionAmount(inv.currentValue)}</td>
                                                     <td className={cn("px-2 text-right font-bold whitespace-nowrap", profit >= 0 ? "text-emerald-600" : "text-rose-600")}>
-                                                        <div className="flex flex-col items-end">
-                                                            <span>{profitPct > 0 ? "+" : ""}{profitPct.toFixed(2)}%</span>
-                                                        </div>
+                                                        <span>{profitPct > 0 ? "+" : ""}{profitPct.toFixed(2)}%</span>
                                                     </td>
                                                     <td className="px-2 text-right">
                                                         <div className="flex justify-end gap-1">
@@ -430,7 +415,10 @@ export const InvestmentsSection = () => {
                                                                 variant="ghost"
                                                                 size="icon"
                                                                 className="h-8 w-8 text-emerald-600 hover:bg-emerald-50"
-                                                                onClick={() => { setInvestmentToEdit(inv); setActiveDialog("add-investment"); }}
+                                                                onClick={() => {
+                                                                    if (!isPremium) { setActiveDialog("upgrade-plan"); return; }
+                                                                    setInvestmentToEdit(inv); setActiveDialog("add-investment");
+                                                                }}
                                                             >
                                                                 <Plus className="h-4 w-4" />
                                                             </Button>
@@ -453,60 +441,47 @@ export const InvestmentsSection = () => {
                                         </tbody>
                                     </table>
                                 </div>
-
                                 <div className="grid grid-cols-1 gap-3 p-4 md:hidden">
-                                    {investmentsList.map((inv) => {
-                                        return (
-                                            <div
-                                                key={inv.id}
-                                                className="bg-muted/30 border rounded-xl p-4 space-y-3 active:scale-[0.98] transition-all cursor-pointer relative"
-                                                onClick={() => { setInvestmentToEdit(inv); setActiveDialog("add-investment"); }}
-                                            >
-                                                <div className="flex justify-between items-start">
-                                                    <div className="flex gap-3">
-                                                        <div className="p-2 bg-white rounded-lg border shadow-sm"><Landmark className="h-5 w-5 text-emerald-600" /></div>
-                                                        <div className="text-left">
-                                                            <p className="font-bold text-sm leading-tight">{inv.name}</p>
-                                                            <p className="text-[10px] text-muted-foreground">{inv.institution}</p>
-                                                        </div>
-                                                    </div>
-                                                    <div className="flex gap-1">
-                                                        <Button
-                                                            variant="ghost"
-                                                            size="icon"
-                                                            className="h-8 w-8 text-emerald-600"
-                                                            onClick={() => { setInvestmentToEdit(inv); setActiveDialog("add-investment"); }}
-                                                        >
-                                                            <Plus className="h-4 w-4" />
-                                                        </Button>
-                                                        <Button
-                                                            variant="ghost"
-                                                            size="icon"
-                                                            className="h-8 w-8 text-red-500"
-                                                            onClick={() => {
-                                                                setInvestmentToDelete(inv);
-                                                                setActiveDialog("confirm-dialog");
-                                                            }}
-                                                        >
-                                                            <Trash2 className="h-4 w-4" />
-                                                        </Button>
+                                    {investmentsList.map((inv) => (
+                                        <div
+                                            key={inv.id}
+                                            className="bg-muted/30 border rounded-xl p-4 space-y-3 active:scale-[0.98] transition-all cursor-pointer relative"
+                                            onClick={() => {
+                                                if (!isPremium) { setActiveDialog("upgrade-plan"); return; }
+                                                setInvestmentToEdit(inv); setActiveDialog("add-investment");
+                                            }}
+                                        >
+                                            <div className="flex justify-between items-start">
+                                                <div className="flex gap-3">
+                                                    <div className="p-2 bg-white rounded-lg border shadow-sm"><Landmark className="h-5 w-5 text-emerald-600" /></div>
+                                                    <div className="text-left">
+                                                        <p className="font-bold text-sm leading-tight">{inv.name}</p>
+                                                        <p className="text-[10px] text-muted-foreground">{inv.institution}</p>
                                                     </div>
                                                 </div>
-
-                                                <div className="grid grid-cols-2 gap-4 pt-2 border-t border-dashed">
-                                                    <div className="text-left">
-                                                        <p className="text-[9px] uppercase font-bold text-muted-foreground tracking-tighter">Valor Atual</p>
-                                                        <p className="text-sm font-bold text-slate-900">{formatTransactionAmount(inv.currentValue)}</p>
-                                                    </div>
-                                                    <div className="text-right flex flex-col justify-end">
+                                                <div className="flex gap-1">
+                                                    <Button variant="ghost" size="icon" className="h-8 w-8 text-red-500" onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        setInvestmentToDelete(inv);
+                                                        setActiveDialog("confirm-dialog");
+                                                    }}>
+                                                        <Trash2 className="h-4 w-4" />
+                                                    </Button>
+                                                </div>
+                                            </div>
+                                            <div className="grid grid-cols-2 gap-4 pt-2 border-t border-dashed">
+                                                <div className="text-left">
+                                                    <p className="text-[9px] uppercase font-bold text-muted-foreground tracking-tighter">Valor Atual</p>
+                                                    <p className="text-sm font-bold text-slate-900">{formatTransactionAmount(inv.currentValue)}</p>
+                                                </div>
+                                                <div className="text-right flex flex-col justify-end">
                                                     <span className="text-[9px] bg-white border px-2 py-0.5 rounded-full font-bold uppercase text-muted-foreground inline-block">
                                                         {CATEGORY_LABELS[inv.category]}
                                                     </span>
-                                                    </div>
                                                 </div>
                                             </div>
-                                        );
-                                    })}
+                                        </div>
+                                    ))}
                                 </div>
                             </div>
                         </CardContent>
@@ -523,6 +498,10 @@ export const InvestmentsSection = () => {
                 isLoading={isDeleting}
                 variant="destructive"
             />
+
+            {activeDialog === "upgrade-plan" && (
+                <UpgradePlanModal isOpen={true} onClose={() => setActiveDialog(null)} />
+            )}
         </div>
     );
 };

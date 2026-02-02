@@ -1,6 +1,4 @@
-"use client"
-
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { db, auth } from "../../firebase";
 import { Budget } from "@/model/types/Budget";
 import {
@@ -15,10 +13,14 @@ import {
     getDoc
 } from "firebase/firestore/lite";
 import { useToast } from "@/hooks/use-toast";
+import { useDialogManager } from "@/context/DialogManagerContext";
+
+export const FREE_BUDGET_LIMIT = 2;
 
 export const useBudgets = (month?: number, year?: number) => {
     const queryClient = useQueryClient();
     const { toast } = useToast();
+    const { setActiveDialog } = useDialogManager();
     const user = auth.currentUser;
 
     const getAllowedUserIds = async (): Promise<string[]> => {
@@ -64,11 +66,37 @@ export const useBudgets = (month?: number, year?: number) => {
     const saveBudgetMutation = useMutation({
         mutationFn: async (payload: Omit<Budget, 'id' | 'userId'> & { replicateAllMonths?: boolean }) => {
             if (!user || !db) throw new Error("Usuário não autenticado");
+
+            const userPrefsRef = doc(db, "user_preferences", user.uid);
+            const userPrefsSnap = await getDoc(userPrefsRef);
+            const plan = userPrefsSnap.data()?.plan || "free";
+
             const budgetsRef = collection(db, "budgets");
+
+            // --- CORREÇÃO DO FURO E BLOQUEIO DE RÉPLICA ---
+            if (plan === "free") {
+                // 1. Bloqueia a réplica automática para Free
+                if (payload.replicateAllMonths) {
+                    throw new Error("REPLICATE_PREMIUM_ONLY");
+                }
+
+                // 2. Verifica limite do mês específico
+                const qLimit = query(budgetsRef,
+                    where("userId", "==", user.uid),
+                    where("month", "==", payload.month),
+                    where("year", "==", payload.year)
+                );
+                const snapLimit = await getDocs(qLimit);
+                const alreadyExists = snapLimit.docs.some(d => d.data().categoryId === payload.categoryId);
+
+                if (!alreadyExists && snapLimit.size >= FREE_BUDGET_LIMIT) {
+                    throw new Error("LIMIT_REACHED");
+                }
+            }
+
             const targetMonths = payload.replicateAllMonths ? Array.from({ length: 12 }, (_, i) => i + 1) : [payload.month];
 
             const promises = targetMonths.map(async (m) => {
-                // Buscamos se JÁ EXISTE um orçamento para ESTE usuário específico nesta categoria/mês
                 const q = query(budgetsRef,
                     where("userId", "==", user.uid),
                     where("categoryId", "==", payload.categoryId),
@@ -93,7 +121,7 @@ export const useBudgets = (month?: number, year?: number) => {
                         month: m,
                         year: payload.year,
                         userId: user.uid,
-                        ownerEmail: user.email // Importante para o filtro visual
+                        ownerEmail: user.email
                     });
                 }
             });
@@ -104,15 +132,29 @@ export const useBudgets = (month?: number, year?: number) => {
             queryClient.invalidateQueries({ queryKey: ["budgets"] });
             toast({ title: "Sucesso!", description: "Orçamento atualizado." });
         },
-        onError: (error) => {
-            console.error("Erro ao salvar orçamento:", error);
-            toast({ variant: "destructive", title: "Erro!", description: "Não foi possível salvar a meta." });
+        onError: (error: any) => {
+            if (error.message === "LIMIT_REACHED") {
+                setActiveDialog("upgrade-plan");
+                toast({
+                    variant: "destructive",
+                    title: "Limite atingido",
+                    description: `Planos gratuitos podem configurar até ${FREE_BUDGET_LIMIT} metas por mês.`
+                });
+            } else if (error.message === "REPLICATE_PREMIUM_ONLY") {
+                setActiveDialog("upgrade-plan");
+                toast({
+                    variant: "destructive",
+                    title: "Recurso Premium",
+                    description: "A replicação automática de metas para todos os meses é exclusiva para membros Premium."
+                });
+            } else {
+                toast({ variant: "destructive", title: "Erro!", description: "Não foi possível salvar a meta." });
+            }
         }
     });
 
     const deleteBudgetMutation = useMutation({
         mutationFn: async (budgetId: string) => {
-            if (!db) throw new Error("DB offline");
             const docRef = doc(db, "budgets", budgetId);
             await deleteDoc(docRef);
         },

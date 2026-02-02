@@ -1,6 +1,6 @@
 "use client"
 
-import {CircleDollarSign, Search, SquarePen, Trash, Users} from 'lucide-react';
+import {CircleDollarSign, Search, SquarePen, Trash, Users, Lock} from 'lucide-react';
 import {useDeleteTransaction, useUpdateTransaction} from "@/hooks/useTransactions";
 import {Transaction} from "@/model/types/Transaction.ts";
 import {useDialogManager} from "@/context/DialogManagerContext.tsx";
@@ -35,6 +35,15 @@ export const TransactionList = ({ transactions }: TransactionListProps) => {
     };
 
     const handleDeleteClick = (transaction: Transaction) => {
+        // Bloqueio: Não permite deletar se não for o dono
+        if (transaction.owner.id !== currentUser?.id) {
+            toast({
+                title: "Acesso restrito",
+                description: "Você não tem permissão para excluir transações de outros usuários.",
+                variant: "destructive"
+            });
+            return;
+        }
         setTransactionToDelete(transaction);
         setActiveDialog("delete-finance");
     };
@@ -54,11 +63,35 @@ export const TransactionList = ({ transactions }: TransactionListProps) => {
     };
 
     const handleStatusUpdate = (transaction: Transaction) => {
+        // Bloqueio: Não permite alterar status se não for o dono
+        if (transaction.owner.id !== currentUser?.id) {
+            toast({
+                title: "Acesso restrito",
+                description: "Apenas o proprietário pode alterar o status desta transação.",
+                variant: "destructive"
+            });
+            return;
+        }
+
         const newStatus = transaction.status === 'PENDENTE'
             ? (transaction.type === 'RECEITA' ? 'RECEBIDA' as const : 'PAGA' as const)
             : 'PENDENTE' as const;
 
         updateTransaction({ id: transaction.id, data: { ...transaction, status: newStatus } });
+    };
+
+    const handleEditClick = (transaction: Transaction) => {
+        // Bloqueio: Não permite editar se não for o dono
+        if (transaction.owner.id !== currentUser?.id) {
+            toast({
+                title: "Acesso restrito",
+                description: "Somente o proprietário pode editar esta transação.",
+                variant: "destructive"
+            });
+            return;
+        }
+        setSelectedTransaction(transaction);
+        setActiveDialog("edit-finance");
     };
 
     if (transactions.length === 0) {
@@ -91,16 +124,15 @@ export const TransactionList = ({ transactions }: TransactionListProps) => {
                                 key={transaction.id}
                                 className={cn(
                                     "flex flex-col md:grid md:grid-cols-[1.5fr_1fr_1fr_120px] gap-2 md:gap-4 p-4 items-start md:items-center hover:bg-muted/50 transition-colors",
-                                    // Borda Verde (Dono) / Azul (Compartilhado)
                                     isShared
-                                        ? "border-l-[6px] border-l-blue-500 bg-blue-50/5"
+                                        ? "border-l-[6px] border-l-blue-500 bg-blue-50/5 opacity-80" // Opacidade reduzida para itens que não são dele
                                         : "border-l-[6px] border-l-emerald-500 bg-emerald-50/5 md:bg-transparent"
                                 )}
                             >
                                 <div className="flex justify-between items-start w-full md:block">
                                     <div className="flex flex-col text-left">
                                         <div className="flex items-center gap-2">
-                                            <span className="text-sm md:text-base  text-slate-900">{transaction.description}</span>
+                                            <span className="text-sm md:text-base text-slate-900 font-medium">{transaction.description}</span>
                                             {isShared && (
                                                 <span className="text-[9px] bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded-full uppercase flex items-center gap-1 shrink-0 ">
                                                     <Users className="h-2.5 w-2.5" /> {transaction.owner.name.split(' ')[0]}
@@ -109,7 +141,7 @@ export const TransactionList = ({ transactions }: TransactionListProps) => {
                                         </div>
                                         <span className="text-xs text-muted-foreground md:hidden">{transaction.category.name}</span>
                                     </div>
-                                    <div className={cn("md:hidden text-sm ", transaction.type === 'RECEITA' ? 'text-emerald-600' : 'text-rose-600')}>
+                                    <div className={cn("md:hidden text-sm font-bold", transaction.type === 'RECEITA' ? 'text-emerald-600' : 'text-rose-600')}>
                                         {formatCurrency(transaction.amount, transaction.type)}
                                     </div>
                                 </div>
@@ -118,43 +150,53 @@ export const TransactionList = ({ transactions }: TransactionListProps) => {
                                     {transaction.category.name}
                                 </div>
 
-                                <div className={cn("hidden md:block text-right ", transaction.type === 'RECEITA' ? 'text-emerald-600' : 'text-rose-600')}>
+                                <div className={cn("hidden md:block text-right font-bold", transaction.type === 'RECEITA' ? 'text-emerald-600' : 'text-rose-600')}>
                                     {formatCurrency(transaction.amount, transaction.type)}
                                 </div>
 
                                 <div className="flex items-center justify-between md:justify-end w-full md:w-auto gap-2 mt-2 md:mt-0 pt-2 md:pt-0 border-t md:border-none border-dashed border-muted-foreground/20">
-                                    <span className="text-[10px]  text-muted-foreground md:hidden uppercase tracking-tighter">Gerenciar</span>
+                                    <span className="text-[10px] text-muted-foreground md:hidden uppercase tracking-tighter">Gerenciar</span>
+
                                     <div className="flex items-center gap-3">
-                                        <Tooltip>
-                                            <TooltipTrigger asChild>
-                                                <CircleDollarSign
-                                                    className={cn(
-                                                        "w-5 h-5 md:w-4 md:h-4 cursor-pointer transition-colors",
-                                                        (transaction.status === 'PAGA' || transaction.status === 'RECEBIDA')
-                                                            ? 'text-emerald-500'
-                                                            : 'text-amber-400 hover:text-amber-500'
-                                                    )}
-                                                    onClick={() => handleStatusUpdate(transaction)}
+                                        {/* Se for compartilhado, mostramos um ícone de cadeado ou desabilitamos as ações visuais */}
+                                        {isShared ? (
+                                            <Tooltip>
+                                                <TooltipTrigger asChild>
+                                                    <Lock className="w-4 h-4 text-slate-300 cursor-not-allowed" />
+                                                </TooltipTrigger>
+                                                <TooltipContent>Somente leitura</TooltipContent>
+                                            </Tooltip>
+                                        ) : (
+                                            <>
+                                                <Tooltip>
+                                                    <TooltipTrigger asChild>
+                                                        <CircleDollarSign
+                                                            className={cn(
+                                                                "w-5 h-5 md:w-4 md:h-4 cursor-pointer transition-colors",
+                                                                (transaction.status === 'PAGA' || transaction.status === 'RECEBIDA')
+                                                                    ? 'text-emerald-500'
+                                                                    : 'text-amber-400 hover:text-amber-500'
+                                                            )}
+                                                            onClick={() => handleStatusUpdate(transaction)}
+                                                        />
+                                                    </TooltipTrigger>
+                                                    <TooltipContent className="bg-slate-900 text-white text-xs ">Status</TooltipContent>
+                                                </Tooltip>
+
+                                                <SquarePen
+                                                    className="w-5 h-5 md:w-4 md:h-4 text-blue-500 hover:text-blue-600 cursor-pointer"
+                                                    onClick={() => handleEditClick(transaction)}
                                                 />
-                                            </TooltipTrigger>
-                                            <TooltipContent className="bg-slate-900 text-white text-xs ">Status</TooltipContent>
-                                        </Tooltip>
 
-                                        <SquarePen
-                                            className="w-5 h-5 md:w-4 md:h-4 text-blue-500 hover:text-blue-600 cursor-pointer"
-                                            onClick={() => {
-                                                setSelectedTransaction(transaction);
-                                                setActiveDialog("edit-finance");
-                                            }}
-                                        />
-
-                                        <Trash
-                                            className="w-5 h-5 md:w-4 md:h-4 text-rose-500 hover:text-rose-600 cursor-pointer"
-                                            onClick={(e) => {
-                                                e.stopPropagation();
-                                                handleDeleteClick(transaction);
-                                            }}
-                                        />
+                                                <Trash
+                                                    className="w-5 h-5 md:w-4 md:h-4 text-rose-500 hover:text-rose-600 cursor-pointer"
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        handleDeleteClick(transaction);
+                                                    }}
+                                                />
+                                            </>
+                                        )}
                                     </div>
                                 </div>
                             </div>

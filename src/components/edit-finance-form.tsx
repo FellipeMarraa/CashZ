@@ -1,3 +1,5 @@
+"use client"
+
 import {Dialog, DialogContent, DialogHeader, DialogTitle} from "@/components/ui/dialog";
 import {Input} from "@/components/ui/input";
 import {Button} from "@/components/ui/button";
@@ -11,6 +13,9 @@ import {useCategories} from "@/hooks/useCategories.ts";
 import {useToast} from "@/hooks/use-toast.ts";
 import {Transaction} from "@/model/types/Transaction";
 import {NumericFormat} from "react-number-format";
+import {useUserPreferences} from "@/hooks/useUserPreferences";
+import {useAuth} from "@/context/AuthContext";
+import {Lock} from "lucide-react";
 
 interface EditFinanceFormProps {
     transaction: Transaction;
@@ -18,6 +23,8 @@ interface EditFinanceFormProps {
 }
 
 export const EditFinanceForm = ({ transaction, onClose }: EditFinanceFormProps) => {
+    const { user } = useAuth();
+    const { isPremium } = useUserPreferences(user?.id);
     const { activeDialog, setActiveDialog } = useDialogManager();
     const isOpen = activeDialog === "edit-finance";
 
@@ -44,6 +51,11 @@ export const EditFinanceForm = ({ transaction, onClose }: EditFinanceFormProps) 
                     description: "Todos os campos obrigatórios devem ser preenchidos.",
                     duration: 3000,
                 });
+                return;
+            }
+
+            if (!isPremium && recurrence !== "UNICO") {
+                setActiveDialog("upgrade-plan");
                 return;
             }
 
@@ -98,14 +110,6 @@ export const EditFinanceForm = ({ transaction, onClose }: EditFinanceFormProps) 
                             duration: 3000,
                         });
                         onClose();
-                    },
-                    onError: (error) => {
-                        toast({
-                            variant: "destructive",
-                            title: "Erro ao atualizar transação",
-                            description: `${error instanceof Error ? error.message : String(error)}`,
-                            duration: 3000,
-                        });
                     }
                 }
             );
@@ -236,7 +240,13 @@ export const EditFinanceForm = ({ transaction, onClose }: EditFinanceFormProps) 
                             <Label>Recorrência</Label>
                             <Select
                                 value={recurrence}
-                                onValueChange={(value: "UNICO" | "PARCELADO" | "FIXO") => setRecurrence(value)}
+                                onValueChange={(value: any) => {
+                                    if (!isPremium && value !== "UNICO") {
+                                        setActiveDialog("upgrade-plan");
+                                        return;
+                                    }
+                                    setRecurrence(value);
+                                }}
                                 required
                             >
                                 <SelectTrigger className="w-full">
@@ -244,13 +254,17 @@ export const EditFinanceForm = ({ transaction, onClose }: EditFinanceFormProps) 
                                 </SelectTrigger>
                                 <SelectContent>
                                     <SelectItem value="UNICO">Único</SelectItem>
-                                    <SelectItem value="PARCELADO">Parcelado</SelectItem>
-                                    <SelectItem value="FIXO">Fixo</SelectItem>
+                                    <SelectItem value="PARCELADO">
+                                        Parcelado {!isPremium && <Lock className="ml-2 h-3 w-3 inline text-amber-500" />}
+                                    </SelectItem>
+                                    <SelectItem value="FIXO">
+                                        Fixo {!isPremium && <Lock className="ml-2 h-3 w-3 inline text-amber-500" />}
+                                    </SelectItem>
                                 </SelectContent>
                             </Select>
                         </div>
 
-                        {recurrence === "PARCELADO" && (
+                        {recurrence === "PARCELADO" && isPremium && (
                             <div className="grid gap-1.5 animate-in fade-in">
                                 <Label>Parcelas</Label>
                                 <Input

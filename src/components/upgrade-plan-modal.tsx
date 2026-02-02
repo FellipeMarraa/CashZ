@@ -7,40 +7,25 @@ import { Input } from "@/components/ui/input"
 import { ShieldCheck, Zap, Star, Ticket, Loader2, Sparkles } from "lucide-react"
 import { useUserPreferences } from "@/hooks/useUserPreferences"
 import { useAuth } from "@/context/AuthContext"
-import {toast} from "@/hooks/use-toast.ts";
+import { toast } from "@/hooks/use-toast.ts";
 
 export const UpgradePlanModal = ({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) => {
     const { user } = useAuth();
     const { redeemCoupon, isRedeeming } = useUserPreferences(user?.id);
     const [couponInput, setCouponInput] = useState("");
     const [showCouponField, setShowCouponField] = useState(false);
-    const [, setLoadingPlan] = useState<string | null>(null);
+    const [loadingPlan, setLoadingPlan] = useState<string | null>(null);
+
     const handleRedeem = async () => {
         if (!couponInput) return;
         try {
             await redeemCoupon(couponInput);
             setCouponInput("");
             onClose();
-            // eslint-disable-next-line @typescript-eslint/no-unused-vars
         } catch (e) {
-            // Erro já tratado pelo toast do hook
+            // Erro tratado pelo toast do hook
         }
     };
-
-    // const handlePayment = (baseLink: string) => {
-    //     if (!user?.id) return;
-    //
-    //     // O Mercado Pago aceita o parâmetro external_reference na URL para identificar o cliente no retorno
-    //     const checkoutUrl = `${baseLink}?external_reference=${user.id}`;
-    //
-    //     // Redireciona o usuário para o pagamento
-    //     window.open(checkoutUrl, '_blank');
-    //
-    //     toast({
-    //         title: "Aguardando pagamento",
-    //         description: "Assim que aprovado, seu plano será ativado automaticamente.",
-    //     });
-    // };
 
     const handlePayment = async (planType: 'premium' | 'annual', price: number) => {
         if (!user?.id) return;
@@ -56,13 +41,13 @@ export const UpgradePlanModal = ({ isOpen, onClose }: { isOpen: boolean; onClose
             const data = await response.json();
 
             if (data.init_point) {
-                window.location.href = data.init_point; // Redireciona para o link gerado
+                window.location.href = data.init_point;
+            } else {
+                throw new Error("Ponto de início não encontrado");
             }
-            // eslint-disable-next-line @typescript-eslint/no-unused-vars
         } catch (error) {
             toast({ title: "Erro", description: "Não foi possível gerar o link de pagamento.", variant: "destructive" });
-        } finally {
-            setLoadingPlan(null);
+            setLoadingPlan(null); // Só limpa o loading se houver erro, pois no sucesso a página redireciona
         }
     };
 
@@ -104,24 +89,42 @@ export const UpgradePlanModal = ({ isOpen, onClose }: { isOpen: boolean; onClose
                             <div className="absolute -top-2 -right-2 z-10 bg-emerald-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1 shadow-sm">
                                 <Sparkles className="h-2 w-2 fill-white" /> ECONOMIZE 20%
                             </div>
-                            {/* BOTÃO ANUAL - Usando link Anual */}
-                            <Button className="w-full bg-slate-900 hover:bg-slate-800 text-white h-14 rounded-xl flex flex-col items-center justify-center gap-0 group-hover:scale-[1.02] transition-all"
-                                    onClick={() => handlePayment('annual', 129.90)}>
-                                <span className="text-sm font-bold">Plano Anual</span>
-                                <span className="text-[10px] opacity-70 font-normal">R$ 129,90 / ano</span>
+
+                            <Button
+                                className="w-full bg-slate-900 hover:bg-slate-800 text-white h-14 rounded-xl flex flex-col items-center justify-center gap-0 transition-all disabled:opacity-80"
+                                onClick={() => handlePayment('annual', 129.90)}
+                                disabled={loadingPlan !== null}
+                            >
+                                {loadingPlan === 'annual' ? (
+                                    <Loader2 className="h-5 w-5 animate-spin" />
+                                ) : (
+                                    <>
+                                        <span className="text-sm font-bold">Plano Anual</span>
+                                        <span className="text-[10px] opacity-70 font-normal">R$ 129,90 / ano</span>
+                                    </>
+                                )}
                             </Button>
                         </div>
 
-                        {/* BOTÃO MENSAL - Usando link Mensal */}
-                        <Button variant="outline" className="w-full border-slate-200 hover:bg-slate-50 text-slate-700 h-12 rounded-xl flex flex-col items-center justify-center gap-0"
-                                onClick={() => handlePayment('premium', 14.90)}>
-                            <span className="text-sm font-bold">Plano Mensal</span>
-                            <span className="text-[10px] text-slate-500 font-normal">R$ 14,90 / mês</span>
+                        <Button
+                            variant="outline"
+                            className="w-full border-slate-200 hover:bg-slate-50 text-slate-700 h-14 rounded-xl flex flex-col items-center justify-center gap-0 disabled:opacity-80"
+                            onClick={() => handlePayment('premium', 14.90)}
+                            disabled={loadingPlan !== null}
+                        >
+                            {loadingPlan === 'premium' ? (
+                                <Loader2 className="h-5 w-5 animate-spin text-emerald-600" />
+                            ) : (
+                                <>
+                                    <span className="text-sm font-bold">Plano Mensal</span>
+                                    <span className="text-[10px] text-slate-500 font-normal">R$ 14,90 / mês</span>
+                                </>
+                            )}
                         </Button>
                     </div>
 
                     {/* Cupom */}
-                    <div className="pt-2 border-t">
+                    <div className="pt-2 border-t text-left">
                         {!showCouponField ? (
                             <button
                                 onClick={() => setShowCouponField(true)}
@@ -138,7 +141,7 @@ export const UpgradePlanModal = ({ isOpen, onClose }: { isOpen: boolean; onClose
                                     className="h-10 uppercase font-mono text-center tracking-widest border-emerald-100 focus-visible:ring-emerald-500"
                                 />
                                 <Button
-                                    className="bg-emerald-600 hover:bg-emerald-700 h-10 px-4"
+                                    className="bg-emerald-600 hover:bg-emerald-700 h-10 px-4 font-bold"
                                     onClick={handleRedeem}
                                     disabled={isRedeeming || !couponInput}
                                 >

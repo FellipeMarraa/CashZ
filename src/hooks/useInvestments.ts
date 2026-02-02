@@ -9,13 +9,14 @@ import {
     query,
     where,
     getDocs,
-    serverTimestamp, deleteDoc
-} from 'firebase/firestore/lite'; // Padronizado para Lite como seu exemplo
+    getDoc,
+    serverTimestamp,
+    deleteDoc
+} from 'firebase/firestore/lite';
 import { InvestmentItem } from "@/components/dashboard/sections/investments-section.tsx";
 
 const COLLECTION_NAME = 'investments';
 
-// --- FUN√á√ÉO DE LIMPEZA (Crucial para evitar erros de undefined no Firebase) ---
 const sanitizeData = (data: any) => {
     const cleanData = { ...data };
     Object.keys(cleanData).forEach(key => {
@@ -50,11 +51,21 @@ const api = {
 
     async saveInvestment(data: any): Promise<void> {
         const user = auth.currentUser;
-        if (!user) throw new Error("Usu√°rio n√£o autenticado");
+        if (!user) throw new Error("Usu·rio n„o autenticado");
 
         const { id, ...rest } = data;
 
-        // Prepara o payload removendo IDs e campos undefined
+        // --- TRAVA DE SEGURAN«A NO BACKEND (HOOK) ---
+        const userPrefsRef = doc(db, "user_preferences", user.uid);
+        const userPrefsSnap = await getDoc(userPrefsRef);
+        const plan = userPrefsSnap.data()?.plan || "free";
+
+        // Se n„o houver ID, È uma tentativa de criaÁ„o de novo ativo
+        if (!id && plan !== "premium") {
+            throw new Error("PREMIUM_REQUIRED");
+        }
+        // --------------------------------------------
+
         const payload = sanitizeData({
             ...rest,
             userId: user.uid,
@@ -63,11 +74,9 @@ const api = {
 
         try {
             if (id) {
-                // Update
                 const docRef = doc(db, COLLECTION_NAME, id);
                 await updateDoc(docRef, payload);
             } else {
-                // Create
                 const collectionRef = collection(db, COLLECTION_NAME);
                 await addDoc(collectionRef, {
                     ...payload,
@@ -80,7 +89,6 @@ const api = {
         }
     },
 
-    // --- NOVA FUN«√O DE EXCLUS√O ---
     async deleteInvestment(id: string): Promise<void> {
         const user = auth.currentUser;
         if (!user) throw new Error("Usu·rio n„o autenticado");
@@ -94,8 +102,6 @@ const api = {
         }
     }
 };
-
-// --- HOOKS ---
 
 export const useInvestments = () => {
     const { user } = useAuth();
@@ -113,11 +119,10 @@ export const useSaveInvestment = () => {
     return useMutation({
         mutationFn: (data: any) => api.saveInvestment(data),
         onSuccess: () => {
-            // Invalida o cache para for√ßar o componente a reler os dados do banco
             queryClient.invalidateQueries({ queryKey: ['investments'] });
         },
-        onError: (error) => {
-            console.error("Erro na muta√ß√£o de investimento:", error);
+        onError: (error: any) => {
+            console.error("Erro na mutaÁ„o de investimento:", error.message);
         }
     });
 };
@@ -126,13 +131,7 @@ export const useDeleteInvestment = () => {
     const queryClient = useQueryClient();
 
     return useMutation({
-        mutationFn: async (id: string) => {
-            const user = auth.currentUser;
-            if (!user) throw new Error("Usu√°rio n√£o autenticado");
-
-            const docRef = doc(db, 'investments', id);
-            await deleteDoc(docRef);
-        },
+        mutationFn: (id: string) => api.deleteInvestment(id),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['investments'] });
         },

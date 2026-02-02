@@ -15,11 +15,11 @@ import {
     getDoc
 } from 'firebase/firestore/lite';
 import { useMemo } from "react";
+import { useDialogManager } from "@/context/DialogManagerContext";
 
 const COLLECTION_NAME = 'categories';
 
 const api = {
-    // Busca IDs de quem compartilhou dados com o usuário atual
     async getAllowedUserIds(): Promise<string[]> {
         const user = auth.currentUser;
         if (!user || !user.email) return [];
@@ -28,7 +28,8 @@ const api = {
             const shareRef = doc(db, 'sharing', emailId);
             const shareSnap = await getDoc(shareRef);
             if (shareSnap.exists()) {
-                return [user.uid, shareSnap.data().ownerId];
+                const data = shareSnap.data();
+                return [user.uid, data.ownerId];
             }
             return [user.uid];
         } catch (error) {
@@ -37,7 +38,6 @@ const api = {
         }
     },
 
-    // --- BUSCAR CATEGORIAS (DO USUÁRIO + COMPARTILHADAS + PADRÕES) ---
     async getCategories(): Promise<CategoryDTO[]> {
         const user = auth.currentUser;
         if (!user) return [];
@@ -54,6 +54,7 @@ const api = {
             where("isDefault", "==", true)
         );
 
+        // CORREÇÃO: Usando as queries corretas dentro do Promise.all
         const [userSnapshot, defaultSnapshot] = await Promise.all([
             getDocs(userQuery),
             getDocs(defaultQuery)
@@ -69,7 +70,6 @@ const api = {
             ...doc.data()
         })) as CategoryDTO[];
 
-        // Merge de categorias removendo possíveis duplicatas de ID
         const allCats = [...defaultCategories, ...userCategories];
         return Array.from(new Map(allCats.map(item => [item.id, item])).values());
     },
@@ -77,6 +77,15 @@ const api = {
     async createCategory(data: Omit<CategoryDTO, 'id'>): Promise<CategoryDTO> {
         const user = auth.currentUser;
         if (!user) throw new Error("Usuário não autenticado");
+
+        const userPrefsRef = doc(db, "user_preferences", user.uid);
+        const userPrefsSnap = await getDoc(userPrefsRef);
+        const plan = userPrefsSnap.data()?.plan || "free";
+
+        if (plan !== "premium") {
+            throw new Error("PREMIUM_REQUIRED");
+        }
+
         const newCategoryData = { ...data, userId: user.uid, isDefault: false };
         const docRef = await addDoc(collection(db, COLLECTION_NAME), newCategoryData);
         return { id: docRef.id, ...newCategoryData } as CategoryDTO;
@@ -137,9 +146,16 @@ export const useCategories = () => {
 
 export const useCreateCategory = () => {
     const queryClient = useQueryClient();
+    const { setActiveDialog } = useDialogManager();
+
     return useMutation({
         mutationFn: (data: Omit<CategoryDTO, 'id'>) => api.createCategory(data),
-        onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['categories-raw'] }); }
+        onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['categories-raw'] }); },
+        onError: (error: any) => {
+            if (error.message === "PREMIUM_REQUIRED") {
+                setActiveDialog("upgrade-plan");
+            }
+        }
     });
 };
 
@@ -179,15 +195,23 @@ export const useHiddenCategories = () => {
 export const useToggleCategoryVisibility = () => {
     const queryClient = useQueryClient();
     const user = auth.currentUser;
+
     return useMutation({
         mutationFn: async (categoryId: string) => {
             if (!user) return;
-            const q = query(collection(db, 'hidden_categories'), where("userId", "==", user.uid), where("categoryId", "==", categoryId));
+
+            const q = query(collection(db, 'hidden_categories'), where("userId", "==", user.uid));
             const snapshot = await getDocs(q);
-            if (!snapshot.empty) {
-                await deleteDoc(doc(db, 'hidden_categories', snapshot.docs[0].id));
+
+            const existingDoc = snapshot.docs.find(doc => doc.data().categoryId === categoryId);
+
+            if (existingDoc) {
+                await deleteDoc(doc(db, 'hidden_categories', existingDoc.id));
             } else {
-                await addDoc(collection(db, 'hidden_categories'), { userId: user.uid, categoryId: categoryId });
+                await addDoc(collection(db, 'hidden_categories'), {
+                    userId: user.uid,
+                    categoryId: categoryId
+                });
             }
         },
         onSuccess: () => {

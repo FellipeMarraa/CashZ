@@ -13,7 +13,7 @@ import {useDialogManager} from "@/context/DialogManagerContext";
 import {AddFinanceForm} from "@/components/add-finance-form";
 import {TransactionList} from "@/components/transaction-list.tsx";
 import {Transaction, TransactionType} from "@/model/types/Transaction.ts";
-import {useTransactions, useUpdateTransaction} from "@/hooks/useTransactions";
+import {useTransactions} from "@/hooks/useTransactions";
 import {TutorialWizard} from "@/components/tutorial-wizard";
 import {useAuth} from "@/context/AuthContext";
 import {useUserPreferences} from "@/hooks/useUserPreferences.ts";
@@ -32,9 +32,7 @@ export const TransactionsSection = () => {
     const { isPremium } = useUserPreferences(currentUser?.id);
 
     const itemsPerPage = 8;
-
     const {data: transactions = [], isLoading} = useTransactions(month, year);
-    useUpdateTransaction();
 
     useEffect(() => {
         setCurrentPage(1);
@@ -56,7 +54,6 @@ export const TransactionsSection = () => {
 
     const filteredTransactions = useMemo(() => {
         const normalizedQuery = normalizeString(searchQuery);
-
         return transactions
             .filter((t: Transaction) => {
                 const descriptionMatch = normalizeString(t.description).includes(normalizedQuery);
@@ -79,7 +76,6 @@ export const TransactionsSection = () => {
                     if (isAOwner && !isBOwner) return -1;
                     if (!isAOwner && isBOwner) return 1;
                 }
-
                 switch (sortOrder) {
                     case 'highest': return b.amount - a.amount;
                     case 'lowest': return a.amount - b.amount;
@@ -91,23 +87,17 @@ export const TransactionsSection = () => {
     }, [transactions, searchQuery, sortOrder, transactionType, selectedUser, currentUser]);
 
     const totalPages = Math.ceil(filteredTransactions.length / itemsPerPage);
-
-    const displayTransactions = filteredTransactions.slice(
-        (currentPage - 1) * itemsPerPage,
-        currentPage * itemsPerPage
-    );
+    const displayTransactions = filteredTransactions.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
     const generateYears = (startYear: number, endYear: number) => {
         return Array.from({length: endYear - startYear + 1}, (_, i) => startYear + i);
     };
 
     const exportData = (type: 'csv' | 'excel') => {
-
         if (!isPremium) {
             setActiveDialog("upgrade-plan");
             return;
         }
-
         if (type === 'csv') {
             const headers = ['Proprietário', 'Descrição', 'Valor', 'Mês', 'Ano', 'Tipo', 'Status', 'Categoria'];
             const rows = filteredTransactions.map(f => [
@@ -141,7 +131,7 @@ export const TransactionsSection = () => {
                 <CardHeader className="px-4 md:px-6">
                     <div className="flex flex-col xl:flex-row xl:items-end justify-between gap-4">
                         <div className="flex-1 w-full space-y-3">
-                            <div className="relative w-full" id="search-input">
+                            <div className="relative w-full">
                                 <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground"/>
                                 <Input
                                     placeholder="Procurar transações..."
@@ -152,25 +142,27 @@ export const TransactionsSection = () => {
                             </div>
 
                             <div className="flex flex-col sm:flex-row gap-2">
-                                <div className="w-full sm:w-[200px]" id="user-filter-transactions">
-                                    <Select value={selectedUser} onValueChange={setSelectedUser}>
-                                        <SelectTrigger className="w-full border-blue-500/20 bg-blue-50/10">
-                                            <div className="flex items-center gap-2">
-                                                <Users className="h-4 w-4 text-blue-500" />
-                                                <SelectValue placeholder="Proprietário" />
-                                            </div>
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            <SelectItem value="all">Todos os Usuários</SelectItem>
-                                            <SelectItem value="me">Apenas Eu</SelectItem>
-                                            {transactionUsers.map((u) => (
-                                                <SelectItem key={u.id} value={u.id}>{u.label}</SelectItem>
-                                            ))}
-                                        </SelectContent>
-                                    </Select>
-                                </div>
+                                {isPremium && (
+                                    <div className="w-full sm:w-[200px]">
+                                        <Select value={selectedUser} onValueChange={setSelectedUser}>
+                                            <SelectTrigger className="w-full border-blue-500/20 bg-blue-50/10">
+                                                <div className="flex items-center gap-2">
+                                                    <Users className="h-4 w-4 text-blue-500" />
+                                                    <SelectValue placeholder="Proprietário" />
+                                                </div>
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="all">Todos os Usuários</SelectItem>
+                                                <SelectItem value="me">Apenas Eu</SelectItem>
+                                                {transactionUsers.map((u) => (
+                                                    <SelectItem key={u.id} value={u.id}>{u.label}</SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+                                )}
 
-                                <div className="flex flex-1 flex-row items-center gap-2" id="period-select">
+                                <div className="flex flex-1 flex-row items-center gap-2">
                                     <Select value={month} onValueChange={setMonth}>
                                         <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
                                         <SelectContent>
@@ -187,7 +179,7 @@ export const TransactionsSection = () => {
                                     </Select>
                                 </div>
 
-                                <div id="sort-select" className="w-full sm:w-[180px]">
+                                <div className="w-full sm:w-[180px]">
                                     <Select value={sortOrder} onValueChange={(value) => setSortOrder(value as any)}>
                                         <SelectTrigger className="w-full border-emerald-500/20">
                                             <div className="flex items-center gap-2">
@@ -212,7 +204,6 @@ export const TransactionsSection = () => {
 
                 <CardContent className="px-0 md:px-6">
                     <Tabs value={transactionType} onValueChange={(v) => setTransactionType(v as TransactionType)}>
-                        {/* Linha das Tabs + Botão Nova Transação */}
                         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mx-4 md:mx-0 mb-6">
                             <TabsList className="grid grid-cols-3 w-full md:w-[400px]">
                                 <TabsTrigger value="all">Todas</TabsTrigger>
@@ -221,7 +212,6 @@ export const TransactionsSection = () => {
                             </TabsList>
 
                             <Button
-                                id="add-transaction-btn"
                                 className="bg-emerald-600 hover:bg-emerald-700 text-white gap-2 px-6 h-10 w-full md:w-auto shadow-sm"
                                 onClick={() => setActiveDialog("add-finance", "transactions")}
                             >
@@ -255,7 +245,7 @@ export const TransactionsSection = () => {
                         </Button>
                     </div>
 
-                    <div className="flex gap-2 order-3 w-full md:w-auto" id="export-actions">
+                    <div className="flex gap-2 order-3 w-full md:w-auto">
                         <Button variant="outline" size="sm" className="flex-1 md:flex-none text-[10px] gap-2" onClick={() => exportData('csv')} disabled={filteredTransactions.length === 0}>
                             CSV
                         </Button>

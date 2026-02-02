@@ -6,10 +6,12 @@ import {Button} from '@/components/ui/button';
 import {Input} from "@/components/ui/input";
 import {Tabs, TabsContent, TabsList, TabsTrigger} from '@/components/ui/tabs';
 import {
+  Check,
+  Crown,
   Eye,
   EyeOff,
   HelpCircle,
-  Loader2,
+  Lock,
   LogOut,
   Mail,
   Plus,
@@ -17,15 +19,12 @@ import {
   Search,
   Settings2,
   Share2,
-  ShieldCheck,
   Tag,
   Trash2,
   UserPlus,
   Users,
-  ShieldAlert,
-  Monitor,
-  Zap,
-  Crown
+  X,
+  Zap
 } from 'lucide-react';
 import {useAuth} from '@/context/AuthContext';
 import {useToast} from '@/hooks/use-toast';
@@ -53,23 +52,21 @@ export const SettingsSection = () => {
 
   const [activeTab, setActiveTab] = useState("general");
 
-  // Hooks de Categorias
   const { allCategories: categories = [] } = useCategories();
   const { data: hiddenCategoryIds = [] } = useHiddenCategories();
   const toggleVisibility = useToggleCategoryVisibility();
   const createCategoryMutation = useCreateCategory();
   const deleteCategoryMutation = useDeleteCategory();
 
-  // Hooks de Compartilhamento
   const {
     sharedWith,
     sharedToMe,
     shareMutation,
     revokeMutation,
+    acceptSharingMutation,
     leaveSharingMutation
   } = useSharing();
 
-  // Estados Locais
   const [newCategoryName, setNewCategoryName] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
   const [categoryIdToDelete, setCategoryIdToDelete] = useState<string | null>(null);
@@ -93,89 +90,45 @@ export const SettingsSection = () => {
   }, [categories, searchTerm, currentUser]);
 
   const handleAddCategory = () => {
+    if (!isPremium) { setActiveDialog("upgrade-plan"); return; }
     if (!newCategoryName.trim()) return;
     createCategoryMutation.mutate({ name: newCategoryName.trim()}, {
-      onSuccess: () => {
-        setNewCategoryName("");
-        toast({ title: "Sucesso", description: "Categoria criada!", variant: "success" });
-      }
+      onSuccess: () => { setNewCategoryName(""); toast({ title: "Sucesso", description: "Categoria criada!", variant: "success" }); }
     });
   };
 
   const handleShare = () => {
-    if (!isPremium) {
-      setActiveDialog("upgrade-plan");
-      return;
-    }
-
-    if (!shareEmail.includes("@")) {
-      toast({ title: "E-mail inválido", variant: "destructive" });
-      return;
-    }
-
-    const fullPermissions = ['read', 'edit', 'delete'];
-    shareMutation.mutate({ email: shareEmail, permissions: fullPermissions }, {
-      onSuccess: () => {
-        setShareEmail("");
-        toast({ title: "Sucesso", description: "Acesso total compartilhado!", variant: "success" });
-      }
+    if (!isPremium) { setActiveDialog("upgrade-plan"); return; }
+    if (!shareEmail.includes("@")) { toast({ title: "E-mail inválido", variant: "destructive" }); return; }
+    shareMutation.mutate({ email: shareEmail, permissions: ['read', 'edit', 'delete'] }, {
+      onSuccess: () => { setShareEmail(""); toast({ title: "Convite enviado!", description: "O parceiro precisa aceitar para ver os dados.", variant: "success" }); }
     });
   };
 
   const handleConfirmAction = () => {
     if (categoryIdToDelete) {
-      deleteCategoryMutation.mutate(categoryIdToDelete, {
-        onSuccess: () => { setActiveDialog(null); setCategoryIdToDelete(null); }
-      });
+      deleteCategoryMutation.mutate(categoryIdToDelete, { onSuccess: () => { setActiveDialog(null); setCategoryIdToDelete(null); } });
     } else if (shareIdToRevoke) {
-      revokeMutation.mutate(shareIdToRevoke, {
-        onSuccess: () => { setActiveDialog(null); setShareIdToRevoke(null); }
-      });
+      revokeMutation.mutate(shareIdToRevoke, { onSuccess: () => { setActiveDialog(null); setShareIdToRevoke(null); } });
     } else if (shareIdToLeave) {
-      leaveSharingMutation.mutate(shareIdToLeave, {
-        onSuccess: () => {
-          setActiveDialog(null);
-          setShareIdToLeave(null);
-          toast({ title: "Acesso removido", description: "Você não visualiza mais estas finanças." });
-        }
-      });
+      leaveSharingMutation.mutate(shareIdToLeave, { onSuccess: () => { setActiveDialog(null); setShareIdToLeave(null); toast({ title: "Acesso removido" }); } });
     }
   };
 
   return (
       <div className="space-y-6 animate-in fade-in duration-700 pb-10">
-        <TutorialWizard
-            tutorialKey={`settings-${activeTab}`}
-            steps={activeTab === "general" ? [
-              { element: '#settings-tabs-list', title: 'Navegação', description: 'Gerencie seu perfil, categorias ou compartilhe acessos.' },
-              { element: '#settings-tutorials', title: 'Ajuda', description: 'Resete os tutoriais para vê-los novamente.' }
-            ] : activeTab === "sharing" ? [
-              { element: '#share-form', title: 'Conceder Acesso', description: 'Convide parceiros para gerenciarem as finanças com você.' },
-              { element: '#received-shares', title: 'Acessos Recebidos', description: 'Aqui você pode visualizar e sair de contas que compartilharam dados com você.' }
-            ] : []}
-        />
+        <TutorialWizard tutorialKey={`settings-${activeTab}`} steps={[]} />
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
           <TabsList id="settings-tabs-list" className="flex w-full md:w-auto h-12 bg-muted/50 p-1">
-            <TabsTrigger value="general" className="flex-1 flex items-center justify-center gap-2 text-xs uppercase tracking-tight py-2">
-              <Settings2 className="h-4 w-4" />
-              <span className="hidden md:inline">Geral</span>
-            </TabsTrigger>
-            <TabsTrigger value="categories" className="flex-1 flex items-center justify-center gap-2 text-xs uppercase tracking-tight py-2">
-              <Tag className="h-4 w-4" />
-              <span className="hidden md:inline">Categorias</span>
-            </TabsTrigger>
-            <TabsTrigger value="sharing" className="flex-1 flex items-center justify-center gap-2 text-xs uppercase tracking-tight py-2">
-              <Share2 className="h-4 w-4" />
-              <span className="hidden md:inline">Compartilhamento</span>
-            </TabsTrigger>
+            <TabsTrigger value="general" className="flex-1 flex items-center justify-center gap-2 text-xs uppercase tracking-tight py-2"><Settings2 className="h-4 w-4" /><span className="hidden md:inline">Geral</span></TabsTrigger>
+            <TabsTrigger value="categories" className="flex-1 flex items-center justify-center gap-2 text-xs uppercase tracking-tight py-2"><Tag className="h-4 w-4" /><span className="hidden md:inline">Categorias</span></TabsTrigger>
+            <TabsTrigger value="sharing" className="flex-1 flex items-center justify-center gap-2 text-xs uppercase tracking-tight py-2"><Share2 className="h-4 w-4" /><span className="hidden md:inline">Compartilhamento</span></TabsTrigger>
           </TabsList>
 
-          {/* ABA GERAL - RECUPERADA E MELHORADA */}
-          <TabsContent value="general" className="space-y-6 outline-none">
+          {/* ABA GERAL */}
+          <TabsContent value="general" className="space-y-6 outline-none text-left">
             <div className="grid gap-4 md:grid-cols-2">
-
-              {/* CARD DE PLANO - NOVO */}
               <Card className={cn("shadow-none border-2", isPremium ? "border-emerald-500/20 bg-emerald-500/5" : "border-slate-200")}>
                 <CardHeader>
                   <div className="flex items-center gap-2">
@@ -190,16 +143,12 @@ export const SettingsSection = () => {
                       <p className="text-sm font-bold text-slate-900">{isPremium ? "Assinatura Ativa" : "Upgrade disponível"}</p>
                       <p className="text-xs text-muted-foreground">Desbloqueie compartilhamento e exportação.</p>
                     </div>
-                    {!isPremium && (
-                        <Button size="sm" onClick={() => setActiveDialog("upgrade-plan")} className="bg-emerald-600 hover:bg-emerald-700 shrink-0">
-                          Upgrade
-                        </Button>
-                    )}
+                    {!isPremium && <Button size="sm" onClick={() => setActiveDialog("upgrade-plan")} className="bg-emerald-600 hover:bg-emerald-700 shrink-0">Upgrade</Button>}
                   </div>
                 </CardContent>
               </Card>
 
-              <Card id="settings-tutorials" className="border-amber-500/20 bg-amber-500/5 shadow-none">
+              <Card className="border-amber-500/20 bg-amber-500/5 shadow-none text-left">
                 <CardHeader>
                   <div className="flex items-center gap-2"><HelpCircle className="h-5 w-5 text-amber-600" /><CardTitle className="text-lg">Guias visuais</CardTitle></div>
                   <CardDescription>Gerencie as dicas de navegação do CashZ.</CardDescription>
@@ -216,28 +165,21 @@ export const SettingsSection = () => {
                   </div>
                 </CardContent>
               </Card>
-
-              {/* CARD DE PERSONALIZAÇÃO - RECUPERADO */}
-              <Card className="opacity-60 border-dashed text-left shadow-none pointer-events-none">
-                <CardHeader>
-                  <div className="flex items-center gap-2 text-muted-foreground"><Monitor className="h-5 w-5" /><CardTitle className="text-lg text-muted-foreground">Personalização</CardTitle></div>
-                  <CardDescription>Temas e notificações em breve.</CardDescription>
-                </CardHeader>
-                <CardContent><div className="h-10 bg-muted/20 rounded-lg animate-pulse"></div></CardContent>
-              </Card>
-
             </div>
           </TabsContent>
 
           {/* ABA CATEGORIAS */}
-          <TabsContent value="categories" className="outline-none">
+          <TabsContent value="categories" className="outline-none text-left">
             <Card className="border-none shadow-none md:border md:shadow-sm text-left">
               <CardHeader><CardTitle>Suas Categorias</CardTitle><CardDescription>Gerencie como organiza suas finanças.</CardDescription></CardHeader>
               <CardContent className="space-y-6">
                 <div className="flex flex-col md:flex-row gap-4">
                   <div className="flex gap-2 flex-1">
                     <Input placeholder="Nova categoria..." value={newCategoryName} onChange={(e) => setNewCategoryName(e.target.value)} />
-                    <Button onClick={handleAddCategory} className="bg-emerald-600 hover:bg-emerald-700 shrink-0"><Plus className="h-4 w-4" /></Button>
+                    <Button onClick={handleAddCategory} className="bg-emerald-600 hover:bg-emerald-700 shrink-0">
+                      {!isPremium && <Lock className="h-3 w-3 mr-1" />}
+                      <Plus className="h-4 w-4" />
+                    </Button>
                   </div>
                   <div className="relative flex-1">
                     <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
@@ -248,29 +190,15 @@ export const SettingsSection = () => {
                   {filteredCategories.map((cat) => {
                     const isHidden = hiddenCategoryIds.includes(cat.id);
                     const isShared = cat.userId && cat.userId !== currentUser?.id;
-
                     return (
-                        <div key={cat.id} className={cn(
-                            "flex items-center justify-between p-3 border rounded-xl transition-all border-l-4",
-                            isHidden ? "bg-muted/10 opacity-60 grayscale" : "bg-background",
-                            isShared ? "border-l-blue-400" : "border-l-emerald-400"
-                        )}>
+                        <div key={cat.id} className={cn("flex items-center justify-between p-3 border rounded-xl border-l-4", isHidden ? "bg-muted/10 opacity-60 grayscale" : "bg-background", isShared ? "border-l-blue-400" : "border-l-emerald-400")}>
                           <div className="flex items-center gap-3 truncate">
                             <Tag className={cn("h-4 w-4 shrink-0", isHidden ? "text-slate-400" : (isShared ? "text-blue-500" : "text-emerald-500"))} />
-                            <div className="flex flex-col truncate">
-                              <span className={cn("text-sm truncate", isHidden && "line-through text-muted-foreground")}>{cat.name}</span>
-                              {isShared && <span className="text-[9px] text-blue-500 uppercase tracking-tighter">Compartilhada</span>}
-                            </div>
+                            <div className="flex flex-col truncate"><span className={cn("text-sm truncate", isHidden && "line-through text-muted-foreground")}>{cat.name}</span>{isShared && <span className="text-[9px] text-blue-500 uppercase tracking-tighter">Compartilhada</span>}</div>
                           </div>
                           <div className="flex gap-1 shrink-0 ml-2">
-                            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => toggleVisibility.mutate(cat.id!)}>
-                              {isHidden ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4 text-emerald-600" />}
-                            </Button>
-                            {!cat.isDefault && (
-                                <Button variant="ghost" size="icon" className="h-8 w-8 text-rose-500 hover:text-rose-600" onClick={() => { setCategoryIdToDelete(cat.id!); setShareIdToLeave(null); setShareIdToRevoke(null); setActiveDialog("confirm-dialog"); }}>
-                                  <Trash2 className="h-4 w-4" />
-                                </Button>
-                            )}
+                            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => toggleVisibility.mutate(cat.id!)}>{isHidden ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4 text-emerald-600" />}</Button>
+                            {!cat.isDefault && <Button variant="ghost" size="icon" className="h-8 w-8 text-rose-500 hover:text-rose-600" onClick={() => { setCategoryIdToDelete(cat.id!); setActiveDialog("confirm-dialog"); }}><Trash2 className="h-4 w-4" /></Button>}
                           </div>
                         </div>
                     );
@@ -280,105 +208,75 @@ export const SettingsSection = () => {
             </Card>
           </TabsContent>
 
-          {/* ABA COMPARTILHAMENTO */}
-          <TabsContent value="sharing" className="outline-none">
+          {/* ABA COMPARTILHAMENTO - ATUALIZADA COM CONVITES */}
+          <TabsContent value="sharing" className="outline-none text-left">
             <Card className="border-none shadow-none md:border md:shadow-sm text-left">
               <CardHeader className="pb-4">
                 <div className="flex items-center gap-2"><Users className="h-5 w-5 text-emerald-600" /><CardTitle>Compartilhamento</CardTitle></div>
                 <CardDescription>Gerencie conexões e acessos a dados financeiros.</CardDescription>
               </CardHeader>
               <CardContent className="space-y-8">
-
-                <div id="share-form" className="p-4 md:p-6 border-2 border-emerald-500/10 rounded-2xl bg-emerald-500/5 space-y-6">
-                  <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                    <div className="space-y-1">
-                      <p className="text-sm text-emerald-900 flex items-center gap-2 leading-none"><UserPlus className="h-4 w-4" /> Conceder acesso à minha conta</p>
-                      <p className="text-[11px] text-emerald-700/70 font-medium">O parceiro poderá visualizar e editar todos os seus registros.</p>
-                    </div>
-                    <div className="flex items-center gap-2 px-3 py-1.5 bg-emerald-100 rounded-lg text-emerald-700 border border-emerald-200 w-fit">
-                      <ShieldCheck className="h-4 w-4" />
-                      <span className="text-[10px] uppercase tracking-tight">Acesso Total</span>
-                    </div>
-                  </div>
-
+                <div className="p-4 md:p-6 border-2 border-emerald-500/10 rounded-2xl bg-emerald-500/5 space-y-6 relative overflow-hidden">
+                  {!isPremium && <div className="absolute inset-0 bg-white/40 backdrop-blur-[1px] z-10 flex items-center justify-center">
+                    <Button onClick={() => setActiveDialog("upgrade-plan")} variant="outline" className="bg-white gap-2 shadow-xl border-emerald-200 text-emerald-700">
+                      <Crown className="h-4 w-4 fill-emerald-500 text-emerald-500" /> Desbloquear Compartilhamento
+                    </Button>
+                  </div>}
+                  <div className="flex-1 space-y-1"><p className="text-sm text-emerald-900 flex items-center gap-2 leading-none"><UserPlus className="h-4 w-4" /> Convidar novo parceiro</p></div>
                   <div className="flex flex-col md:flex-row gap-4 items-end">
                     <div className="flex-1 space-y-2 w-full">
                       <Label className="text-[10px] uppercase text-slate-500">E-mail do Parceiro</Label>
                       <div className="relative">
                         <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-                        <Input
-                            placeholder="exemplo@email.com"
-                            value={shareEmail}
-                            onChange={(e) => setShareEmail(e.target.value)}
-                            className="pl-10 h-11 bg-background"
-                        />
+                        <Input placeholder="exemplo@email.com" value={shareEmail} onChange={(e) => setShareEmail(e.target.value)} className="pl-10 h-11 bg-background" />
                       </div>
                     </div>
-                    <Button
-                        onClick={handleShare}
-                        disabled={shareMutation.isPending || !shareEmail}
-                        className="w-full md:w-auto h-11 bg-emerald-600 hover:bg-emerald-700 font-bold px-8 shadow-lg shadow-emerald-600/10"
-                    >
-                      {shareMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : "Conceder Acesso"}
-                    </Button>
-                  </div>
-
-                  <div className="p-3 bg-amber-50 border border-amber-100 rounded-xl flex items-start gap-3">
-                    <ShieldAlert className="h-4 w-4 text-amber-600 mt-0.5 shrink-0" />
-                    <p className="text-[11px] text-amber-800 leading-relaxed">
-                      <b>Atenção:</b> Ao compartilhar, o usuário convidado poderá <b>criar, editar e excluir</b> transações em seu nome.
-                    </p>
+                    <Button onClick={handleShare} className="w-full md:w-auto h-11 bg-emerald-600 hover:bg-emerald-700 font-bold px-8 shadow-lg">Convidar</Button>
                   </div>
                 </div>
 
                 <div className="grid gap-8 md:grid-cols-2">
                   <div className="space-y-4">
-                    <p className="text-[10px] uppercase text-slate-400 tracking-[0.2em] flex items-center gap-2">
-                      Acessos que eu concedi
-                    </p>
-                    {sharedWith.length === 0 ? (
-                        <p className="text-xs italic text-muted-foreground p-4 bg-muted/5 rounded-xl border border-dashed text-center">Nenhum parceiro convidado.</p>
-                    ) : (
-                        <div className="grid gap-2">
-                          {sharedWith.map((share: any) => (
-                              <div key={share.id} className="flex items-center justify-between p-3 border rounded-xl bg-background group">
-                                <div className="flex items-center gap-3 truncate">
-                                  <div className="h-8 w-8 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center text-xs shrink-0">{share.email.charAt(0).toUpperCase()}</div>
-                                  <span className="text-xs truncate">{share.email}</span>
-                                </div>
-                                <Button variant="ghost" size="icon" className="h-8 w-8 text-rose-500 hover:text-rose-600" onClick={() => { setShareIdToRevoke(share.id); setShareIdToLeave(null); setCategoryIdToDelete(null); setActiveDialog("confirm-dialog"); }}>
-                                  <Trash2 className="h-4 w-4" />
-                                </Button>
-                              </div>
-                          ))}
+                    <p className="text-[10px] uppercase text-slate-400 tracking-[0.2em] flex items-center gap-2">Convites enviados</p>
+                    {sharedWith.map((share: any) => (
+                        <div key={share.id} className="flex items-center justify-between p-3 border rounded-xl bg-background group">
+                          <div className="flex items-center gap-3 truncate">
+                            <div className="h-8 w-8 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center text-xs shrink-0">{share.email.charAt(0).toUpperCase()}</div>
+                            <div className="flex flex-col truncate">
+                              <span className="text-xs truncate">{share.email}</span>
+                              <span className={cn("text-[9px] font-bold uppercase", share.status === 'PENDENTE' ? 'text-amber-500' : 'text-emerald-600')}>
+                               {share.status === 'PENDENTE' ? 'Aguardando aceite' : 'Acesso ativo'}
+                            </span>
+                            </div>
+                          </div>
+                          <Button variant="ghost" size="icon" className="h-8 w-8 text-rose-500" onClick={() => { setShareIdToRevoke(share.id); setActiveDialog("confirm-dialog"); }}><Trash2 className="h-4 w-4" /></Button>
                         </div>
-                    )}
+                    ))}
                   </div>
 
-                  <div className="space-y-4" id="received-shares">
-                    <p className="text-[10px] uppercase text-slate-400 tracking-[0.2em] flex items-center gap-2">
-                      Contas compartilhadas comigo
-                    </p>
-                    {sharedToMe.length === 0 ? (
-                        <p className="text-xs italic text-muted-foreground p-4 bg-muted/5 rounded-xl border border-dashed text-center">Você não possui acessos de terceiros.</p>
-                    ) : (
-                        <div className="grid gap-2">
-                          {sharedToMe.map((share: any) => (
-                              <div key={share.id} className="flex items-center justify-between p-3 border border-blue-100 bg-blue-50/20 rounded-xl group">
-                                <div className="flex items-center gap-3 truncate">
-                                  <div className="h-8 w-8 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center text-xs shrink-0">{share.ownerEmail.charAt(0).toUpperCase()}</div>
-                                  <div className="flex flex-col truncate">
-                                    <span className="text-xs truncate text-slate-900">{share.ownerEmail}</span>
-                                    <span className="text-[9px] text-blue-600">Acesso Total</span>
-                                  </div>
-                                </div>
-                                <Button variant="ghost" size="icon" className="h-8 w-8 text-rose-600 hover:bg-rose-50" onClick={() => { setShareIdToLeave(share.id); setShareIdToRevoke(null); setCategoryIdToDelete(null); setActiveDialog("confirm-dialog"); }}>
-                                  <LogOut className="h-4 w-4" />
-                                </Button>
+                  <div className="space-y-4">
+                    <p className="text-[10px] uppercase text-slate-400 tracking-[0.2em] flex items-center gap-2">Convites recebidos</p>
+                    {sharedToMe.map((share: any) => (
+                        <div key={share.id} className={cn("flex flex-col p-3 border rounded-xl group gap-3", share.status === 'PENDENTE' ? "bg-amber-50/50 border-amber-200" : "bg-blue-50/20 border-blue-100")}>
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-3 truncate">
+                              <div className="h-8 w-8 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center text-xs shrink-0">{share.ownerEmail.charAt(0).toUpperCase()}</div>
+                              <div className="flex flex-col truncate">
+                                <span className="text-xs truncate text-slate-900">{share.ownerEmail}</span>
+                                <span className="text-[9px] text-blue-600">{share.status === 'ACEITO' ? 'Acesso Total' : 'Enviou um convite'}</span>
                               </div>
-                          ))}
+                            </div>
+                            {share.status === 'ACEITO' && <Button variant="ghost" size="icon" className="h-8 w-8 text-rose-600" onClick={() => { setShareIdToLeave(share.id); setActiveDialog("confirm-dialog"); }}><LogOut className="h-4 w-4" /></Button>}
+                          </div>
+
+                          {share.status === 'PENDENTE' && (
+                              <div className="flex gap-2">
+                                <Button size="sm" className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-[11px] h-8" onClick={() => acceptSharingMutation.mutate(share.id)}><Check className="w-3 h-3 mr-1" /> Aceitar</Button>
+                                <Button size="sm" variant="outline" className="flex-1 text-[11px] h-8 border-rose-200 text-rose-600 hover:bg-rose-50" onClick={() => leaveSharingMutation.mutate(share.id)}><X className="w-3 h-3 mr-1" /> Recusar</Button>
+                              </div>
+                          )}
                         </div>
-                    )}
+                    ))}
                   </div>
                 </div>
               </CardContent>
@@ -386,24 +284,8 @@ export const SettingsSection = () => {
           </TabsContent>
         </Tabs>
 
-        {/* MODAL DE UPGRADE */}
-        {activeDialog === "upgrade-plan" && (
-            <UpgradePlanModal
-                isOpen={true}
-                onClose={() => setActiveDialog(null)}
-            />
-        )}
-
-        <ConfirmDialog
-            title={categoryIdToDelete ? "Excluir Categoria?" : shareIdToLeave ? "Sair do Compartilhamento?" : "Revogar Acesso?"}
-            description={
-              categoryIdToDelete ? "As transações vinculadas ficarão sem categoria." :
-                  shareIdToLeave ? "Você deixará de visualizar esta conta compartilhada." :
-                      "O convidado perderá o acesso aos seus dados financeiros imediatamente."
-            }
-            onConfirm={handleConfirmAction}
-            isLoading={deleteCategoryMutation.isPending || revokeMutation.isPending || leaveSharingMutation.isPending}
-        />
+        {activeDialog === "upgrade-plan" && <UpgradePlanModal isOpen={true} onClose={() => setActiveDialog(null)} />}
+        <ConfirmDialog title={categoryIdToDelete ? "Excluir Categoria?" : shareIdToLeave ? "Sair do Compartilhamento?" : "Revogar Acesso?"} description={categoryIdToDelete ? "As transações vinculadas ficarão sem categoria." : "Acesso será removido imediatamente."} onConfirm={handleConfirmAction} isLoading={deleteCategoryMutation.isPending || revokeMutation.isPending || leaveSharingMutation.isPending} />
       </div>
   );
 };

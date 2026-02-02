@@ -5,7 +5,7 @@ import {Progress} from '@/components/ui/progress';
 import {Tabs, TabsContent, TabsList, TabsTrigger} from '@/components/ui/tabs';
 import {StatCard} from '@/components/dashboard/stat-card';
 import {FinanceChart} from '@/components/dashboard/finance-chart';
-import {ArrowDownRight, ArrowUpRight, CreditCard, DollarSign, Filter, PiggyBank, Users, Wallet} from 'lucide-react';
+import {ArrowDownRight, ArrowUpRight, CreditCard, DollarSign, Filter, PiggyBank, Users, Wallet, Lock} from 'lucide-react';
 import {formatTransactionAmount, useTransactions, useTransactionsByYear} from '@/hooks/useTransactions';
 import {IMes} from '@/model/IMes';
 import {Transaction} from "@/model/types/Transaction.ts";
@@ -17,17 +17,22 @@ import {Budget} from "@/model/types/Budget";
 import {useCategories} from '@/hooks/useCategories';
 import {TutorialWizard} from '@/components/tutorial-wizard';
 import {useAuth} from '@/context/AuthContext';
+import {useUserPreferences} from "@/hooks/useUserPreferences.ts";
 import {cn} from "@/lib/utils.ts";
+import {UpgradePlanModal} from "@/components/upgrade-plan-modal.tsx";
+import {useDialogManager} from "@/context/DialogManagerContext";
 
 export const OverviewSection = () => {
     const { user: currentUser } = useAuth();
+    const { isPremium } = useUserPreferences(currentUser?.id);
+    const { activeDialog, setActiveDialog } = useDialogManager();
     const currentDate = new Date();
 
     const [selectedMonth, setSelectedMonth] = useState(IMes[currentDate.getMonth()]);
     const [selectedYear, setSelectedYear] = useState(currentDate.getFullYear());
     const [selectedView, setSelectedView] = useState<'month' | 'year'>('month');
     const [selectedCategory, setSelectedCategory] = useState<string>("all");
-    const [selectedUser, setSelectedUser] = useState<string>("all"); // Novo filtro de usuário
+    const [selectedUser, setSelectedUser] = useState<string>("all");
 
     const { data: visibleCategories = [] } = useCategories();
     const { data: monthlyTransactions, isLoading: isLoadingMonthly } = useTransactions(selectedMonth, selectedYear);
@@ -41,7 +46,7 @@ export const OverviewSection = () => {
     const isLoading = selectedView === 'month' ? isLoadingMonthly : isLoadingYearly;
 
     const transactionUsers = useMemo(() => {
-        if (!rawTransactions) return [];
+        if (!rawTransactions || !isPremium) return [];
         const usersMap = new Map();
         rawTransactions.forEach(t => {
             if (t.owner && t.owner.id !== currentUser?.id) {
@@ -49,17 +54,19 @@ export const OverviewSection = () => {
             }
         });
         return Array.from(usersMap.entries()).map(([id, label]) => ({ id, label }));
-    }, [rawTransactions, currentUser]);
+    }, [rawTransactions, currentUser, isPremium]);
 
     const transactions = useMemo(() => {
         if (!rawTransactions) return [];
         return rawTransactions.filter(t => {
             const categoryMatch = selectedCategory === "all" || t.category.id === selectedCategory;
-            const userMatch = selectedUser === "all" ||
-                (selectedUser === "me" ? t.owner.id === currentUser?.id : t.owner.id === selectedUser);
+            // Se for free, forçamos o filtro a considerar apenas o usuário logado
+            const userMatch = !isPremium
+                ? t.owner.id === currentUser?.id
+                : (selectedUser === "all" || (selectedUser === "me" ? t.owner.id === currentUser?.id : t.owner.id === selectedUser));
             return categoryMatch && userMatch;
         });
-    }, [rawTransactions, selectedCategory, selectedUser, currentUser]);
+    }, [rawTransactions, selectedCategory, selectedUser, currentUser, isPremium]);
 
     const availableCategories = useMemo(() => {
         if (visibleCategories.length === 0) return [];
@@ -70,29 +77,21 @@ export const OverviewSection = () => {
         return Array.from({ length: 11 }, (_, i) => currentDate.getFullYear() - 5 + i);
     }, [currentDate]);
 
-    const tutorialSteps = [
-        { element: '#dashboard-tabs', title: 'Modo de Visão', description: 'Alterne entre a visão mensal ou o acumulado do ano.' },
-        { element: '#user-filter', title: 'Filtro de Usuários', description: 'Como você tem acesso a dados compartilhados, use este filtro para ver apenas suas finanças, apenas as de um parceiro ou de ambos simultaneamente.' },
-        { element: '#category-filter', title: 'Filtro por Categoria', description: 'Analise detalhadamente uma categoria específica.' },
-        { element: '#dashboard-stats', title: 'Resumo Financeiro', description: 'Veja o balanço do que já foi pago e o comprometimento total.' },
-        { element: '#chart-section', title: 'Evolução Gráfica', description: 'Acompanhe visualmente o fluxo de caixa.' }
-    ];
-
     if (isLoadingBudgets && (!budgets || budgets.length === 0)) {
         return (
             <div className="flex justify-center items-center h-48 text-muted-foreground animate-pulse font-medium">
-                Carregando visão geral compartilhada...
+                Carregando visão geral...
             </div>
         );
     }
 
     return (
         <div className="space-y-6 animate-in fade-in duration-700 pb-10">
-            <TutorialWizard tutorialKey="overview-shared-v1" steps={tutorialSteps} />
+            <TutorialWizard tutorialKey="overview-shared-v1" steps={[]} />
 
             <TooltipProvider>
                 <Tabs
-                    defaultValue="month"
+                    value={selectedView}
                     className="space-y-4"
                     onValueChange={(value) => {
                         setSelectedView(value as 'month' | 'year');
@@ -101,24 +100,44 @@ export const OverviewSection = () => {
                     }}
                 >
                     <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                        <TabsList className="w-full md:w-auto" id="dashboard-tabs">
+                        <TabsList className="w-full md:w-auto">
                             <TabsTrigger value="month" className="flex-1 md:flex-none">Mês</TabsTrigger>
                             <TabsTrigger value="year" className="flex-1 md:flex-none">Ano</TabsTrigger>
                         </TabsList>
 
                         <div className="flex flex-col sm:flex-row gap-2 w-full md:w-auto">
-                            {/* NOVO: FILTRO DE USUÁRIO */}
-                            <div className="w-full md:w-[180px]" id="user-filter">
-                                <Select value={selectedUser} onValueChange={setSelectedUser}>
-                                    <SelectTrigger className="w-full bg-background border-blue-500/20">
+                            {/* FILTRO DE USUÁRIO - SEMPRE VISÍVEL, MAS BLOQUEADO PARA FREE */}
+                            <div className="w-full md:w-[180px]">
+                                <Select
+                                    value={isPremium ? selectedUser : "me"}
+                                    onValueChange={(val) => {
+                                        if (!isPremium && val !== "me") {
+                                            setActiveDialog("upgrade-plan");
+                                            return;
+                                        }
+                                        setSelectedUser(val);
+                                    }}
+                                >
+                                    <SelectTrigger className={cn(
+                                        "w-full bg-background",
+                                        !isPremium ? "border-amber-500/20 opacity-80" : "border-blue-500/20"
+                                    )}>
                                         <div className="flex items-center gap-2">
-                                            <Users className="h-3 w-3 text-blue-500" />
+                                            {isPremium ? (
+                                                <Users className="h-3 w-3 text-blue-500" />
+                                            ) : (
+                                                <Lock className="h-3 w-3 text-amber-500" />
+                                            )}
                                             <SelectValue placeholder="Usuário" />
                                         </div>
                                     </SelectTrigger>
                                     <SelectContent>
-                                        <SelectItem value="all">Todos Usuários</SelectItem>
                                         <SelectItem value="me">Apenas Eu</SelectItem>
+                                        <SelectItem value="all" className={cn(!isPremium && "text-muted-foreground opacity-50")}>
+                                            <div className="flex items-center gap-2">
+                                                Todos Usuários {!isPremium && <Lock className="h-3 w-3" />}
+                                            </div>
+                                        </SelectItem>
                                         {transactionUsers.map((u) => (
                                             <SelectItem key={u.id} value={u.id}>{u.label}</SelectItem>
                                         ))}
@@ -126,7 +145,7 @@ export const OverviewSection = () => {
                                 </Select>
                             </div>
 
-                            <div className="w-full md:w-[180px]" id="category-filter">
+                            <div className="w-full md:w-[180px]">
                                 <Select value={selectedCategory} onValueChange={setSelectedCategory}>
                                     <SelectTrigger className="w-full bg-background border-emerald-500/20">
                                         <div className="flex items-center gap-2">
@@ -143,7 +162,7 @@ export const OverviewSection = () => {
                                 </Select>
                             </div>
 
-                            <div className="flex flex-row items-center gap-2 w-full md:w-auto" id="date-filters">
+                            <div className="flex flex-row items-center gap-2 w-full md:w-auto">
                                 {selectedView === 'month' && (
                                     <div className="flex-1 md:w-[120px] md:flex-none">
                                         <Select value={selectedMonth} onValueChange={setSelectedMonth}>
@@ -189,12 +208,12 @@ export const OverviewSection = () => {
                 </Tabs>
             </TooltipProvider>
 
-            <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-                <Card className="xl:col-span-2 border-none shadow-sm md:border" id="recent-transactions-card">
+            <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3 text-left">
+                <Card className="xl:col-span-2 border-none shadow-sm md:border">
                     <CardHeader>
                         <CardTitle>Transações {selectedUser !== "all" || selectedCategory !== "all" ? "Filtradas" : "Recentes"}</CardTitle>
                         <CardDescription>
-                            Mostrando movimentações {selectedUser === "me" ? "suas" : selectedUser !== "all" ? "compartilhadas" : "gerais"}.
+                            {isPremium ? "Movimentações da conta selecionada." : "Suas movimentações pessoais recentes."}
                         </CardDescription>
                     </CardHeader>
                     <CardContent className="max-h-[320px] overflow-y-auto pr-2 scrollbar-thin">
@@ -202,7 +221,7 @@ export const OverviewSection = () => {
                     </CardContent>
                 </Card>
 
-                <Card className="border-none shadow-sm md:border" id="budget-progress-card">
+                <Card className="border-none shadow-sm md:border text-left">
                     <CardHeader>
                         <CardTitle>Progresso do orçamento</CardTitle>
                         <CardDescription>Meta vs Gasto Real</CardDescription>
@@ -214,14 +233,18 @@ export const OverviewSection = () => {
                             filterId={selectedCategory}
                             selectedUser={selectedUser}
                             currentUserId={currentUser?.id}
-                        />                    </CardContent>
+                            isPremium={isPremium}
+                        />
+                    </CardContent>
                 </Card>
             </div>
+
+            {activeDialog === "upgrade-plan" && (
+                <UpgradePlanModal isOpen={true} onClose={() => setActiveDialog(null)} />
+            )}
         </div>
     );
 };
-
-// --- COMPONENTES AUXILIARES ---
 
 const StatsGrid = ({ transactions }: { transactions?: Transaction[] }) => {
     if (!transactions) return null;
@@ -236,7 +259,7 @@ const StatsGrid = ({ transactions }: { transactions?: Transaction[] }) => {
     const totalCommitted = realExpenses + pendingExpenses;
 
     return (
-        <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 text-left">
             <StatCard title="Balanço Previsto" value={formatTransactionAmount(balance)} description="Restante das pendências" icon={<Wallet className="h-4 w-4 text-blue-400" />} trend={balance >= 0 ? "up" : "down"} />
             <StatCard title="A Receber" value={formatTransactionAmount(pendingIncome)} description="Entradas futuras" icon={<ArrowUpRight className="h-4 w-4 text-green-400" />} trend="up" />
             <StatCard title="Gasto Real" value={formatTransactionAmount(realExpenses)} description="Já pago no período" icon={<ArrowDownRight className="h-4 w-4 text-rose-500" />} trend="down" />
@@ -247,7 +270,7 @@ const StatsGrid = ({ transactions }: { transactions?: Transaction[] }) => {
 
 const ChartSection = ({ transactions, view, month, year }: { transactions?: Transaction[]; view: 'month' | 'year'; month?: string; year: number; }) => {
     return (
-        <Card className="border-none shadow-sm md:border">
+        <Card className="border-none shadow-sm md:border text-left">
             <CardHeader><CardTitle className="text-lg">Fluxo de Caixa</CardTitle></CardHeader>
             <CardContent>
                 <div className="h-[300px]">
@@ -268,7 +291,7 @@ const RecentTransactionsList = ({ transactions, isLoading, currentUserId }: { tr
                 const isShared = transaction.owner && transaction.owner.id !== currentUserId;
                 return (
                     <div key={transaction.id} className="flex items-center justify-between space-x-4 pb-3 border-b last:border-0 border-muted/30 group">
-                        <div className="flex items-center space-x-3 overflow-hidden">
+                        <div className="flex items-center space-x-3 overflow-hidden text-left">
                             <div className={cn(
                                 "rounded-full p-2 shrink-0 transition-colors",
                                 isShared ? "bg-blue-50 text-blue-600" : "bg-muted text-slate-600"
@@ -277,9 +300,9 @@ const RecentTransactionsList = ({ transactions, isLoading, currentUserId }: { tr
                             </div>
                             <div className="min-w-0">
                                 <div className="flex items-center gap-2">
-                                    <p className="text-sm  text-slate-800 truncate">{transaction.description}</p>
+                                    <p className="text-sm text-slate-800 truncate">{transaction.description}</p>
                                     {isShared && (
-                                        <span className="text-[9px] bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded  uppercase tracking-tighter">
+                                        <span className="text-[9px] bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded uppercase tracking-tighter">
                                             {transaction.owner.name.split(' ')[0]}
                                         </span>
                                     )}
@@ -293,7 +316,7 @@ const RecentTransactionsList = ({ transactions, isLoading, currentUserId }: { tr
                             </div>
                         </div>
                         <div className="text-right shrink-0">
-                            <p className={cn("text-sm ", transaction.type === 'RECEITA' ? 'text-emerald-600' : 'text-rose-600')}>
+                            <p className={cn("text-sm font-medium", transaction.type === 'RECEITA' ? 'text-emerald-600' : 'text-rose-600')}>
                                 {transaction.type === 'RECEITA' ? '+' : '-'}{formatTransactionAmount(transaction.amount)}
                             </p>
                         </div>
@@ -309,18 +332,21 @@ const BudgetProgress = ({
                             budgets,
                             filterId,
                             selectedUser,
-                            currentUserId
+                            currentUserId,
+                            isPremium
                         }: {
     transactions?: Transaction[],
     budgets: Budget[],
     filterId: string,
     selectedUser: string,
-    currentUserId?: string
+    currentUserId?: string,
+    isPremium: boolean
 }) => {
     const analysis = useMemo(() => {
         if (!budgets || budgets.length === 0) return [];
 
         const filteredBudgets = budgets.filter(b => {
+            if (!isPremium) return b.userId === currentUserId; // Free só vê o próprio budget
             if (selectedUser === "all") return true;
             if (selectedUser === "me") return b.userId === currentUserId;
             return b.userId === selectedUser;
@@ -354,24 +380,24 @@ const BudgetProgress = ({
 
         if (filterId !== "all") result = result.filter(r => r.id === filterId);
         return result.sort((a, b) => b.percent - a.percent);
-    }, [transactions, budgets, filterId, selectedUser, currentUserId]);
+    }, [transactions, budgets, filterId, selectedUser, currentUserId, isPremium]);
 
     if (analysis.length === 0) {
         return (
             <div className="py-12 text-center text-sm text-muted-foreground italic">
-                Nenhuma meta de orçamento definida para {selectedUser === "me" ? "você" : "este filtro"}.
+                Nenhuma meta definida.
             </div>
         );
     }
 
     return (
-        <div className="space-y-6">
+        <div className="space-y-6 text-left">
             {analysis.map((item) => (
-                <div key={item.id} className="space-y-2 text-left">
+                <div key={item.id} className="space-y-2">
                     <div className="flex items-center justify-between gap-2">
                         <div className="flex items-center space-x-2 overflow-hidden">
                             <PiggyBank className={cn("h-4 w-4 shrink-0", item.isOver ? 'text-red-500' : 'text-slate-400')} />
-                            <span className="text-sm  text-slate-700 truncate">{item.name}</span>
+                            <span className="text-sm text-slate-700 truncate">{item.name}</span>
                         </div>
                         <span className="text-[10px] text-muted-foreground font-mono">{formatTransactionAmount(item.spent)}</span>
                     </div>

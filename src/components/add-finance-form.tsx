@@ -11,11 +11,15 @@ import {useCreateTransaction} from "@/hooks/useTransactions";
 import {useCategories} from "@/hooks/useCategories.ts";
 import {useToast} from "@/hooks/use-toast.ts";
 import {NumericFormat} from "react-number-format";
-import {HelpCircle} from "lucide-react";
+import {HelpCircle, Lock} from "lucide-react";
 import {Tooltip, TooltipContent, TooltipTrigger, TooltipProvider} from "@/components/ui/tooltip.tsx";
 import {Input} from "@/components/ui/input.tsx";
+import {useUserPreferences} from "@/hooks/useUserPreferences";
+import {useAuth} from "@/context/AuthContext";
 
 export const AddFinanceForm = () => {
+    const { user } = useAuth();
+    const { isPremium } = useUserPreferences(user?.id);
     const { activeDialog, setActiveDialog } = useDialogManager();
     const isOpen = activeDialog === "add-finance";
 
@@ -38,17 +42,23 @@ export const AddFinanceForm = () => {
             if (!description || !amount || !month || !year || !categoryId || !type || !recurrence) {
                 toast({
                     variant: "destructive",
-                    title: "Erro ao atualizar transação",
+                    title: "Erro ao adicionar transação",
                     description: "Todos os campos obrigatórios devem ser preenchidos.",
                     duration: 3000,
                 });
                 return;
             }
 
+            // Trava de segurança UI extra
+            if (!isPremium && recurrence !== "UNICO") {
+                setActiveDialog("upgrade-plan");
+                return;
+            }
+
             if (recurrence === "PARCELADO" && (!numInstallments || numInstallments < 2)) {
                 toast({
                     variant: "destructive",
-                    title: "Erro ao atualizar transação",
+                    title: "Erro ao adicionar transação",
                     description: "Se a transação é parcelada o número de parcelas deve ser maior que 1.",
                     duration: 3000,
                 });
@@ -64,7 +74,7 @@ export const AddFinanceForm = () => {
                 year,
                 category: selectedCategory,
                 type,
-                recurrence,
+                recurrence: recurrence === "UNICO" ? "AVULSO" : recurrence, // Ajuste para bater com o hook se necessário
                 status,
                 numInstallments: numInstallments,
             };
@@ -79,14 +89,6 @@ export const AddFinanceForm = () => {
                     });
                     setActiveDialog(null);
                     resetForm();
-                },
-                onError: (error) => {
-                    toast({
-                        variant: "destructive",
-                        title: "Erro ao adicionar transação",
-                        description: `${error instanceof Error ? error.message : String(error)}`,
-                        duration: 3000,
-                    });
                 }
             });
 
@@ -128,13 +130,11 @@ export const AddFinanceForm = () => {
                 </DialogHeader>
 
                 <div className="space-y-4 py-2">
-                    {/* Descrição */}
                     <div className="grid w-full items-center gap-1.5">
                         <Label>Descrição</Label>
                         <Input value={description} onChange={(e) => setDescription(e.target.value)} required />
                     </div>
 
-                    {/* Valor, Mês e Ano */}
                     <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
                         <div className="sm:col-span-2 grid gap-1.5">
                             <Label>Valor</Label>
@@ -183,7 +183,6 @@ export const AddFinanceForm = () => {
                         </div>
                     </div>
 
-                    {/* Categoria e Tipo */}
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div className="grid gap-1.5">
                             <Label>Categoria</Label>
@@ -213,14 +212,19 @@ export const AddFinanceForm = () => {
                         </div>
                     </div>
 
-                    {/* Recorrência e Parcelas */}
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div className="grid gap-1.5">
                             <Label>Recorrência</Label>
                             <div className="flex items-center gap-2">
                                 <Select
                                     value={recurrence}
-                                    onValueChange={(value) => setRecurrence(value as any)}
+                                    onValueChange={(value: any) => {
+                                        if (!isPremium && value !== "UNICO") {
+                                            setActiveDialog("upgrade-plan");
+                                            return;
+                                        }
+                                        setRecurrence(value);
+                                    }}
                                     required
                                 >
                                     <SelectTrigger className="w-full">
@@ -228,8 +232,14 @@ export const AddFinanceForm = () => {
                                     </SelectTrigger>
                                     <SelectContent>
                                         <SelectItem value="UNICO">Único</SelectItem>
-                                        <SelectItem value="PARCELADO">Parcelado</SelectItem>
-                                        <SelectItem value="FIXO">Fixo</SelectItem>
+                                        <SelectItem value="PARCELADO" className="flex justify-between items-center">
+                                            <span>Parcelado</span>
+                                            {!isPremium && <Lock className="ml-2 h-3 w-3 inline text-amber-500" />}
+                                        </SelectItem>
+                                        <SelectItem value="FIXO" className="flex justify-between items-center">
+                                            <span>Fixo</span>
+                                            {!isPremium && <Lock className="ml-2 h-3 w-3 inline text-amber-500" />}
+                                        </SelectItem>
                                     </SelectContent>
                                 </Select>
 
@@ -242,15 +252,15 @@ export const AddFinanceForm = () => {
                                         </TooltipTrigger>
                                         <TooltipContent side="top" className="bg-gray-800 text-white p-3 max-w-[280px] shadow-lg">
                                             <p className="text-xs"><b>Único:</b> Ocorre apenas uma vez.</p>
-                                            <p className="text-xs"><b>Parcelado:</b> Dividido em parcelas.</p>
-                                            <p className="text-xs"><b>Fixo:</b> Repete todo mês automaticamente.</p>
+                                            <p className="text-xs"><b>Parcelado:</b> Dividido em parcelas (Premium).</p>
+                                            <p className="text-xs"><b>Fixo:</b> Repete todo mês automaticamente (Premium).</p>
                                         </TooltipContent>
                                     </Tooltip>
                                 </TooltipProvider>
                             </div>
                         </div>
 
-                        {recurrence === "PARCELADO" && (
+                        {recurrence === "PARCELADO" && isPremium && (
                             <div className="grid gap-1.5 animate-in slide-in-from-left-2 duration-300">
                                 <Label>Parcelas</Label>
                                 <div className="flex items-center gap-2">
@@ -261,18 +271,6 @@ export const AddFinanceForm = () => {
                                         onChange={(e) => setNumInstallments(parseInt(e.target.value))}
                                         required
                                     />
-                                    <TooltipProvider>
-                                        <Tooltip delayDuration={0}>
-                                            <TooltipTrigger asChild>
-                                                <button type="button" className="shrink-0 p-1 focus:outline-none focus:ring-2 focus:ring-ring rounded-full">
-                                                    <HelpCircle className="h-5 w-5 text-gray-400" />
-                                                </button>
-                                            </TooltipTrigger>
-                                            <TooltipContent side="top" className="bg-gray-800 text-white p-3 max-w-[200px] shadow-lg">
-                                                <p className="text-xs">O valor total será dividido pelo número de parcelas.</p>
-                                            </TooltipContent>
-                                        </Tooltip>
-                                    </TooltipProvider>
                                 </div>
                             </div>
                         )}

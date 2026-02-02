@@ -1,8 +1,10 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { IMes } from "@/model/IMes";
-import { Transaction } from "@/model/types/Transaction";
-import { auth, db } from "../../firebase";
-import { useAuth } from "@/context/AuthContext";
+import {useMutation, useQuery, useQueryClient} from "@tanstack/react-query";
+import {IMes} from "@/model/IMes";
+import {Transaction} from "@/model/types/Transaction";
+import {auth, db} from "../../firebase";
+import {useAuth} from "@/context/AuthContext";
+import {useDialogManager} from "@/context/DialogManagerContext";
+import {useToast} from "@/hooks/use-toast";
 import {
     collection,
     deleteDoc,
@@ -17,7 +19,7 @@ import {
 } from 'firebase/firestore/lite';
 
 const COLLECTION_NAME = 'transactions';
-const SHARING_COLLECTION = 'sharing';
+export const FREE_TRANSACTION_LIMIT = 10;
 
 type TransactionInput = Omit<Transaction, 'id' | 'owner'>;
 
@@ -59,34 +61,20 @@ const api = {
         } as Transaction;
     },
 
-    // --- LÓGICA DE COMPARTILHAMENTO ---
-    // Busca os IDs de usuários que compartilharam dados com o e-mail do usuário atual
-    // useTransactions.ts
     async getAllowedUserIds(): Promise<string[]> {
         const user = auth.currentUser;
         if (!user || !user.email) return [];
-
         try {
-            // AJUSTE: Buscamos o documento EXATO pelo e-mail (ID)
-            // Isso é muito mais rápido e seguro que uma query filter
             const emailId = user.email.trim().toLowerCase();
-            const shareRef = doc(db, SHARING_COLLECTION, emailId);
+            const shareRef = doc(db, 'sharing', emailId);
             const shareSnap = await getDoc(shareRef);
 
             const allowedIds = [user.uid];
-
-            if (shareSnap.exists()) {
-                const data = shareSnap.data();
-                if (data.ownerId) {
-                    allowedIds.push(data.ownerId);
-                }
+            if (shareSnap.exists() && shareSnap.data().status === 'ACEITO') {
+                allowedIds.push(shareSnap.data().ownerId);
             }
-
             return allowedIds;
-        } catch (error) {
-            console.error("Erro ao buscar permissões:", error);
-            return [user.uid];
-        }
+        } catch (error) { return [user.uid]; }
     },
 
     async getTransactions(month: string, year: number): Promise<Transaction[]> {
@@ -150,6 +138,29 @@ const api = {
     async createTransaction(data: TransactionInput): Promise<Transaction> {
         const user = auth.currentUser;
         if (!user) throw new Error("Usuário não autenticado");
+
+        const userPrefsRef = doc(db, "user_preferences", user.uid);
+        const userPrefsSnap = await getDoc(userPrefsRef);
+        const plan = userPrefsSnap.data()?.plan || "free";
+
+        // --- TRAVA DE RECORRÊNCIA E PARCELAMENTO PARA FREE ---
+        if (plan === "free" && data.recurrence !== 'UNICO') {
+            throw new Error("RECURRENCE_PREMIUM_ONLY");
+        }
+
+        // --- TRAVA DE LIMITE MENSAL ---
+        if (plan === "free") {
+            const qLimit = query(
+                collection(db, COLLECTION_NAME),
+                where("userId", "==", user.uid),
+                where("month", "==", data.month),
+                where("year", "==", data.year)
+            );
+            const snapLimit = await getDocs(qLimit);
+            if (snapLimit.size >= FREE_TRANSACTION_LIMIT) {
+                throw new Error("LIMIT_REACHED");
+            }
+        }
 
         const ownerData = {
             id: user.uid,
@@ -340,10 +351,32 @@ export const useTransactionsByYear = (year: number) => {
 
 export const useCreateTransaction = () => {
     const queryClient = useQueryClient();
+    const { setActiveDialog } = useDialogManager();
+    const { toast } = useToast();
+
     return useMutation({
         mutationFn: (data: TransactionInput) => api.createTransaction(data),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['transactions'] });
+        },
+        onError: (error: any) => {
+            if (error.message === "LIMIT_REACHED") {
+                setActiveDialog("upgrade-plan");
+                toast({
+                    title: "Limite atingido",
+                    description: `Planos gratuitos possuem limite de ${FREE_TRANSACTION_LIMIT} transações por mês.`,
+                    variant: "destructive"
+                });
+            } else if (error.message === "RECURRENCE_PREMIUM_ONLY") {
+                setActiveDialog("upgrade-plan");
+                toast({
+                    title: "Recurso Premium",
+                    description: "Parcelamentos e transações fixas são exclusivos para membros Premium.",
+                    variant: "destructive"
+                });
+            } else {
+                toast({ title: "Erro", description: "Falha ao salvar transação.", variant: "destructive" });
+            }
         }
     });
 };

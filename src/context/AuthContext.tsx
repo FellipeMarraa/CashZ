@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useEffect, useState } from "react";
-import { onAuthChange, logout as firebaseLogout } from "../../firebase.ts";
+import { onAuthChange, logout as firebaseLogout, auth } from "../../firebase.ts"; // Importe 'auth'
 import { User as FirebaseUser } from "firebase/auth";
 
 interface User {
@@ -15,6 +15,7 @@ interface AuthContextProps {
     isAuthenticated: boolean;
     setUser: (user: User | null) => void;
     logout: (callback?: () => void) => void;
+    refreshUser: () => Promise<void>; // Nova função
     loading: boolean;
 }
 
@@ -24,17 +25,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const [user, setUser] = useState<User | null>(null);
     const [loading, setLoading] = useState(true);
 
+    // Função para transformar FirebaseUser em seu User customizado
+    const mapUser = (firebaseUser: FirebaseUser): User => ({
+        id: firebaseUser.uid,
+        email: firebaseUser.email || "",
+        name: firebaseUser.displayName || "Usuário",
+        photo: firebaseUser.photoURL || "",
+        roles: [],
+    });
+
     useEffect(() => {
         const unsubscribe = onAuthChange((firebaseUser: FirebaseUser | null) => {
             if (firebaseUser) {
-                const newUser: User = {
-                    id: firebaseUser.uid,
-                    email: firebaseUser.email || "",
-                    name: firebaseUser.displayName || "Usuário",
-                    photo: firebaseUser.photoURL || "",
-                    roles: [],
-                };
-                setUser(newUser);
+                setUser(mapUser(firebaseUser));
             } else {
                 setUser(null);
             }
@@ -44,6 +47,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return () => unsubscribe();
     }, []);
 
+    // Função para forçar a atualização dos dados do usuário logado
+    const refreshUser = async () => {
+        const currentUser = auth.currentUser;
+        if (currentUser) {
+            // Força o Firebase a buscar os dados mais recentes do servidor (como o displayName novo)
+            await currentUser.reload();
+            setUser(mapUser(auth.currentUser!));
+        }
+    };
+
     const logout = async (callback?: () => void) => {
         await firebaseLogout();
         setUser(null);
@@ -51,7 +64,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
 
     return (
-        <AuthContext.Provider value={{ user, isAuthenticated: !!user, setUser, logout, loading }}>
+        <AuthContext.Provider value={{
+            user,
+            isAuthenticated: !!user,
+            setUser,
+            logout,
+            refreshUser, // Exportando a função
+            loading
+        }}>
             {!loading && children}
         </AuthContext.Provider>
     );
