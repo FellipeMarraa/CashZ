@@ -21,7 +21,6 @@ export const getDeepAnalysis = async (portfolioData: any) => {
 
     // TENTATIVA 1: GEMINI via SDK Oficial
     try {
-        console.log("Tentando Gemini via SDK oficial...");
         // Usando o modelo flash mais atual e estável de 2026
         const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
         const result = await model.generateContent(prompt);

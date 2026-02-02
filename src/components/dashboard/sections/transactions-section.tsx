@@ -103,9 +103,7 @@ export const TransactionsSection = () => {
 
     const exportData = (type: 'csv' | 'excel') => {
 
-        console.log("entrou no exportData");
         if (!isPremium) {
-            console.log("entrou no if premium");
             setActiveDialog("upgrade-plan");
             return;
         }
