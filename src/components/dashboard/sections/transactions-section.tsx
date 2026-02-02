@@ -16,6 +16,8 @@ import {Transaction, TransactionType} from "@/model/types/Transaction.ts";
 import {useTransactions, useUpdateTransaction} from "@/hooks/useTransactions";
 import {TutorialWizard} from "@/components/tutorial-wizard";
 import {useAuth} from "@/context/AuthContext";
+import {useUserPreferences} from "@/hooks/useUserPreferences.ts";
+import {UpgradePlanModal} from "@/components/upgrade-plan-modal.tsx";
 
 export const TransactionsSection = () => {
     const { user: currentUser } = useAuth();
@@ -27,6 +29,7 @@ export const TransactionsSection = () => {
     const [year, setYear] = useState(new Date().getFullYear());
     const {activeDialog, setActiveDialog} = useDialogManager();
     const [currentPage, setCurrentPage] = useState(1);
+    const { isPremium } = useUserPreferences(currentUser?.id);
 
     const itemsPerPage = 8;
 
@@ -99,6 +102,14 @@ export const TransactionsSection = () => {
     };
 
     const exportData = (type: 'csv' | 'excel') => {
+
+        console.log("entrou no exportData");
+        if (!isPremium) {
+            console.log("entrou no if premium");
+            setActiveDialog("upgrade-plan");
+            return;
+        }
+
         if (type === 'csv') {
             const headers = ['Proprietário', 'Descrição', 'Valor', 'Mês', 'Ano', 'Tipo', 'Status', 'Categoria'];
             const rows = filteredTransactions.map(f => [
@@ -258,6 +269,12 @@ export const TransactionsSection = () => {
             </Card>
 
             {activeDialog === "add-finance" && <AddFinanceForm/>}
+            {activeDialog === "upgrade-plan" && (
+                <UpgradePlanModal
+                    isOpen={true}
+                    onClose={() => setActiveDialog(null)}
+                />
+            )}
         </div>
     );
 };

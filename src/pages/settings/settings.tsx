@@ -185,7 +185,7 @@ export const SettingsSection = () => {
                   <CardDescription>Gerencie sua assinatura e recursos premium.</CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <div className="flex items-center justify-between p-4 border rounded-xl bg-background text-left">
+                  <div className="flex items-center justify-between p-4 gap-2 border rounded-xl bg-background text-left">
                     <div className="space-y-1">
                       <p className="text-sm font-bold text-slate-900">{isPremium ? "Assinatura Ativa" : "Upgrade disponível"}</p>
                       <p className="text-xs text-muted-foreground">Desbloqueie compartilhamento e exportação.</p>
@@ -199,7 +199,6 @@ export const SettingsSection = () => {
                 </CardContent>
               </Card>
 
-              {/* CARD DE TUTORIAIS - RECUPERADO */}
               <Card id="settings-tutorials" className="border-amber-500/20 bg-amber-500/5 shadow-none">
                 <CardHeader>
                   <div className="flex items-center gap-2"><HelpCircle className="h-5 w-5 text-amber-600" /><CardTitle className="text-lg">Guias visuais</CardTitle></div>
