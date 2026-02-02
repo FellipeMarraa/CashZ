@@ -34,6 +34,34 @@ export const BudgetSection = () => {
 
     const [idToDelete, setIdToDelete] = useState<string | null>(null);
 
+    // --- PASSOS DO TUTORIAL DIDÁTICO ---
+    const budgetSteps = useMemo(() => [
+        {
+            element: "#budget-summary-cards",
+            title: "Seu teto de gastos",
+            description: "Aqui você vê o valor total que planejou gastar no mês e o quanto já usou desse limite até agora.",
+            side: "bottom" as const
+        },
+        {
+            element: "#budget-categories-list",
+            title: "Controle por categoria",
+            description: "Cada categoria tem sua própria barra. Se ela ficar vermelha, significa que você gastou mais do que o planejado!",
+            side: "top" as const
+        },
+        {
+            element: "#budget-add-btn",
+            title: "Definir novas metas",
+            description: "Clique aqui para escolher uma categoria e dizer ao sistema qual o valor máximo que você quer gastar nela.",
+            side: "top" as const
+        },
+        {
+            element: "#budget-insights",
+            title: "Dicas de economia",
+            description: "Nossa inteligência avisa quais categorias precisam de atenção e onde você está mandando bem na economia.",
+            side: "left" as const
+        }
+    ], []);
+
     const budgetUsers = useMemo(() => {
         const usersMap = new Map();
         budgets.forEach(b => {
@@ -104,8 +132,8 @@ export const BudgetSection = () => {
     };
 
     return (
-        <div className="space-y-6 animate-in fade-in duration-700 pb-10">
-            <TutorialWizard tutorialKey="budget-management" steps={[]} />
+        <div className="space-y-6 animate-in fade-in duration-700 pb-10 text-left">
+            <TutorialWizard tutorialKey="budget-management-v2" steps={budgetSteps} />
 
             <div className="flex flex-col gap-4">
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -155,7 +183,7 @@ export const BudgetSection = () => {
                 </div>
             </div>
 
-            <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
+            <div id="budget-summary-cards" className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
                 <Card className="border-none shadow-sm md:border text-left">
                     <CardHeader className="pb-2">
                         <CardDescription className="text-xs uppercase font-bold text-muted-foreground">Total Planejado</CardDescription>
@@ -188,7 +216,7 @@ export const BudgetSection = () => {
             </div>
 
             <div className="grid gap-6 md:grid-cols-7">
-                <Card className="col-span-7 md:col-span-4 border-none shadow-none md:border md:shadow-sm text-left">
+                <Card id="budget-categories-list" className="col-span-7 md:col-span-4 border-none shadow-none md:border md:shadow-sm text-left">
                     <CardHeader>
                         <CardTitle className="text-lg">Progresso por Categoria</CardTitle>
                         <CardDescription>Baseado em suas despesas de {activeMonth}.</CardDescription>
@@ -248,8 +276,9 @@ export const BudgetSection = () => {
                     </CardContent>
                     <CardFooter>
                         <Button
+                            id="budget-add-btn"
                             variant="outline"
-                            className="w-full border-dashed py-6 text-emerald-600 border-emerald-500/30 hover:bg-emerald-50"
+                            className="w-full border-dashed py-6 text-emerald-600 border-emerald-500/30 hover:bg-emerald-50 shadow-none"
                             onClick={() => setActiveDialog("add-budget")}
                         >
                             {!isPremium && <Lock className="h-3 w-3 mr-2" />}
@@ -258,7 +287,7 @@ export const BudgetSection = () => {
                     </CardFooter>
                 </Card>
 
-                <Card className="col-span-7 md:col-span-3 border-none shadow-none md:border md:shadow-sm text-left">
+                <Card id="budget-insights" className="col-span-7 md:col-span-3 border-none shadow-none md:border md:shadow-sm text-left">
                     <CardHeader>
                         <CardTitle className="text-lg">Insights de {activeMonth}</CardTitle>
                     </CardHeader>

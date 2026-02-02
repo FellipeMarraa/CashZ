@@ -15,7 +15,8 @@ interface AuthContextProps {
     isAuthenticated: boolean;
     setUser: (user: User | null) => void;
     logout: (callback?: () => void) => void;
-    refreshUser: () => Promise<void>; // Nova função
+    refreshUser: () => Promise<void>;
+    deleteAccount: () => Promise<void>;
     loading: boolean;
 }
 
@@ -63,13 +64,30 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (callback) callback();
     };
 
+    const deleteAccount = async () => {
+        const currentUser = auth.currentUser;
+        if (currentUser) {
+            try {
+                await currentUser.delete();
+                setUser(null);
+            } catch (error: any) {
+                // Firebase exige login recente para deletar conta
+                if (error.code === 'auth/requires-recent-login') {
+                    throw new Error("REAUTHENTICATION_REQUIRED");
+                }
+                throw error;
+            }
+        }
+    };
+
     return (
         <AuthContext.Provider value={{
             user,
             isAuthenticated: !!user,
             setUser,
             logout,
-            refreshUser, // Exportando a função
+            refreshUser,
+            deleteAccount,
             loading
         }}>
             {!loading && children}

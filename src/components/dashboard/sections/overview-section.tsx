@@ -45,6 +45,40 @@ export const OverviewSection = () => {
     const rawTransactions = selectedView === 'month' ? monthlyTransactions : yearlyTransactions;
     const isLoading = selectedView === 'month' ? isLoadingMonthly : isLoadingYearly;
 
+    // --- PASSOS DO TUTORIAL REVISADOS (MAIS DIDÁTICOS) ---
+    const overviewSteps = useMemo(() => [
+        {
+            element: "#overview-filters",
+            title: "Personalize sua visão",
+            description: "Escolha o mês, o ano ou filtre por categorias específicas para entender para onde seu dinheiro está indo.",
+            side: "bottom" as const
+        },
+        {
+            element: "#overview-stats",
+            title: "Resumo do seu dinheiro",
+            description: "Aqui você vê o que já pagou (Gasto Real), o que ainda tem para receber e o total comprometido no mês.",
+            side: "top" as const
+        },
+        {
+            element: "#overview-chart",
+            title: "Evolução do seu bolso",
+            description: "Este gráfico mostra o equilíbrio entre o que entra e o que sai. O objetivo é manter o saldo sempre positivo!",
+            side: "top" as const
+        },
+        {
+            element: "#overview-transactions",
+            title: "Histórico detalhado",
+            description: "Confira aqui as suas últimas movimentações. É uma ótima forma de revisar gastos rápidos do dia a dia.",
+            side: "top" as const
+        },
+        {
+            element: "#overview-budgets",
+            title: "Suas metas de economia",
+            description: "Definimos limites para cada categoria. A barra mostra o quanto você já usou da meta que planejou gastar.",
+            side: "left" as const
+        }
+    ], []);
+
     const transactionUsers = useMemo(() => {
         if (!rawTransactions || !isPremium) return [];
         const usersMap = new Map();
@@ -60,7 +94,6 @@ export const OverviewSection = () => {
         if (!rawTransactions) return [];
         return rawTransactions.filter(t => {
             const categoryMatch = selectedCategory === "all" || t.category.id === selectedCategory;
-            // Se for free, forçamos o filtro a considerar apenas o usuário logado
             const userMatch = !isPremium
                 ? t.owner.id === currentUser?.id
                 : (selectedUser === "all" || (selectedUser === "me" ? t.owner.id === currentUser?.id : t.owner.id === selectedUser));
@@ -86,8 +119,8 @@ export const OverviewSection = () => {
     }
 
     return (
-        <div className="space-y-6 animate-in fade-in duration-700 pb-10">
-            <TutorialWizard tutorialKey="overview-shared-v1" steps={[]} />
+        <div className="space-y-6 animate-in fade-in duration-700 pb-10 text-left">
+            <TutorialWizard tutorialKey="overview-didactic-v2" steps={overviewSteps} />
 
             <TooltipProvider>
                 <Tabs
@@ -105,8 +138,8 @@ export const OverviewSection = () => {
                             <TabsTrigger value="year" className="flex-1 md:flex-none">Ano</TabsTrigger>
                         </TabsList>
 
-                        <div className="flex flex-col sm:flex-row gap-2 w-full md:w-auto">
-                            {/* FILTRO DE USUÁRIO - SEMPRE VISÍVEL, MAS BLOQUEADO PARA FREE */}
+                        <div id="overview-filters" className="flex flex-col sm:flex-row gap-2 w-full md:w-auto">
+                            {/* FILTRO DE USUÁRIO */}
                             <div className="w-full md:w-[180px]">
                                 <Select
                                     value={isPremium ? selectedUser : "me"}
@@ -197,19 +230,19 @@ export const OverviewSection = () => {
                     </div>
 
                     <TabsContent value="month" className="space-y-4 outline-none">
-                        <StatsGrid transactions={transactions} />
-                        <ChartSection transactions={transactions} view={selectedView} month={selectedMonth} year={selectedYear} />
+                        <div id="overview-stats"><StatsGrid transactions={transactions} /></div>
+                        <div id="overview-chart"><ChartSection transactions={transactions} view={selectedView} month={selectedMonth} year={selectedYear} /></div>
                     </TabsContent>
 
                     <TabsContent value="year" className="space-y-4 outline-none">
-                        <StatsGrid transactions={transactions} />
-                        <ChartSection transactions={transactions} view={selectedView} year={selectedYear} />
+                        <div id="overview-stats-year"><StatsGrid transactions={transactions} /></div>
+                        <div id="overview-chart-year"><ChartSection transactions={transactions} view={selectedView} year={selectedYear} /></div>
                     </TabsContent>
                 </Tabs>
             </TooltipProvider>
 
-            <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3 text-left">
-                <Card className="xl:col-span-2 border-none shadow-sm md:border">
+            <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+                <Card id="overview-transactions" className="xl:col-span-2 border-none shadow-sm md:border">
                     <CardHeader>
                         <CardTitle>Transações {selectedUser !== "all" || selectedCategory !== "all" ? "Filtradas" : "Recentes"}</CardTitle>
                         <CardDescription>
@@ -221,7 +254,7 @@ export const OverviewSection = () => {
                     </CardContent>
                 </Card>
 
-                <Card className="border-none shadow-sm md:border text-left">
+                <Card id="overview-budgets" className="border-none shadow-sm md:border text-left">
                     <CardHeader>
                         <CardTitle>Progresso do orçamento</CardTitle>
                         <CardDescription>Meta vs Gasto Real</CardDescription>
@@ -346,7 +379,7 @@ const BudgetProgress = ({
         if (!budgets || budgets.length === 0) return [];
 
         const filteredBudgets = budgets.filter(b => {
-            if (!isPremium) return b.userId === currentUserId; // Free só vê o próprio budget
+            if (!isPremium) return b.userId === currentUserId;
             if (selectedUser === "all") return true;
             if (selectedUser === "me") return b.userId === currentUserId;
             return b.userId === selectedUser;

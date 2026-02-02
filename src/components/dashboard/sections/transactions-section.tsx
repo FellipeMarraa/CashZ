@@ -38,6 +38,40 @@ export const TransactionsSection = () => {
         setCurrentPage(1);
     }, [transactionType, searchQuery, sortOrder, month, year, selectedUser]);
 
+    // --- PASSOS DO TUTORIAL DIDÁTICO ---
+    const transactionSteps = useMemo(() => [
+        {
+            element: "#trans-search-box",
+            title: "Encontre rápido",
+            description: "Use a busca para localizar transações específicas pelo nome ou pela categoria que você deu a elas.",
+            side: "bottom" as const
+        },
+        {
+            element: "#trans-filters-bar",
+            title: "Filtros e Período",
+            description: "Você pode navegar entre os meses e anos, ou filtrar para ver apenas o que está pendente de pagamento.",
+            side: "bottom" as const
+        },
+        {
+            element: "#trans-tabs-list",
+            title: "Entradas e Saídas",
+            description: "Alterne rapidamente entre suas receitas (dinheiro que entrou) e despesas (dinheiro que saiu).",
+            side: "bottom" as const
+        },
+        {
+            element: "#trans-add-btn",
+            title: "Nova movimentação",
+            description: "Clique aqui sempre que precisar registrar um novo gasto ou ganho no seu dia a dia.",
+            side: "left" as const
+        },
+        {
+            element: "#trans-export-btns",
+            title: "Leve seus dados com você",
+            description: "Gere planilhas em Excel ou CSV para fazer suas próprias análises fora do aplicativo.",
+            side: "top" as const
+        }
+    ], []);
+
     const normalizeString = (str: string) => {
         return str?.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "") || "";
     };
@@ -124,14 +158,14 @@ export const TransactionsSection = () => {
     if (isLoading) return <div className="flex justify-center items-center h-48"><Loader2 className="animate-spin h-8 w-8 text-emerald-500"/></div>;
 
     return (
-        <div className="space-y-6 animate-in fade-in duration-700 pb-10">
-            <TutorialWizard tutorialKey="transactions-page-shared" steps={[]} />
+        <div className="space-y-6 animate-in fade-in duration-700 pb-10 text-left">
+            <TutorialWizard tutorialKey="transactions-didactic-v1" steps={transactionSteps} />
 
             <Card className="border-none shadow-none md:border md:shadow-sm">
                 <CardHeader className="px-4 md:px-6">
                     <div className="flex flex-col xl:flex-row xl:items-end justify-between gap-4">
                         <div className="flex-1 w-full space-y-3">
-                            <div className="relative w-full">
+                            <div id="trans-search-box" className="relative w-full">
                                 <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground"/>
                                 <Input
                                     placeholder="Procurar transações..."
@@ -141,7 +175,7 @@ export const TransactionsSection = () => {
                                 />
                             </div>
 
-                            <div className="flex flex-col sm:flex-row gap-2">
+                            <div id="trans-filters-bar" className="flex flex-col sm:flex-row gap-2">
                                 {isPremium && (
                                     <div className="w-full sm:w-[200px]">
                                         <Select value={selectedUser} onValueChange={setSelectedUser}>
@@ -205,13 +239,14 @@ export const TransactionsSection = () => {
                 <CardContent className="px-0 md:px-6">
                     <Tabs value={transactionType} onValueChange={(v) => setTransactionType(v as TransactionType)}>
                         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mx-4 md:mx-0 mb-6">
-                            <TabsList className="grid grid-cols-3 w-full md:w-[400px]">
+                            <TabsList id="trans-tabs-list" className="grid grid-cols-3 w-full md:w-[400px]">
                                 <TabsTrigger value="all">Todas</TabsTrigger>
                                 <TabsTrigger value="RECEITA" className="text-emerald-600">Receitas</TabsTrigger>
                                 <TabsTrigger value="DESPESA" className="text-rose-600">Despesas</TabsTrigger>
                             </TabsList>
 
                             <Button
+                                id="trans-add-btn"
                                 className="bg-emerald-600 hover:bg-emerald-700 text-white gap-2 px-6 h-10 w-full md:w-auto shadow-sm"
                                 onClick={() => setActiveDialog("add-finance", "transactions")}
                             >
@@ -245,7 +280,7 @@ export const TransactionsSection = () => {
                         </Button>
                     </div>
 
-                    <div className="flex gap-2 order-3 w-full md:w-auto">
+                    <div id="trans-export-btns" className="flex gap-2 order-3 w-full md:w-auto">
                         <Button variant="outline" size="sm" className="flex-1 md:flex-none text-[10px] gap-2" onClick={() => exportData('csv')} disabled={filteredTransactions.length === 0}>
                             CSV
                         </Button>
