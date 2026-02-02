@@ -327,13 +327,13 @@ const RecentTransactionsList = ({ transactions, isLoading, currentUserId }: { tr
                         <div className="flex items-center space-x-3 overflow-hidden text-left">
                             <div className={cn(
                                 "rounded-full p-2 shrink-0 transition-colors",
-                                isShared ? "bg-blue-50 text-blue-600" : "bg-muted text-slate-600"
+                                isShared ? "bg-blue-50 text-blue-600" : "bg-muted text-foreground"
                             )}>
                                 {isShared ? <Users className="h-4 w-4" /> : <CreditCard className="h-4 w-4" />}
                             </div>
                             <div className="min-w-0">
                                 <div className="flex items-center gap-2">
-                                    <p className="text-sm text-slate-800 truncate">{transaction.description}</p>
+                                    <p className="text-sm text-foreground dark:text-white truncate">{transaction.description}</p>
                                     {isShared && (
                                         <span className="text-[9px] bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded uppercase tracking-tighter">
                                             {transaction.owner.name.split(' ')[0]}
@@ -429,8 +429,8 @@ const BudgetProgress = ({
                 <div key={item.id} className="space-y-2">
                     <div className="flex items-center justify-between gap-2">
                         <div className="flex items-center space-x-2 overflow-hidden">
-                            <PiggyBank className={cn("h-4 w-4 shrink-0", item.isOver ? 'text-red-500' : 'text-slate-400')} />
-                            <span className="text-sm text-slate-700 truncate">{item.name}</span>
+                            <PiggyBank className={cn("h-4 w-4 shrink-0", item.isOver ? 'text-red-500' : 'text-foreground')} />
+                            <span className="text-sm text-foreground truncate">{item.name}</span>
                         </div>
                         <span className="text-[10px] text-muted-foreground font-mono">{formatTransactionAmount(item.spent)}</span>
                     </div>

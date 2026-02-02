@@ -117,8 +117,8 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({ dialogTrigger, onNav
               <DialogTitle className="dark:text-gray-600">Criar Conta</DialogTitle>
               <DialogDescription className="dark:text-gray-600">Registre-se para começar a gerenciar suas finanças</DialogDescription>
             </DialogHeader>
-            <form onSubmit={handleSubmit} className="space-y-4 py-2">
-              <div className="space-y-2 dark:text-gray-600">
+            <form onSubmit={handleSubmit} className="light space-y-4 py-2">
+              <div className="light space-y-2 dark:text-gray-600">
                 <Label htmlFor="name">Nome completo</Label>
                 <Input
                     id="name"

@@ -198,13 +198,13 @@ export const BudgetSection = () => {
                 </Card>
                 <Card className={cn(
                     "border-none shadow-sm md:border transition-colors text-left",
-                    isOverBudget ? "bg-red-50 border-red-200" : "text-emerald-500"
+                    isOverBudget ? "bg-red-50 dark:bg-red-900/10 border-red-200 dark:border-red-900/50" : ""
                 )}>
                     <CardHeader className="pb-2">
                         <CardDescription className={cn("text-xs uppercase font-bold", isOverBudget ? "text-red-500" : "text-muted-foreground")}>
                             Status Geral
                         </CardDescription>
-                        <CardTitle className={cn("text-2xl truncate font-bold", isOverBudget && "text-red-600")}>
+                        <CardTitle className={cn("text-2xl truncate font-bold", isOverBudget ? "text-red-600" : "text-emerald-500")}>
                             {totalAllocated === 0
                                 ? "Sem metas"
                                 : isOverBudget
@@ -229,7 +229,7 @@ export const BudgetSection = () => {
                                 budgetAnalysis.map((item) => (
                                     <div key={item.id} className={cn(
                                         "space-y-2 group p-2 rounded-lg transition-colors border-l-4",
-                                        item.isSharedBudget ? "border-l-blue-400 bg-blue-50/10" : "border-l-emerald-400 bg-emerald-50/10"
+                                        item.isSharedBudget ? "border-l-blue-400 bg-blue-50/10 dark:bg-blue-900/5" : "border-l-emerald-400 bg-emerald-50/10 dark:bg-emerald-900/5"
                                     )}>
                                         <div className="flex items-center justify-between">
                                             <div className="flex items-center gap-3">
@@ -278,10 +278,14 @@ export const BudgetSection = () => {
                         <Button
                             id="budget-add-btn"
                             variant="outline"
-                            className="w-full border-dashed py-6 text-emerald-600 border-emerald-500/30 hover:bg-emerald-50 shadow-none"
+                            className={cn(
+                                "w-full border-dashed py-6 shadow-none transition-colors",
+                                "text-emerald-600 border-emerald-500/30",
+                                "hover:bg-emerald-500/10 hover:text-emerald-500 dark:hover:bg-emerald-500/20"
+                            )}
                             onClick={() => setActiveDialog("add-budget")}
                         >
-                            {!isPremium && <Lock className="h-3 w-3 mr-2" />}
+                            {!isPremium && <Lock className="mr-2 h-3 w-3" />}
                             <Plus className="mr-2 h-4 w-4" /> Configurar Limites
                         </Button>
                     </CardFooter>
@@ -295,35 +299,35 @@ export const BudgetSection = () => {
                         {insights.totalBudgets > 0 ? (
                             <>
                                 {insights.critical && insights.critical.spent > insights.critical.allocated && (
-                                    <div className="p-4 rounded-xl bg-amber-50 border border-amber-100">
+                                    <div className="p-4 rounded-xl bg-amber-50 dark:bg-amber-900/10 border border-amber-100 dark:border-amber-900/50">
                                         <div className="flex items-center gap-3 mb-2">
                                             <AlertTriangle className="h-5 w-5 text-amber-600" />
-                                            <span className="font-bold text-sm text-amber-900">Atenção em {insights.critical.name}</span>
+                                            <span className="font-bold text-sm text-amber-900 dark:text-amber-400">Atenção em {insights.critical.name}</span>
                                         </div>
-                                        <p className="text-xs text-amber-800/80">
+                                        <p className="text-xs text-amber-800/80 dark:text-amber-500/80">
                                             Orçamento excedido em {formatTransactionAmount(insights.critical.spent - insights.critical.allocated)}.
                                         </p>
                                     </div>
                                 )}
 
                                 {insights.saving && insights.saving.percentSpent < 80 && (
-                                    <div className="p-4 rounded-xl bg-emerald-50 border border-emerald-100">
+                                    <div className="p-4 rounded-xl bg-emerald-50 dark:bg-emerald-900/10 border border-emerald-100 dark:border-emerald-900/50">
                                         <div className="flex items-center gap-3 mb-2">
                                             <TrendingUp className="h-5 w-5 text-emerald-600" />
-                                            <span className="font-bold text-sm text-emerald-900">Boa Economia em {insights.saving.name}</span>
+                                            <span className="font-bold text-sm text-emerald-900 dark:text-emerald-400">Boa Economia em {insights.saving.name}</span>
                                         </div>
-                                        <p className="text-xs text-emerald-800/80">
+                                        <p className="text-xs text-emerald-800/80 dark:text-emerald-500/80">
                                             Você gastou apenas {insights.saving.percentSpent.toFixed(0)}% do planejado.
                                         </p>
                                     </div>
                                 )}
 
-                                <div className="p-4 rounded-xl bg-blue-50 border border-blue-100">
+                                <div className="p-4 rounded-xl bg-blue-50 dark:bg-blue-900/10 border border-blue-100 dark:border-blue-900/50">
                                     <div className="flex items-center gap-3 mb-2">
                                         <CheckCircle2 className="h-5 w-5 text-blue-600" />
-                                        <span className="font-bold text-sm text-blue-900">Status Geral</span>
+                                        <span className="font-bold text-sm text-blue-900 dark:text-blue-400">Status Geral</span>
                                     </div>
-                                    <p className="text-xs text-blue-800/80">
+                                    <p className="text-xs text-blue-800/80 dark:text-blue-500/80">
                                         {insights.overBudgetCount > 0
                                             ? `Você tem ${insights.overBudgetCount} categoria(s) fora do limite.`
                                             : "Parabéns! Todas as metas estão em dia."}

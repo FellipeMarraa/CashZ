@@ -132,7 +132,7 @@ export const TransactionList = ({ transactions }: TransactionListProps) => {
                                 <div className="flex justify-between items-start w-full md:block">
                                     <div className="flex flex-col text-left">
                                         <div className="flex items-center gap-2">
-                                            <span className="text-sm md:text-base text-slate-900 font-medium">{transaction.description}</span>
+                                            <span className="text-sm md:text-base text-foreground font-medium">{transaction.description}</span>
                                             {isShared && (
                                                 <span className="text-[9px] bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded-full uppercase flex items-center gap-1 shrink-0 ">
                                                     <Users className="h-2.5 w-2.5" /> {transaction.owner.name.split(' ')[0]}
@@ -141,7 +141,7 @@ export const TransactionList = ({ transactions }: TransactionListProps) => {
                                         </div>
                                         <span className="text-xs text-muted-foreground md:hidden">{transaction.category.name}</span>
                                     </div>
-                                    <div className={cn("md:hidden text-sm font-bold", transaction.type === 'RECEITA' ? 'text-emerald-600' : 'text-rose-600')}>
+                                    <div className={cn("md:hidden text-sm ", transaction.type === 'RECEITA' ? 'text-emerald-600' : 'text-rose-600')}>
                                         {formatCurrency(transaction.amount, transaction.type)}
                                     </div>
                                 </div>
@@ -150,7 +150,7 @@ export const TransactionList = ({ transactions }: TransactionListProps) => {
                                     {transaction.category.name}
                                 </div>
 
-                                <div className={cn("hidden md:block text-right font-bold", transaction.type === 'RECEITA' ? 'text-emerald-600' : 'text-rose-600')}>
+                                <div className={cn("hidden md:block text-right ", transaction.type === 'RECEITA' ? 'text-emerald-600' : 'text-rose-600')}>
                                     {formatCurrency(transaction.amount, transaction.type)}
                                 </div>
 
@@ -162,7 +162,7 @@ export const TransactionList = ({ transactions }: TransactionListProps) => {
                                         {isShared ? (
                                             <Tooltip>
                                                 <TooltipTrigger asChild>
-                                                    <Lock className="w-4 h-4 text-slate-300 cursor-not-allowed" />
+                                                    <Lock className="w-4 h-4 text-foreground cursor-not-allowed" />
                                                 </TooltipTrigger>
                                                 <TooltipContent>Somente leitura</TooltipContent>
                                             </Tooltip>
@@ -180,7 +180,7 @@ export const TransactionList = ({ transactions }: TransactionListProps) => {
                                                             onClick={() => handleStatusUpdate(transaction)}
                                                         />
                                                     </TooltipTrigger>
-                                                    <TooltipContent className="bg-slate-900 text-white text-xs ">Status</TooltipContent>
+                                                    <TooltipContent className="text-foreground text-white text-xs ">Status</TooltipContent>
                                                 </Tooltip>
 
                                                 <SquarePen

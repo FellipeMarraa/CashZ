@@ -80,14 +80,14 @@ export const FinanceChart = ({
             ? {
                 receitas: 'hsl(var(--chart-2))',
                 despesas: 'hsl(var(--chart-1))',
-                investimentos: 'hsl(var(--chart-3))',
+                // investimentos: 'hsl(var(--chart-3))',
                 grid: 'hsl(var(--muted))',
                 text: 'hsl(var(--muted-foreground))'
             }
             : {
                 receitas: 'hsl(var(--chart-2))',
                 despesas: 'hsl(var(--chart-1))',
-                investimentos: 'hsl(var(--chart-3))',
+                // investimentos: 'hsl(var(--chart-3))',
                 grid: 'hsl(var(--muted))',
                 text: 'hsl(var(--muted-foreground))'
             };
@@ -109,10 +109,10 @@ export const FinanceChart = ({
                                 <stop offset="5%" stopColor={colors.despesas} stopOpacity={0.8}/>
                                 <stop offset="95%" stopColor={colors.despesas} stopOpacity={0.2}/>
                             </linearGradient>
-                            <linearGradient id="colorinvestimentos" x1="0" y1="0" x2="0" y2="1">
-                                <stop offset="5%" stopColor={colors.investimentos} stopOpacity={0.8}/>
-                                <stop offset="95%" stopColor={colors.investimentos} stopOpacity={0.2}/>
-                            </linearGradient>
+                            {/*<linearGradient id="colorinvestimentos" x1="0" y1="0" x2="0" y2="1">*/}
+                            {/*    <stop offset="5%" stopColor={colors.investimentos} stopOpacity={0.8}/>*/}
+                            {/*    <stop offset="95%" stopColor={colors.investimentos} stopOpacity={0.2}/>*/}
+                            {/*</linearGradient>*/}
                         </defs>
                         <XAxis dataKey="name" stroke={colors.text} fontSize={12} />
                         <YAxis stroke={colors.text} fontSize={12} />
@@ -138,14 +138,14 @@ export const FinanceChart = ({
                             fill="url(#colordespesas)"
                             animationDuration={1500}
                         />
-                        <Area
-                            type="monotone"
-                            dataKey="investimentos"
-                            stroke={colors.investimentos}
-                            fillOpacity={1}
-                            fill="url(#colorinvestimentos)"
-                            animationDuration={1500}
-                        />
+                        {/*<Area*/}
+                        {/*    type="monotone"*/}
+                        {/*    dataKey="investimentos"*/}
+                        {/*    stroke={colors.investimentos}*/}
+                        {/*    fillOpacity={1}*/}
+                        {/*    fill="url(#colorinvestimentos)"*/}
+                        {/*    animationDuration={1500}*/}
+                        {/*/>*/}
                     </AreaChart>
 
                 );
@@ -172,12 +172,12 @@ export const FinanceChart = ({
                             animationDuration={1500}
                             radius={[4, 4, 0, 0]}
                         />
-                        <Bar
-                            dataKey="investimentos"
-                            fill={colors.investimentos}
-                            animationDuration={1500}
-                            radius={[4, 4, 0, 0]}
-                        />
+                        {/*<Bar*/}
+                        {/*    dataKey="investimentos"*/}
+                        {/*    fill={colors.investimentos}*/}
+                        {/*    animationDuration={1500}*/}
+                        {/*    radius={[4, 4, 0, 0]}*/}
+                        {/*/>*/}
                     </BarChart>
                 );
             case 'line':
@@ -204,12 +204,12 @@ export const FinanceChart = ({
                             stroke={colors.despesas}
                             animationDuration={1500}
                         />
-                        <Line
-                            type="monotone"
-                            dataKey="investimentos"
-                            stroke={colors.investimentos}
-                            animationDuration={1500}
-                        />
+                        {/*<Line*/}
+                        {/*    type="monotone"*/}
+                        {/*    dataKey="investimentos"*/}
+                        {/*    stroke={colors.investimentos}*/}
+                        {/*    animationDuration={1500}*/}
+                        {/*/>*/}
                     </LineChart>
                 );
             default:

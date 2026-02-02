@@ -25,7 +25,7 @@ import {
   Users,
   X,
   Zap,
-  Moon
+  Moon, Sun
 } from 'lucide-react';
 import {useAuth} from '@/context/AuthContext';
 import {useToast} from '@/hooks/use-toast';
@@ -44,12 +44,14 @@ import {useSharing} from "@/hooks/useSharing";
 import {Label} from "@/components/ui/label";
 import {UpgradePlanModal} from "@/components/upgrade-plan-modal";
 import {useUserPreferences} from "@/hooks/useUserPreferences";
+import {useTheme} from "@/components/theme-provider.tsx";
 
 export const SettingsSection = () => {
   const { user: currentUser, logout, deleteAccount } = useAuth();
   const { toast } = useToast();
   const { activeDialog, setActiveDialog } = useDialogManager();
-  const { preferences, isPremium, hideTutorial } = useUserPreferences(currentUser?.id); // hideTutorial adicionado
+  const { preferences, isPremium, hideTutorial } = useUserPreferences(currentUser?.id);
+  const { theme, setTheme } = useTheme();
 
   const [activeTab, setActiveTab] = useState("general");
 
@@ -220,15 +222,37 @@ export const SettingsSection = () => {
                 </CardContent>
               </Card>
 
-              <Card id="card-appearance" className="border-slate-200 shadow-none text-left">
+              <Card id="card-appearance" className="border-slate-200 dark:border-slate-800 shadow-none text-left">
                 <CardHeader>
-                  <div className="flex items-center gap-2"><Moon className="h-5 w-5 text-slate-600" /><CardTitle className="text-lg">Aparência</CardTitle></div>
+                  <div className="flex items-center gap-2">
+                    <Moon className="h-5 w-5 text-slate-600 dark:text-slate-400" />
+                    <CardTitle className="text-lg">Aparência</CardTitle>
+                  </div>
                   <CardDescription>Personalize o visual do seu dashboard.</CardDescription>
                 </CardHeader>
                 <CardContent>
                   <div className="flex items-center justify-between p-4 border rounded-xl bg-background">
-                    <div className="space-y-1"><p className="text-sm font-bold text-slate-900">Modo Noturno</p><p className="text-xs text-muted-foreground">Em breve: suporte a temas escuros.</p></div>
-                    <Button disabled variant="outline" size="sm" className="opacity-50">Ativar</Button>
+                    <div className="space-y-1">
+                      <p className="text-sm font-bold text-slate-900 dark:text-slate-100">
+                        Modo {theme === 'dark' ? 'Escuro' : 'Claro'}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        Alterne entre o tema claro e o tema escuro.
+                      </p>
+                    </div>
+                    {/* Aqui usamos a lógica do seu ThemeToggle em um botão que combina com a UI */}
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+                        className="gap-2"
+                    >
+                      {theme === 'dark' ? (
+                          <><Sun className="h-4 w-4" /> Ativar Claro</>
+                      ) : (
+                          <><Moon className="h-4 w-4" /> Ativar Escuro</>
+                      )}
+                    </Button>
                   </div>
                 </CardContent>
               </Card>

@@ -103,7 +103,6 @@ export const InvestmentsSection = () => {
     const [aiAnalysis, setAiAnalysis] = useState<string | null>(null);
     const [isAnalyzing, setIsAnalyzing] = useState(false);
 
-    // --- PASSOS DO TUTORIAL ---
     const investmentSteps = useMemo(() => [
         {
             element: "#investment-tabs-list",
@@ -284,15 +283,16 @@ export const InvestmentsSection = () => {
 
                     <TabsContent value="overview" className="space-y-6">
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                            <Card id="agent-insight-card" className="md:col-span-2 border-emerald-500/20 bg-emerald-500/5 shadow-none text-left overflow-hidden relative">
+                            {/* AREA DE IA AJUSTADA PARA O TEMA DARK */}
+                            <Card id="agent-insight-card" className="md:col-span-2 border-emerald-500/20 bg-emerald-500/5 dark:bg-emerald-500/10 shadow-none text-left overflow-hidden relative">
                                 <CardHeader className="flex flex-row items-center justify-between gap-4 space-y-0 pb-4">
                                     <div className="flex items-center gap-4">
                                         <div className="p-3 bg-emerald-500 rounded-2xl">
                                             <BrainCircuit className="h-6 w-6 text-white" />
                                         </div>
                                         <div>
-                                            <CardTitle className="text-emerald-900 text-lg">Agente de Investimentos</CardTitle>
-                                            <CardDescription className="text-emerald-700/80">
+                                            <CardTitle className="text-emerald-900 dark:text-emerald-400 text-lg">Agente de Investimentos</CardTitle>
+                                            <CardDescription className="text-emerald-700/80 dark:text-emerald-500/80">
                                                 Perfil <strong>{INVESTMENT_PROFILES[profile].label}</strong>
                                             </CardDescription>
                                         </div>
@@ -300,7 +300,7 @@ export const InvestmentsSection = () => {
                                     <Button
                                         size="sm"
                                         variant="outline"
-                                        className="border-emerald-200 bg-white text-emerald-700 hover:bg-emerald-50 gap-2 hidden sm:flex"
+                                        className="border-emerald-200 dark:border-emerald-800 bg-white dark:bg-slate-800 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-900/30 gap-2 hidden sm:flex"
                                         onClick={handleDeepAnalysis}
                                         disabled={isAnalyzing}
                                     >
@@ -311,27 +311,27 @@ export const InvestmentsSection = () => {
                                 </CardHeader>
                                 <CardContent className="space-y-4">
                                     {aiAnalysis ? (
-                                        <div className="p-4 bg-white rounded-xl border border-emerald-100 shadow-sm animate-in zoom-in-95 duration-300 relative text-left">
-                                            <p className="text-xs text-emerald-900 leading-relaxed italic pr-6 whitespace-pre-wrap">{aiAnalysis}</p>
+                                        <div className="p-4 bg-white dark:bg-slate-900/50 rounded-xl border border-emerald-100 dark:border-emerald-900/30 shadow-sm animate-in zoom-in-95 duration-300 relative text-left">
+                                            <p className="text-xs text-emerald-900 dark:text-emerald-100 leading-relaxed italic pr-6 whitespace-pre-wrap">{aiAnalysis}</p>
                                             <button onClick={() => setAiAnalysis(null)} className="absolute top-2 right-2 text-emerald-300 hover:text-emerald-500 text-[10px]">Limpar</button>
                                         </div>
                                     ) : agentInsight ? (
-                                        <div className="flex items-start gap-3 p-4 bg-white rounded-xl border border-emerald-100 shadow-sm animate-in slide-in-from-left text-left">
-                                            <ArrowUpCircle className="h-5 w-5 text-emerald-600 mt-1 shrink-0" />
+                                        <div className="flex items-start gap-3 p-4 bg-white dark:bg-slate-900/50 rounded-xl border border-emerald-100 dark:border-emerald-900/30 shadow-sm animate-in slide-in-from-left text-left">
+                                            <ArrowUpCircle className="h-5 w-5 text-emerald-600 dark:text-emerald-400 mt-1 shrink-0" />
                                             <div>
-                                                <p className="text-sm font-bold text-emerald-900">Sugestão de Aporte</p>
-                                                <p className="text-xs text-emerald-800 leading-relaxed text-balance italic">
+                                                <p className="text-sm font-bold text-emerald-900 dark:text-emerald-400">Sugestão de Aporte</p>
+                                                <p className="text-xs text-emerald-800 dark:text-emerald-100 leading-relaxed text-balance italic">
                                                     Considere alocar <strong>{formatTransactionAmount(agentInsight.amount)}</strong> em <strong>{agentInsight.class}</strong>. {agentInsight.reason}
                                                 </p>
                                             </div>
                                         </div>
                                     ) : (
-                                        <p className="text-sm text-emerald-800 italic">Sua carteira está equilibrada seguindo seu perfil.</p>
+                                        <p className="text-sm text-emerald-800 dark:text-emerald-400 italic">Sua carteira está equilibrada seguindo seu perfil.</p>
                                     )}
                                 </CardContent>
                             </Card>
 
-                            <Card id="profile-tabs-selector" className="shadow-none border-dashed border-2">
+                            <Card id="profile-tabs-selector" className="shadow-none border-dashed border-2 dark:border-slate-800">
                                 <CardHeader className="pb-2 text-left"><CardTitle className="text-sm font-bold">Estratégia Alvo</CardTitle></CardHeader>
                                 <CardContent>
                                     <Tabs value={profile} onValueChange={(v) => setProfile(v as any)} className="w-full">
@@ -361,7 +361,7 @@ export const InvestmentsSection = () => {
                                                     <span className="capitalize">{CATEGORY_LABELS[key as InvestmentClass]}</span>
                                                     <Tooltip>
                                                         <TooltipTrigger className="flex items-center gap-1 cursor-help">
-                                                        <span className={cn(isOver && "text-amber-600")}>
+                                                        <span className={cn(isOver && "text-amber-500")}>
                                                             {currentPct.toFixed(1)}% de {targetPct}%
                                                         </span>
                                                             {isOver && <Info className="h-3 w-3 text-amber-500" />}
@@ -384,7 +384,7 @@ export const InvestmentsSection = () => {
                                 </CardContent>
                             </Card>
 
-                            <Card id="portfolio-card" className="bg-slate-900 text-white border-none shadow-xl flex flex-col justify-center items-center p-4 min-h-[200px]">
+                            <Card id="portfolio-card" className="bg-slate-900 dark:bg-[#1e1f29] text-white border-none shadow-xl flex flex-col justify-center items-center p-4 min-h-[200px]">
                                 <CardHeader className="p-0 mb-4 text-center">
                                     <CardTitle className="text-white/70 text-sm font-medium">Patrimônio Investido</CardTitle>
                                 </CardHeader>
@@ -413,7 +413,6 @@ export const InvestmentsSection = () => {
                             </CardHeader>
                             <CardContent className="p-0 md:p-6">
                                 <div className="max-h-[600px] overflow-y-auto scrollbar-thin scrollbar-thumb-muted-foreground/20 px-4 md:px-0">
-                                    {/* Desktop Table */}
                                     <div className="hidden md:block text-left">
                                         <table className="w-full text-sm">
                                             <thead className="sticky top-0 bg-background z-10 shadow-sm">
@@ -436,18 +435,18 @@ export const InvestmentsSection = () => {
                                                             <div className="flex items-center gap-3">
                                                                 <div className="p-2 bg-muted rounded-lg group-hover:bg-background"><Landmark className="h-4 w-4 text-muted-foreground" /></div>
                                                                 <div>
-                                                                    <p className="font-bold text-sm leading-tight">{inv.name}</p>
+                                                                    <p className="font-bold text-sm leading-tight text-foreground">{inv.name}</p>
                                                                     <p className="text-[10px] text-muted-foreground">{inv.institution}</p>
                                                                 </div>
                                                             </div>
                                                         </td>
                                                         <td className="px-2">
-                                                        <span className="text-[10px] bg-muted px-2 py-1 rounded-full font-bold uppercase whitespace-nowrap">
+                                                        <span className="text-[10px] bg-muted px-2 py-1 rounded-full font-bold uppercase whitespace-nowrap text-foreground">
                                                             {CATEGORY_LABELS[inv.category]}
                                                         </span>
                                                         </td>
                                                         <td className="px-2 text-right text-muted-foreground whitespace-nowrap">{formatTransactionAmount(inv.amountInvested)}</td>
-                                                        <td className="px-2 text-right font-bold whitespace-nowrap">{formatTransactionAmount(inv.currentValue)}</td>
+                                                        <td className="px-2 text-right font-bold whitespace-nowrap text-foreground">{formatTransactionAmount(inv.currentValue)}</td>
                                                         <td className={cn("px-2 text-right font-bold whitespace-nowrap", profit >= 0 ? "text-emerald-600" : "text-rose-600")}>
                                                             <span>{profitPct > 0 ? "+" : ""}{profitPct.toFixed(2)}%</span>
                                                         </td>
@@ -456,7 +455,7 @@ export const InvestmentsSection = () => {
                                                                 <Button
                                                                     variant="ghost"
                                                                     size="icon"
-                                                                    className="h-8 w-8 text-emerald-600 hover:bg-emerald-50"
+                                                                    className="h-8 w-8 text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-900/30"
                                                                     onClick={() => {
                                                                         if (!isPremium) { setActiveDialog("upgrade-plan"); return; }
                                                                         setInvestmentToEdit(inv); setActiveDialog("add-investment");
@@ -467,7 +466,7 @@ export const InvestmentsSection = () => {
                                                                 <Button
                                                                     variant="ghost"
                                                                     size="icon"
-                                                                    className="h-8 w-8 text-red-500 hover:bg-red-50"
+                                                                    className="h-8 w-8 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30"
                                                                     onClick={() => {
                                                                         setInvestmentToDelete(inv);
                                                                         setActiveDialog("confirm-dialog");
@@ -484,12 +483,11 @@ export const InvestmentsSection = () => {
                                         </table>
                                     </div>
 
-                                    {/* Mobile List */}
                                     <div className="grid grid-cols-1 gap-3 p-4 md:hidden">
                                         {investmentsList.map((inv) => (
                                             <div
                                                 key={inv.id}
-                                                className="bg-muted/30 border rounded-xl p-4 space-y-3 active:scale-[0.98] transition-all cursor-pointer relative"
+                                                className="bg-muted/30 border dark:border-slate-800 rounded-xl p-4 space-y-3 active:scale-[0.98] transition-all cursor-pointer relative"
                                                 onClick={() => {
                                                     if (!isPremium) { setActiveDialog("upgrade-plan"); return; }
                                                     setInvestmentToEdit(inv); setActiveDialog("add-investment");
@@ -497,9 +495,9 @@ export const InvestmentsSection = () => {
                                             >
                                                 <div className="flex justify-between items-start">
                                                     <div className="flex gap-3">
-                                                        <div className="p-2 bg-white rounded-lg border shadow-sm"><Landmark className="h-5 w-5 text-emerald-600" /></div>
+                                                        <div className="p-2 bg-white dark:bg-slate-800 rounded-lg border dark:border-slate-700 shadow-sm"><Landmark className="h-5 w-5 text-emerald-600 dark:text-emerald-400" /></div>
                                                         <div className="text-left">
-                                                            <p className="font-bold text-sm leading-tight">{inv.name}</p>
+                                                            <p className="font-bold text-sm leading-tight text-foreground">{inv.name}</p>
                                                             <p className="text-[10px] text-muted-foreground">{inv.institution}</p>
                                                         </div>
                                                     </div>
@@ -513,13 +511,13 @@ export const InvestmentsSection = () => {
                                                         </Button>
                                                     </div>
                                                 </div>
-                                                <div className="grid grid-cols-2 gap-4 pt-2 border-t border-dashed">
+                                                <div className="grid grid-cols-2 gap-4 pt-2 border-t border-dashed dark:border-slate-800">
                                                     <div className="text-left">
                                                         <p className="text-[9px] uppercase font-bold text-muted-foreground tracking-tighter">Valor Atual</p>
-                                                        <p className="text-sm font-bold text-slate-900">{formatTransactionAmount(inv.currentValue)}</p>
+                                                        <p className="text-sm font-bold text-foreground">{formatTransactionAmount(inv.currentValue)}</p>
                                                     </div>
                                                     <div className="text-right flex flex-col justify-end">
-                                                    <span className="text-[9px] bg-white border px-2 py-0.5 rounded-full font-bold uppercase text-muted-foreground inline-block">
+                                                    <span className="text-[9px] bg-white dark:bg-slate-800 border dark:border-slate-700 px-2 py-0.5 rounded-full font-bold uppercase text-muted-foreground inline-block">
                                                         {CATEGORY_LABELS[inv.category]}
                                                     </span>
                                                     </div>
