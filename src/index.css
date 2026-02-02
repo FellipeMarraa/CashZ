@@ -31,11 +31,11 @@
     --warning: 38 92% 50%;
 
     /* Cores de Gráficos Shadcn */
-    --chart-1: 142 76% 36%; /* Emerald principal */
-    --chart-2: 217 91% 60%; /* Blue */
-    --chart-3: 47 95% 55%;  /* Yellow/Amber */
-    --chart-4: 0 84% 60%;   /* Red */
-    --chart-5: 270 95% 60%; /* Purple */
+    --chart-1: 142 76% 36%; /* Verde (Receita) */
+    --chart-2: 0 84% 60%;   /* Vermelho (Despesa) */
+    --chart-3: 199 89% 48%; /* Azul (Outros) */
+    --chart-4: 38 92% 50%;  /* Amarelo/Laranja */
+    --chart-5: 270 95% 60%; /* Roxo /Purple*/
   }
 
   .dark {
@@ -73,12 +73,12 @@
 
     /* Status Financeiros Dracula Style */
     --success: 135 94% 65%;   /* Verde Dracula */
-    --warning: 65 92% 70%;    /* Amarelo Dracula */
+    --warning: 65 92% 70%;
 
     /* Gráficos com cores da paleta Dracula */
-    --chart-1: 135 94% 65%;   /* Verde (Receitas) */
-    --chart-2: 0 100% 67%;    /* Vermelho (Despesas) */
-    --chart-3: 191 97% 77%;   /* Ciano (Outros) */
+    --chart-1: 135 94% 65%;   /* Verde (Receita) */
+    --chart-2: 0 100% 67%;    /* Vermelho (Despesa) */
+    --chart-3: 191 97% 77%;   /* Ciano */
     --chart-4: 31 100% 71%;   /* Laranja */
     --chart-5: 265 89% 78%;   /* Red */
   }

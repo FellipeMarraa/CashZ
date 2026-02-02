@@ -77,12 +77,10 @@ export const SettingsSection = () => {
   const [shareIdToRevoke, setShareIdToRevoke] = useState<string | null>(null);
   const [shareIdToLeave, setShareIdToLeave] = useState<string | null>(null);
   const [isDeletingAccount, setIsDeletingAccount] = useState(false);
-  const [isResettingTutorials, setIsResettingTutorials] = useState(false); // Novo estado para reset
+  const [isResettingTutorials, setIsResettingTutorials] = useState(false);
 
-  // --- PASSOS DO TUTORIAL AJUSTADOS ---
   const settingsSteps = useMemo(() => {
     const steps = [];
-
     if (activeTab === "general") {
       steps.push(
           { element: "#card-subscription", title: "Sua Assinatura", description: "Aqui você gerencia seu plano e vê seus benefícios Premium.", side: "top" as const },
@@ -101,7 +99,6 @@ export const SettingsSection = () => {
           { element: "#sharing-lists-container", title: "Seus Acessos", description: "Controle quem tem acesso aos seus dados e convites recebidos.", side: "top" as const }
       );
     }
-
     return steps;
   }, [activeTab]);
 
@@ -136,6 +133,24 @@ export const SettingsSection = () => {
     });
   };
 
+  const handleConfirmAction = () => {
+    if (categoryIdToDelete) {
+      deleteCategoryMutation.mutate(categoryIdToDelete, { onSuccess: () => { setActiveDialog(null); setCategoryIdToDelete(null); } });
+    } else if (shareIdToRevoke) {
+      revokeMutation.mutate(shareIdToRevoke, { onSuccess: () => { setActiveDialog(null); setShareIdToRevoke(null); } });
+    } else if (shareIdToLeave) {
+      leaveSharingMutation.mutate(shareIdToLeave, { onSuccess: () => { setActiveDialog(null); setShareIdToLeave(null); toast({ title: "Acesso removido" }); } });
+    } else if (isDeletingAccount) {
+      handleDeleteAccountAction();
+    } else if (isResettingTutorials) {
+      hideTutorial("RESET_ALL").then(() => {
+        window.location.reload();
+      });
+      setActiveDialog(null);
+      setIsResettingTutorials(false);
+    }
+  };
+
   const handleDeleteAccountAction = async () => {
     try {
       await deleteAccount();
@@ -149,51 +164,31 @@ export const SettingsSection = () => {
     }
   };
 
-  const handleConfirmAction = () => {
-    if (categoryIdToDelete) {
-      deleteCategoryMutation.mutate(categoryIdToDelete, { onSuccess: () => { setActiveDialog(null); setCategoryIdToDelete(null); } });
-    } else if (shareIdToRevoke) {
-      revokeMutation.mutate(shareIdToRevoke, { onSuccess: () => { setActiveDialog(null); setShareIdToRevoke(null); } });
-    } else if (shareIdToLeave) {
-      leaveSharingMutation.mutate(shareIdToLeave, { onSuccess: () => { setActiveDialog(null); setShareIdToLeave(null); toast({ title: "Acesso removido" }); } });
-    } else if (isDeletingAccount) {
-      handleDeleteAccountAction();
-    } else if (isResettingTutorials) {
-      // LÓGICA DE RESET CORRIGIDA
-      hideTutorial("RESET_ALL").then(() => {
-        window.location.reload();
-      });
-      setActiveDialog(null);
-      setIsResettingTutorials(false);
-    }
-  };
-
   return (
       <div className="space-y-6 animate-in fade-in duration-700 pb-10">
         <TutorialWizard tutorialKey={`settings-${activeTab}-v5`} steps={settingsSteps} />
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-          <TabsList id="settings-tabs-list" className="flex w-full md:w-auto h-12 bg-muted/50 p-1">
+          <TabsList id="settings-tabs-list" className="flex w-full md:w-auto h-12 bg-muted/50 dark:bg-slate-800/50 p-1">
             <TabsTrigger value="general" className="flex-1 flex items-center justify-center gap-2 text-xs uppercase tracking-tight py-2"><Settings2 className="h-4 w-4" /><span className="hidden md:inline">Geral</span></TabsTrigger>
             <TabsTrigger value="categories" className="flex-1 flex items-center justify-center gap-2 text-xs uppercase tracking-tight py-2"><Tag className="h-4 w-4" /><span className="hidden md:inline">Categorias</span></TabsTrigger>
             <TabsTrigger value="sharing" className="flex-1 flex items-center justify-center gap-2 text-xs uppercase tracking-tight py-2"><Share2 className="h-4 w-4" /><span className="hidden md:inline">Compartilhamento</span></TabsTrigger>
           </TabsList>
 
-          {/* ABA GERAL */}
           <TabsContent value="general" className="space-y-6 outline-none text-left">
             <div className="grid gap-4 md:grid-cols-2">
-              <Card id="card-subscription" className={cn("shadow-none border-2", isPremium ? "border-emerald-500/20 bg-emerald-500/5" : "border-slate-200")}>
+              <Card id="card-subscription" className={cn("shadow-none border-2", isPremium ? "border-emerald-500/20 bg-emerald-500/5 dark:bg-emerald-500/10" : "border-slate-200 dark:border-slate-800")}>
                 <CardHeader>
                   <div className="flex items-center gap-2">
-                    {isPremium ? <Crown className="h-5 w-5 text-emerald-600" /> : <Zap className="h-5 w-5 text-slate-400" />}
-                    <CardTitle className="text-lg">Plano atual: <span className="capitalize text-emerald-600">{preferences?.plan || 'Free'}</span></CardTitle>
+                    {isPremium ? <Crown className="h-5 w-5 text-emerald-600 dark:text-emerald-400" /> : <Zap className="h-5 w-5 text-slate-400" />}
+                    <CardTitle className="text-lg">Plano atual: <span className="capitalize text-emerald-600 dark:text-emerald-400">{preferences?.plan || 'Free'}</span></CardTitle>
                   </div>
                   <CardDescription>Gerencie sua assinatura e recursos premium.</CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <div className="flex items-center justify-between p-4 gap-2 border rounded-xl bg-background text-left">
+                  <div className="flex items-center justify-between p-4 gap-2 border dark:border-slate-800 rounded-xl bg-background text-left">
                     <div className="space-y-1">
-                      <p className="text-sm font-bold text-slate-900">{isPremium ? "Assinatura Ativa" : "Upgrade disponível"}</p>
+                      <p className="text-sm font-bold text-slate-900 dark:text-slate-100">{isPremium ? "Assinatura Ativa" : "Upgrade disponível"}</p>
                       <p className="text-xs text-muted-foreground">Desbloqueie compartilhamento e exportação.</p>
                     </div>
                     {!isPremium && <Button size="sm" onClick={() => setActiveDialog("upgrade-plan")} className="bg-emerald-600 hover:bg-emerald-700 shrink-0">Upgrade</Button>}
@@ -201,21 +196,21 @@ export const SettingsSection = () => {
                 </CardContent>
               </Card>
 
-              <Card id="card-visual-guides" className="border-amber-500/20 bg-amber-500/5 shadow-none text-left">
+              <Card id="card-visual-guides" className="border-amber-500/20 bg-amber-500/5 dark:bg-amber-900/10 shadow-none text-left">
                 <CardHeader>
-                  <div className="flex items-center gap-2"><HelpCircle className="h-5 w-5 text-amber-600" /><CardTitle className="text-lg">Guias visuais</CardTitle></div>
+                  <div className="flex items-center gap-2"><HelpCircle className="h-5 w-5 text-amber-600 dark:text-amber-400" /><CardTitle className="text-lg">Guias visuais</CardTitle></div>
                   <CardDescription>Gerencie as dicas de navegação do CashZ.</CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <div className="flex items-center justify-between p-4 border rounded-xl bg-background text-left">
+                  <div className="flex items-center justify-between p-4 border dark:border-slate-800 rounded-xl bg-background text-left">
                     <div className="space-y-1">
-                      <p className="text-sm font-bold text-slate-900">Resetar Tutoriais</p>
+                      <p className="text-sm font-bold text-slate-900 dark:text-slate-100">Resetar Tutoriais</p>
                       <p className="text-xs text-muted-foreground leading-relaxed">Isso fará com que os balões de ajuda apareçam novamente.</p>
                     </div>
                     <Button variant="outline" size="sm" onClick={() => {
-                      setIsResettingTutorials(true); // Ativa o estado de reset
+                      setIsResettingTutorials(true);
                       setActiveDialog("confirm-dialog");
-                    }} className="text-amber-700 border-amber-200 hover:bg-amber-100 shrink-0">
+                    }} className="text-amber-700 border-amber-200 dark:border-amber-900/50 dark:text-amber-500 shrink-0">
                       <RefreshCcw className="mr-2 h-3 w-3" /> Resetar
                     </Button>
                   </div>
@@ -231,7 +226,7 @@ export const SettingsSection = () => {
                   <CardDescription>Personalize o visual do seu dashboard.</CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <div className="flex items-center justify-between p-4 border rounded-xl bg-background">
+                  <div className="flex items-center justify-between p-4 border dark:border-slate-800 rounded-xl bg-background">
                     <div className="space-y-1">
                       <p className="text-sm font-bold text-slate-900 dark:text-slate-100">
                         Modo {theme === 'dark' ? 'Escuro' : 'Claro'}
@@ -240,7 +235,6 @@ export const SettingsSection = () => {
                         Alterne entre o tema claro e o tema escuro.
                       </p>
                     </div>
-                    {/* Aqui usamos a lógica do seu ThemeToggle em um botão que combina com a UI */}
                     <Button
                         variant="outline"
                         size="sm"
@@ -257,17 +251,17 @@ export const SettingsSection = () => {
                 </CardContent>
               </Card>
 
-              <Card id="card-danger-zone" className="border-rose-200 bg-rose-50/30 shadow-none text-left">
+              <Card id="card-danger-zone" className="border-rose-200 dark:border-rose-900 bg-rose-50/30 dark:bg-rose-900/10 shadow-none text-left">
                 <CardHeader>
-                  <div className="flex items-center gap-2"><Trash2 className="h-5 w-5 text-rose-600" /><CardTitle className="text-lg text-rose-900">Zona de Perigo</CardTitle></div>
+                  <div className="flex items-center gap-2"><Trash2 className="h-5 w-5 text-rose-600 dark:text-rose-400" /><CardTitle className="text-lg text-rose-900 dark:text-rose-400">Zona de Perigo</CardTitle></div>
                   <CardDescription>Ações irreversíveis sobre sua conta.</CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <div className="flex items-center justify-between p-4 border border-rose-100 rounded-xl bg-background">
-                    <div className="space-y-1"><p className="text-sm font-bold text-slate-900">Deletar minha conta</p><p className="text-xs text-muted-foreground leading-tight">Apaga permanentemente todos os seus dados.</p></div>
+                  <div className="flex items-center justify-between p-4 border border-rose-100 dark:border-rose-900/50 rounded-xl bg-background">
+                    <div className="space-y-1"><p className="text-sm font-bold text-slate-900 dark:text-slate-100">Deletar minha conta</p><p className="text-xs text-muted-foreground leading-tight">Apaga permanentemente todos os seus dados.</p></div>
                     <Button variant="destructive" size="sm" onClick={() => {
                       setIsDeletingAccount(true);
-                      setIsResettingTutorials(false); // Garante que não está resetando tutorial
+                      setIsResettingTutorials(false);
                       setActiveDialog("confirm-dialog");
                     }} className="bg-rose-600 hover:bg-rose-700">Excluir</Button>
                   </div>
@@ -276,14 +270,13 @@ export const SettingsSection = () => {
             </div>
           </TabsContent>
 
-          {/* ABA CATEGORIAS */}
           <TabsContent value="categories" className="outline-none text-left">
-            <Card className="border-none shadow-none md:border md:shadow-sm text-left">
+            <Card className="border-none shadow-none md:border dark:md:border-slate-800 md:shadow-sm text-left">
               <CardHeader><CardTitle>Suas Categorias</CardTitle><CardDescription>Gerencie como organiza suas finanças.</CardDescription></CardHeader>
               <CardContent className="space-y-6">
                 <div id="input-group-category" className="flex flex-col md:flex-row gap-4">
                   <div className="flex gap-2 flex-1">
-                    <Input placeholder="Nova categoria..." value={newCategoryName} onChange={(e) => setNewCategoryName(e.target.value)} />
+                    <Input placeholder="Nova categoria..." value={newCategoryName} onChange={(e) => setNewCategoryName(e.target.value)} className="bg-background" />
                     <Button onClick={handleAddCategory} className="bg-emerald-600 hover:bg-emerald-700 shrink-0">
                       {!isPremium && <Lock className="h-3 w-3 mr-1" />}
                       <Plus className="h-4 w-4" />
@@ -291,7 +284,7 @@ export const SettingsSection = () => {
                   </div>
                   <div className="relative flex-1">
                     <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                    <Input placeholder="Pesquisar..." className="pl-10" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
+                    <Input placeholder="Pesquisar..." className="pl-10 bg-background" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
                   </div>
                 </div>
                 <div id="category-list-container" className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 overflow-y-auto max-h-[400px] pr-1">
@@ -299,10 +292,10 @@ export const SettingsSection = () => {
                     const isHidden = hiddenCategoryIds.includes(cat.id);
                     const isShared = cat.userId && cat.userId !== currentUser?.id;
                     return (
-                        <div key={cat.id} className={cn("flex items-center justify-between p-3 border rounded-xl border-l-4", isHidden ? "bg-muted/10 opacity-60 grayscale" : "bg-background", isShared ? "border-l-blue-400" : "border-l-emerald-400")}>
+                        <div key={cat.id} className={cn("flex items-center justify-between p-3 border dark:border-slate-800 rounded-xl border-l-4", isHidden ? "bg-muted/10 opacity-60 grayscale" : "bg-background", isShared ? "border-l-blue-400" : "border-l-emerald-400")}>
                           <div className="flex items-center gap-3 truncate">
                             <Tag className={cn("h-4 w-4 shrink-0", isHidden ? "text-slate-400" : (isShared ? "text-blue-500" : "text-emerald-500"))} />
-                            <div className="flex flex-col truncate"><span className={cn("text-sm truncate", isHidden && "line-through text-muted-foreground")}>{cat.name}</span>{isShared && <span className="text-[9px] text-blue-500 uppercase tracking-tighter">Compartilhada</span>}</div>
+                            <div className="flex flex-col truncate"><span className={cn("text-sm truncate text-foreground", isHidden && "line-through text-muted-foreground")}>{cat.name}</span>{isShared && <span className="text-[9px] text-blue-500 uppercase tracking-tighter">Compartilhada</span>}</div>
                           </div>
                           <div className="flex gap-1 shrink-0 ml-2">
                             <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => toggleVisibility.mutate(cat.id!)}>{isHidden ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4 text-emerald-600" />}</Button>
@@ -316,16 +309,17 @@ export const SettingsSection = () => {
             </Card>
           </TabsContent>
 
-          {/* ABA COMPARTILHAMENTO */}
           <TabsContent value="sharing" className="outline-none text-left">
-            <Card className="border-none shadow-none md:border md:shadow-sm text-left">
+            <Card className="border-none shadow-none md:border dark:md:border-slate-800 md:shadow-sm text-left">
               <CardHeader className="pb-4"><div className="flex items-center gap-2"><Users className="h-5 w-5 text-emerald-600" /><CardTitle>Compartilhamento</CardTitle></div><CardDescription>Gerencie conexões e acessos.</CardDescription></CardHeader>
               <CardContent className="space-y-8">
-                <div id="invite-partner-box" className="p-4 md:p-6 border-2 border-emerald-500/10 rounded-2xl bg-emerald-500/5 space-y-6 relative overflow-hidden">
-                  {!isPremium && <div className="absolute inset-0 bg-white/40 backdrop-blur-[1px] z-10 flex items-center justify-center">
-                    <Button onClick={() => setActiveDialog("upgrade-plan")} variant="outline" className="bg-white gap-2 shadow-xl border-emerald-200 text-emerald-700"><Crown className="h-4 w-4 fill-emerald-500" /> Desbloquear</Button>
+                <div id="invite-partner-box" className="p-4 md:p-6 border-2 border-emerald-500/10 dark:border-emerald-900/30 rounded-2xl bg-emerald-500/5 dark:bg-emerald-900/5 space-y-6 relative overflow-hidden">
+                  {!isPremium && <div className="absolute inset-0 bg-white/40 dark:bg-slate-900/40 backdrop-blur-[1px] z-10 flex items-center justify-center">
+                    <Button onClick={() => setActiveDialog("upgrade-plan")} variant="outline" className="bg-white dark:bg-slate-900 gap-2 shadow-xl border-emerald-200 dark:border-emerald-900 text-emerald-700 dark:text-emerald-400">
+                      <Crown className="h-4 w-4 fill-emerald-500" /> Desbloquear
+                    </Button>
                   </div>}
-                  <div className="flex-1 space-y-1"><p className="text-sm text-emerald-900 flex items-center gap-2 leading-none"><UserPlus className="h-4 w-4" /> Convidar novo parceiro</p></div>
+                  <div className="flex-1 space-y-1"><p className="text-sm text-emerald-900 dark:text-emerald-400 flex items-center gap-2 leading-none"><UserPlus className="h-4 w-4" /> Convidar novo parceiro</p></div>
                   <div className="flex flex-col md:flex-row gap-4 items-end">
                     <div className="flex-1 space-y-2 w-full">
                       <Label className="text-[10px] uppercase text-slate-500">E-mail do Parceiro</Label>
@@ -338,10 +332,10 @@ export const SettingsSection = () => {
                   <div className="space-y-4">
                     <p className="text-[10px] uppercase text-slate-400 tracking-[0.2em]">Convites enviados</p>
                     {sharedWith.map((share: any) => (
-                        <div key={share.id} className="flex items-center justify-between p-3 border rounded-xl bg-background group">
+                        <div key={share.id} className="flex items-center justify-between p-3 border dark:border-slate-800 rounded-xl bg-background group">
                           <div className="flex items-center gap-3 truncate">
-                            <div className="h-8 w-8 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center text-xs shrink-0">{share.email.charAt(0).toUpperCase()}</div>
-                            <div className="flex flex-col truncate"><span className="text-xs truncate">{share.email}</span><span className={cn("text-[9px] font-bold uppercase", share.status === 'PENDENTE' ? 'text-amber-500' : 'text-emerald-600')}>{share.status === 'PENDENTE' ? 'Aguardando' : 'Ativo'}</span></div>
+                            <div className="h-8 w-8 rounded-full bg-emerald-100 dark:bg-emerald-900 text-emerald-700 dark:text-emerald-400 flex items-center justify-center text-xs shrink-0">{share.email.charAt(0).toUpperCase()}</div>
+                            <div className="flex flex-col truncate"><span className="text-xs truncate text-foreground">{share.email}</span><span className={cn("text-[9px] font-bold uppercase", share.status === 'PENDENTE' ? 'text-amber-500' : 'text-emerald-600')}>{share.status === 'PENDENTE' ? 'Aguardando' : 'Ativo'}</span></div>
                           </div>
                           <Button variant="ghost" size="icon" className="h-8 w-8 text-rose-500" onClick={() => { setShareIdToRevoke(share.id); setActiveDialog("confirm-dialog"); }}><Trash2 className="h-4 w-4" /></Button>
                         </div>
@@ -350,18 +344,18 @@ export const SettingsSection = () => {
                   <div className="space-y-4">
                     <p className="text-[10px] uppercase text-slate-400 tracking-[0.2em]">Convites recebidos</p>
                     {sharedToMe.map((share: any) => (
-                        <div key={share.id} className={cn("flex flex-col p-3 border rounded-xl group gap-3", share.status === 'PENDENTE' ? "bg-amber-50/50 border-amber-200" : "bg-blue-50/20 border-blue-100")}>
+                        <div key={share.id} className={cn("flex flex-col p-3 border dark:border-slate-800 rounded-xl group gap-3", share.status === 'PENDENTE' ? "bg-amber-50/50 dark:bg-amber-900/10 border-amber-200 dark:border-amber-900" : "bg-blue-50/20 dark:bg-blue-900/10 border-blue-100 dark:border-blue-900")}>
                           <div className="flex items-center justify-between">
                             <div className="flex items-center gap-3 truncate">
-                              <div className="h-8 w-8 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center text-xs shrink-0">{share.ownerEmail.charAt(0).toUpperCase()}</div>
-                              <div className="flex flex-col truncate"><span className="text-xs text-slate-900">{share.ownerEmail}</span><span className="text-[9px] text-blue-600">{share.status === 'ACEITO' ? 'Acesso Total' : 'Convidou você'}</span></div>
+                              <div className="h-8 w-8 rounded-full bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-400 flex items-center justify-center text-xs shrink-0">{share.ownerEmail.charAt(0).toUpperCase()}</div>
+                              <div className="flex flex-col truncate"><span className="text-xs text-slate-900 dark:text-slate-100">{share.ownerEmail}</span><span className="text-[9px] text-blue-600 dark:text-blue-400">{share.status === 'ACEITO' ? 'Acesso Total' : 'Convidou você'}</span></div>
                             </div>
                             {share.status === 'ACEITO' && <Button variant="ghost" size="icon" className="h-8 w-8 text-rose-600" onClick={() => { setShareIdToLeave(share.id); setActiveDialog("confirm-dialog"); }}><LogOut className="h-4 w-4" /></Button>}
                           </div>
                           {share.status === 'PENDENTE' && (
                               <div className="flex gap-2">
                                 <Button size="sm" className="flex-1 bg-emerald-600 text-[11px] h-8" onClick={() => acceptSharingMutation.mutate(share.id)}><Check className="w-3 h-3 mr-1" /> Aceitar</Button>
-                                <Button size="sm" variant="outline" className="flex-1 text-[11px] h-8 text-rose-600" onClick={() => leaveSharingMutation.mutate(share.id)}><X className="w-3 h-3 mr-1" /> Recusar</Button>
+                                <Button size="sm" variant="outline" className="flex-1 text-[11px] h-8 text-rose-600 dark:text-rose-400 dark:border-rose-900" onClick={() => leaveSharingMutation.mutate(share.id)}><X className="w-3 h-3 mr-1" /> Recusar</Button>
                               </div>
                           )}
                         </div>
