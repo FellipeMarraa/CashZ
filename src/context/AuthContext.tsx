@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useEffect, useState } from "react";
-import { onAuthChange, logout as firebaseLogout, auth } from "../../firebase.ts"; // Importe 'auth'
+import { onAuthChange, logout as firebaseLogout, auth, db } from "../../firebase.ts";
 import { User as FirebaseUser } from "firebase/auth";
+import { collection, query, where, getDocs, writeBatch, doc } from "firebase/firestore/lite";
 
 interface User {
     id: string;
@@ -26,7 +27,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const [user, setUser] = useState<User | null>(null);
     const [loading, setLoading] = useState(true);
 
-    // Função para transformar FirebaseUser em seu User customizado
     const mapUser = (firebaseUser: FirebaseUser): User => ({
         id: firebaseUser.uid,
         email: firebaseUser.email || "",
@@ -48,11 +48,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return () => unsubscribe();
     }, []);
 
-    // Função para forçar a atualização dos dados do usuário logado
     const refreshUser = async () => {
         const currentUser = auth.currentUser;
         if (currentUser) {
-            // Força o Firebase a buscar os dados mais recentes do servidor (como o displayName novo)
             await currentUser.reload();
             setUser(mapUser(auth.currentUser!));
         }
@@ -64,14 +62,39 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (callback) callback();
     };
 
+    // --- FUNÇÃO DE LIMPEZA DE DADOS NO FIRESTORE ---
+    const cleanupUserData = async (userId: string) => {
+        const collections = ["transactions", "investments", "budgets", "categories"];
+        const batch = writeBatch(db);
+
+        for (const collectionName of collections) {
+            // Busca documentos onde o campo userId é igual ao uid
+            const q = query(collection(db, collectionName), where("userId", "==", userId));
+            const querySnapshot = await getDocs(q);
+
+            querySnapshot.forEach((document) => {
+                batch.delete(doc(db, collectionName, document.id));
+            });
+        }
+
+        batch.delete(doc(db, "user_preferences", userId));
+
+        await batch.commit();
+    };
+
     const deleteAccount = async () => {
         const currentUser = auth.currentUser;
         if (currentUser) {
+            const userId = currentUser.uid;
             try {
+                // 1. Primeiro limpa os dados do banco enquanto ainda tem permissão (logado)
+                await cleanupUserData(userId);
+
+                // 2. Depois deleta o usuário da autenticação
                 await currentUser.delete();
+
                 setUser(null);
             } catch (error: any) {
-                // Firebase exige login recente para deletar conta
                 if (error.code === 'auth/requires-recent-login') {
                     throw new Error("REAUTHENTICATION_REQUIRED");
                 }
