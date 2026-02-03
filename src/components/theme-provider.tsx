@@ -40,12 +40,14 @@ export function ThemeProvider({
 
     root.classList.add(resolvedTheme);
 
-    const metaTheme = window.document.getElementById('theme-meta');
+    const color = resolvedTheme === 'dark' ? '#282a36' : '#ffffff';
 
-    if (metaTheme) {
-      const color = resolvedTheme === 'dark' ? '#282a36' : '#ffffff';
-      metaTheme.setAttribute('content', color);
-    }
+    const metaTheme = window.document.getElementById('theme-meta');
+    if (metaTheme) metaTheme.setAttribute('content', color);
+
+    root.style.backgroundColor = color;
+    window.document.body.style.backgroundColor = color;
+
   }, [theme]);
 
   const value = {

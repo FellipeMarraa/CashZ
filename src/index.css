@@ -2,12 +2,16 @@
 @tailwind components;
 @tailwind utilities;
 
-html, body {
-  background-color: hsl(var(--background));
-  overscroll-behavior-y: none;
-}
-
 @layer base {
+
+  html, body {
+    /* Garante que o fundo do navegador (overscroll) seja da cor do tema */
+    background-color: hsl(var(--background));
+    min-height: 100%;
+    /* Previne que apareça branco ao puxar a tela para baixo no iPhone */
+    overscroll-behavior: none;
+  }
+
   :root {
     /* Cores do Modo Claro - Mantendo sua base com ajustes de consistência */
     --background: 0 0% 100%;
