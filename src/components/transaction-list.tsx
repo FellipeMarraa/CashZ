@@ -1,14 +1,14 @@
 "use client"
 
-import {CircleDollarSign, Search, SquarePen, Trash, Users, Lock} from 'lucide-react';
+import {CircleDollarSign, Lock, Search, SquarePen, Trash, Users} from 'lucide-react';
 import {useDeleteTransaction, useUpdateTransaction} from "@/hooks/useTransactions";
 import {Transaction} from "@/model/types/Transaction.ts";
 import {useDialogManager} from "@/context/DialogManagerContext.tsx";
 import {EditFinanceForm} from "@/components/edit-finance-form.tsx";
 import {useToast} from "@/hooks/use-toast.ts";
-import {useState} from "react";
+import {useMemo, useState} from "react";
 import {DeleteFinanceDialog} from "@/components/delete-finance-dialog.tsx";
-import {Tooltip, TooltipContent, TooltipTrigger, TooltipProvider} from "@/components/ui/tooltip.tsx";
+import {Tooltip, TooltipContent, TooltipProvider, TooltipTrigger} from "@/components/ui/tooltip.tsx";
 import {useAuth} from "@/context/AuthContext";
 import {cn} from "@/lib/utils";
 
@@ -26,6 +26,16 @@ export const TransactionList = ({ transactions }: TransactionListProps) => {
     const [transactionToDelete, setTransactionToDelete] = useState<Transaction | null>(null);
     const {toast} = useToast();
 
+    const sortedTransactions = useMemo(() => {
+        return [...transactions].sort((a, b) => {
+            const aIsMine = a.owner.id === currentUser?.id;
+            const bIsMine = b.owner.id === currentUser?.id;
+            if (aIsMine && !bIsMine) return -1;
+            if (!aIsMine && bIsMine) return 1;
+            return 0;
+        });
+    }, [transactions, currentUser?.id]);
+
     const formatCurrency = (value: number, type: 'RECEITA' | 'DESPESA') => {
         const formatted = new Intl.NumberFormat('pt-BR', {
             style: 'currency',
@@ -35,7 +45,6 @@ export const TransactionList = ({ transactions }: TransactionListProps) => {
     };
 
     const handleDeleteClick = (transaction: Transaction) => {
-        // Bloqueio: Não permite deletar se não for o dono
         if (transaction.owner.id !== currentUser?.id) {
             toast({
                 title: "Acesso restrito",
@@ -63,7 +72,6 @@ export const TransactionList = ({ transactions }: TransactionListProps) => {
     };
 
     const handleStatusUpdate = (transaction: Transaction) => {
-        // Bloqueio: Não permite alterar status se não for o dono
         if (transaction.owner.id !== currentUser?.id) {
             toast({
                 title: "Acesso restrito",
@@ -81,7 +89,6 @@ export const TransactionList = ({ transactions }: TransactionListProps) => {
     };
 
     const handleEditClick = (transaction: Transaction) => {
-        // Bloqueio: Não permite editar se não for o dono
         if (transaction.owner.id !== currentUser?.id) {
             toast({
                 title: "Acesso restrito",
@@ -106,7 +113,6 @@ export const TransactionList = ({ transactions }: TransactionListProps) => {
     return (
         <TooltipProvider>
             <div className="rounded-md border divide-y bg-background overflow-hidden">
-                {/* Header Desktop */}
                 <div className="hidden md:grid grid-cols-[1.5fr_1fr_1fr_120px] gap-4 p-4 text-[10px] uppercase tracking-wider bg-muted/30 text-muted-foreground ">
                     <div>Descrição / Proprietário</div>
                     <div>Categoria</div>
@@ -114,9 +120,8 @@ export const TransactionList = ({ transactions }: TransactionListProps) => {
                     <div className="text-right">Ações</div>
                 </div>
 
-                {/* Container com scroll controlado para Mobile */}
                 <div className="divide-y max-h-[500px] md:max-h-none overflow-y-auto scrollbar-thin">
-                    {transactions.map((transaction) => {
+                    {sortedTransactions.map((transaction) => {
                         const isShared = transaction.owner && transaction.owner.id !== currentUser?.id;
 
                         return (
@@ -124,17 +129,22 @@ export const TransactionList = ({ transactions }: TransactionListProps) => {
                                 key={transaction.id}
                                 className={cn(
                                     "flex flex-col md:grid md:grid-cols-[1.5fr_1fr_1fr_120px] gap-2 md:gap-4 p-4 items-start md:items-center hover:bg-muted/50 transition-colors",
-                                    isShared
-                                        ? "border-l-[6px] border-l-blue-500 bg-blue-50/5 opacity-80" // Opacidade reduzida para itens que não são dele
-                                        : "border-l-[6px] border-l-emerald-500 bg-emerald-50/5 md:bg-transparent"
                                 )}
                             >
                                 <div className="flex justify-between items-start w-full md:block">
                                     <div className="flex flex-col text-left">
                                         <div className="flex items-center gap-2">
-                                            <span className="text-sm md:text-base text-foreground font-medium">{transaction.description}</span>
+                                            <span className="text-sm md:text-base text-foreground font-medium flex-1 items-center gap-2">
+                                                {transaction.description}
+                                                {transaction.recurrence === 'PARCELADO' && transaction.numInstallments && transaction.numInstallments > 1 && (
+                                                    <span className="text-xs text-muted-foreground font-mono ml-2 bg-muted px-1 rounded">
+                                                        {String(transaction.currentInstallment).padStart(2, '0')}/{String(transaction.numInstallments).padStart(2, '0')}
+                                                    </span>
+                                                )}
+                                            </span>
+
                                             {isShared && (
-                                                <span className="text-[9px] bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded-full uppercase flex items-center gap-1 shrink-0 ">
+                                                <span className="text-[9px] bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded-full uppercase flex items-center gap-1 shrink-0">
                                                     <Users className="h-2.5 w-2.5" /> {transaction.owner.name.split(' ')[0]}
                                                 </span>
                                             )}
@@ -158,7 +168,6 @@ export const TransactionList = ({ transactions }: TransactionListProps) => {
                                     <span className="text-[10px] text-muted-foreground md:hidden uppercase tracking-tighter">Gerenciar</span>
 
                                     <div className="flex items-center gap-3">
-                                        {/* Se for compartilhado, mostramos um ícone de cadeado ou desabilitamos as ações visuais */}
                                         {isShared ? (
                                             <Tooltip>
                                                 <TooltipTrigger asChild>

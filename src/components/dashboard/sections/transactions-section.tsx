@@ -23,7 +23,7 @@ export const TransactionsSection = () => {
     const { user: currentUser } = useAuth();
     const [transactionType, setTransactionType] = useState<TransactionType>('all');
     const [searchQuery, setSearchQuery] = useState('');
-    const [sortOrder, setSortOrder] = useState<'newest' | 'oldest' | 'highest' | 'lowest' | 'paid' | 'pending'>('newest');
+    const [sortOrder, setSortOrder] = useState<'newest' | 'oldest' | 'highest' | 'lowest' | 'paid' | 'pending' | 'parcelada' | 'fixa'>('newest');
     const [selectedUser, setSelectedUser] = useState<string>("all");
     const [month, setMonth] = useState(IMes[new Date().getMonth()]);
     const [year, setYear] = useState(new Date().getFullYear());
@@ -100,6 +100,8 @@ export const TransactionsSection = () => {
                 let matchesStatus = true;
                 if (sortOrder === 'paid') matchesStatus = (t.status === 'PAGA' || t.status === 'RECEBIDA');
                 if (sortOrder === 'pending') matchesStatus = (t.status === 'PENDENTE');
+                if (sortOrder === 'parcelada') matchesStatus = (t.recurrence === 'PARCELADO' && t.numInstallments !== undefined && t.numInstallments > 1);
+                if (sortOrder === 'fixa') matchesStatus = (t.recurrence === 'FIXO');
 
                 return matchesSearch && matchesType && matchesUser && matchesStatus;
             })
@@ -115,6 +117,10 @@ export const TransactionsSection = () => {
                     case 'lowest': return a.amount - b.amount;
                     case 'oldest': return new Date(a.date).getTime() - new Date(b.date).getTime();
                     case 'newest':
+                    case 'paid':
+                    case 'pending':
+                    case 'parcelada':
+                    case 'fixa':
                     default: return new Date(b.date).getTime() - new Date(a.date).getTime();
                 }
             });
@@ -222,12 +228,14 @@ export const TransactionsSection = () => {
                                             </div>
                                         </SelectTrigger>
                                         <SelectContent>
-                                            <SelectItem value="newest">Mais recentes</SelectItem>
-                                            <SelectItem value="oldest">Mais antigas</SelectItem>
+                                            {/*<SelectItem value="newest">Mais recentes</SelectItem>*/}
+                                            {/*<SelectItem value="oldest">Mais antigas</SelectItem>*/}
                                             <SelectItem value="highest">Maior valor</SelectItem>
                                             <SelectItem value="lowest">Menor valor</SelectItem>
                                             <SelectItem value="paid">Pagas/Recebidas</SelectItem>
                                             <SelectItem value="pending">Pendentes</SelectItem>
+                                            <SelectItem value="parcelada">Parceladas</SelectItem>
+                                            <SelectItem value="fixa">Fixas</SelectItem>
                                         </SelectContent>
                                     </Select>
                                 </div>
