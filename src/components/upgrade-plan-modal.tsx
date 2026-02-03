@@ -1,14 +1,13 @@
 "use client"
 
-import { useState } from "react"
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { ShieldCheck, Zap, Star, Ticket, Loader2, Sparkles } from "lucide-react"
-import { useUserPreferences } from "@/hooks/useUserPreferences"
-import { useAuth } from "@/context/AuthContext"
-import { toast } from "@/hooks/use-toast.ts";
-import { cn } from "@/lib/utils";
+import {useState} from "react"
+import {Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle} from "@/components/ui/dialog"
+import {Button} from "@/components/ui/button"
+import {Input} from "@/components/ui/input"
+import {Loader2, ShieldCheck, Sparkles, Star, Ticket, Zap} from "lucide-react"
+import {useUserPreferences} from "@/hooks/useUserPreferences"
+import {useAuth} from "@/context/AuthContext"
+import {toast} from "@/hooks/use-toast.ts";
 
 export const UpgradePlanModal = ({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) => {
     const { user } = useAuth();
