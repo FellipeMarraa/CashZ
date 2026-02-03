@@ -58,35 +58,32 @@ export const useUserPreferences = (userId: string | undefined) => {
             if (!userId) throw new Error("Usuário não logado");
 
             const code = couponCode.trim().toUpperCase();
-
-            // 1. Verificar se o usuário já usou este código e se ainda está ativo
-            if (preferences?.couponUsed === code && preferences?.plan !== "free") {
-                throw new Error("Você já resgatou este cupom e ele ainda está ativo.");
-            }
-
             const couponRef = doc(db, "coupons", code);
             const couponSnap = await getDoc(couponRef);
 
             if (!couponSnap.exists()) throw new Error("Código de cupom inválido.");
-
             const couponData = couponSnap.data();
 
-            // 2. Validações de Limite e Status
             if (!couponData.isActive) throw new Error("Este cupom não está mais ativo.");
-
-            // Se usageLimit for -1, consideramos uso ilimitado (para você)
             if (couponData.usageLimit !== -1 && couponData.usedCount >= couponData.usageLimit) {
                 throw new Error("Este cupom atingiu o limite máximo de usos.");
             }
 
-            // 3. Calcular Expiração
-            const expirationDate = new Date();
-            // Se days for 9999, tratamos como "vitalício"
+            const today = new Date();
+            let baseDate = today;
+
+            if (preferences?.plan !== "free" && preferences?.planExpiresAt) {
+                const currentExpiration = new Date(preferences.planExpiresAt);
+                if (currentExpiration > today) {
+                    baseDate = currentExpiration;
+                }
+            }
+
+            const expirationDate = new Date(baseDate);
             expirationDate.setDate(expirationDate.getDate() + (couponData.days || 30));
 
             const userPrefsRef = doc(db, "user_preferences", userId);
 
-            // 4. Salvar no Usuário
             await setDoc(userPrefsRef, {
                 plan: couponData.planType || "premium",
                 planExpiresAt: expirationDate.toISOString(),
@@ -94,7 +91,6 @@ export const useUserPreferences = (userId: string | undefined) => {
                 lastUpdated: new Date().toISOString()
             }, { merge: true });
 
-            // 5. Incrementar contador no Cupom (apenas se não for o ilimitado -1)
             if (couponData.usageLimit !== -1) {
                 await updateDoc(couponRef, {
                     usedCount: increment(1)

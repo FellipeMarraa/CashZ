@@ -19,7 +19,8 @@ import {useDialogManager} from "@/context/DialogManagerContext.tsx";
 import {auth, loginWithGoogle, register} from "../../firebase";
 import {updateProfile} from "firebase/auth";
 import {useAuth} from "@/context/AuthContext";
-import {LegalModal} from "@/components/legal-modal"; // Importe o componente que criamos
+import {LegalModal} from "@/components/legal-modal";
+import {sendNotification} from "@/service/notificationService"; // Importação necessária
 
 interface RegisterFormProps {
   dialogTrigger: React.ReactNode;
@@ -31,7 +32,6 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({ dialogTrigger, onNav
   const [showPassword, setShowPassword] = useState(false)
   const { refreshUser } = useAuth();
 
-  // Estado para controlar o modal legal interno
   const [legalView, setLegalView] = useState<{ isOpen: boolean; type: "terms" | "privacy" }>({
     isOpen: false,
     type: "terms",
@@ -76,6 +76,14 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({ dialogTrigger, onNav
           displayName: formData.name
         });
 
+        // Envia notificação de boas-vindas
+        await sendNotification(
+            auth.currentUser.uid,
+            "Bem-vindo ao CashZ! 🚀",
+            "Sua jornada para o controle financeiro começou. Explore as abas de Orçamentos e Investimentos para começar.",
+            "SUCCESS"
+        );
+
         await auth.currentUser.reload();
 
         if (refreshUser) {
@@ -98,11 +106,25 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({ dialogTrigger, onNav
 
   const handleGoogleLogin = async () => {
     try {
-      await loginWithGoogle();
+      const result: any = await loginWithGoogle();
+
+      if (result?.user) {
+        const isNewUser = result.user.metadata.creationTime === result.user.metadata.lastSignInTime;
+
+        if (isNewUser) {
+          await sendNotification(
+              result.user.uid,
+              "Bem-vindo ao CashZ! 🚀",
+              "Que bom ter você aqui! Comece organizando suas categorias e definindo suas primeiras metas.",
+              "SUCCESS"
+          );
+        }
+      }
+
       setActiveDialog(null);
       onNavigateToDashboard();
     } catch (error) {
-      console.error(error);
+      console.error("Erro no login Google:", error);
     }
   }
 
@@ -237,7 +259,6 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({ dialogTrigger, onNav
           </DialogContent>
         </Dialog>
 
-        {/* Modal Legal que abre sobre o registro */}
         <LegalModal
             isOpen={legalView.isOpen}
             type={legalView.type}

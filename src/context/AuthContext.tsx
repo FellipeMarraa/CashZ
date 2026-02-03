@@ -30,7 +30,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const mapUser = (firebaseUser: FirebaseUser): User => ({
         id: firebaseUser.uid,
         email: firebaseUser.email || "",
-        name: firebaseUser.displayName || "Usu·rio",
+        name: firebaseUser.displayName || "Usu√°rio",
         photo: firebaseUser.photoURL || "",
         roles: [],
     });
@@ -61,45 +61,47 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setUser(null);
         if (callback) callback();
     };
-
-    // --- FUN«√O DE LIMPEZA DE DADOS NO FIRESTORE ---
-    const cleanupUserData = async (userId: string) => {
-        const collections = ["transactions", "investments", "budgets", "categories"];
-        const batch = writeBatch(db);
-
-        for (const collectionName of collections) {
-            // Busca documentos onde o campo userId È igual ao uid
-            const q = query(collection(db, collectionName), where("userId", "==", userId));
-            const querySnapshot = await getDocs(q);
-
-            querySnapshot.forEach((document) => {
-                batch.delete(doc(db, collectionName, document.id));
-            });
-        }
-
-        batch.delete(doc(db, "user_preferences", userId));
-
-        await batch.commit();
-    };
-
     const deleteAccount = async () => {
         const currentUser = auth.currentUser;
-        if (currentUser) {
-            const userId = currentUser.uid;
-            try {
-                // 1. Primeiro limpa os dados do banco enquanto ainda tem permiss„o (logado)
-                await cleanupUserData(userId);
+        if (!currentUser) return;
+        const userId = currentUser.uid;
 
-                // 2. Depois deleta o usu·rio da autenticaÁ„o
-                await currentUser.delete();
+        const collections = [
+            { name: "transactions", filter: "userId" },
+            { name: "investments", filter: "userId" },
+            { name: "budgets", filter: "userId" },
+            { name: "categories", filter: "userId" },
+            { name: "notifications", filter: "userId" },
+            { name: "sharing", filter: "ownerId" },
+            { name: "hidden_categories", filter: "userId" }
+        ];
 
-                setUser(null);
-            } catch (error: any) {
-                if (error.code === 'auth/requires-recent-login') {
-                    throw new Error("REAUTHENTICATION_REQUIRED");
-                }
-                throw error;
+        let allDocsRefs: any[] = [];
+        for (const col of collections) {
+            const q = query(collection(db, col.name), where(col.filter, "==", userId));
+            const snap = await getDocs(q);
+            snap.forEach(d => allDocsRefs.push(doc(db, col.name, d.id)));
+        }
+
+        try {
+            const batch = writeBatch(db);
+            allDocsRefs.forEach(ref => batch.delete(ref));
+            batch.delete(doc(db, "user_preferences", userId));
+            batch.delete(doc(db, "users_metadata", userId));
+            await batch.commit();
+        } catch (dbError: any) {
+            console.error("Erro ao limpar banco:", dbError);
+            throw new Error("Erro de permiss√£o: N√£o foi poss√≠vel limpar seus dados financeiros.");
+        }
+
+        try {
+            await currentUser.delete();
+            setUser(null);
+        } catch (authError: any) {
+            if (authError.code === 'auth/requires-recent-login') {
+                throw new Error("REAUTHENTICATION_REQUIRED");
             }
+            throw authError;
         }
     };
 

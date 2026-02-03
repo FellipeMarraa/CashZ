@@ -2,6 +2,8 @@
 
 import {UserMenu} from '@/components/dashboard/user-menu';
 import {AnimatePresence, motion} from 'framer-motion';
+import {ThemeToggle} from "@/components/theme-toggle.tsx";
+import {NotificationsPopover} from "@/components/notifications-popover.tsx";
 
 type DashboardSection = 'overview' | 'transactions' | 'budget' | 'investments' | 'profile' | 'settings';
 
@@ -53,6 +55,8 @@ export const DashboardHeader = ({
             </div>
 
             <div className="flex items-center space-x-2">
+                <ThemeToggle />
+                <NotificationsPopover />
                 <UserMenu
                     onNavigateToLanding={onNavigateToLanding}
                     onSectionChange={onSectionChange}

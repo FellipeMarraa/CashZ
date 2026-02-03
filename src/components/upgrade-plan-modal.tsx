@@ -8,6 +8,7 @@ import { ShieldCheck, Zap, Star, Ticket, Loader2, Sparkles } from "lucide-react"
 import { useUserPreferences } from "@/hooks/useUserPreferences"
 import { useAuth } from "@/context/AuthContext"
 import { toast } from "@/hooks/use-toast.ts";
+import { cn } from "@/lib/utils";
 
 export const UpgradePlanModal = ({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) => {
     const { user } = useAuth();
@@ -47,19 +48,19 @@ export const UpgradePlanModal = ({ isOpen, onClose }: { isOpen: boolean; onClose
             }
         } catch (error) {
             toast({ title: "Erro", description: "Não foi possível gerar o link de pagamento.", variant: "destructive" });
-            setLoadingPlan(null); // Só limpa o loading se houver erro, pois no sucesso a página redireciona
+            setLoadingPlan(null);
         }
     };
 
     return (
         <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-            <DialogContent className="w-[calc(100%-2rem)] sm:max-w-[400px] rounded-2xl border-none shadow-2xl p-6 bg-white outline-none">
+            <DialogContent className="w-[calc(100%-2rem)] sm:max-w-[400px] rounded-2xl border-none shadow-2xl p-6 bg-background dark:bg-[#282a36] outline-none">
                 <DialogHeader className="items-center text-center">
-                    <div className="h-14 w-14 bg-emerald-100 rounded-full flex items-center justify-center mb-4">
+                    <div className="h-14 w-14 bg-emerald-500/10 rounded-full flex items-center justify-center mb-4">
                         <Zap className="h-7 w-7 text-emerald-600 fill-emerald-600" />
                     </div>
-                    <DialogTitle className="text-2xl font-bold text-slate-900">Seja Premium</DialogTitle>
-                    <DialogDescription className="text-slate-500">
+                    <DialogTitle className="text-2xl font-bold text-foreground">Seja Premium</DialogTitle>
+                    <DialogDescription className="text-muted-foreground">
                         Desbloqueie todos os recursos e gerencie suas finanças em família.
                     </DialogDescription>
                 </DialogHeader>
@@ -70,15 +71,15 @@ export const UpgradePlanModal = ({ isOpen, onClose }: { isOpen: boolean; onClose
                         <div className="flex items-start gap-3">
                             <div className="mt-1 bg-emerald-500 rounded-full p-0.5"><ShieldCheck className="h-3 w-3 text-white" /></div>
                             <div className="text-sm">
-                                <p className="font-bold text-slate-800">Compartilhamento Ilimitado</p>
-                                <p className="text-slate-500 text-xs">Convide parceiros com acesso total para leitura e edição.</p>
+                                <p className="font-bold text-foreground">Compartilhamento Ilimitado</p>
+                                <p className="text-muted-foreground text-xs leading-tight">Convide parceiros com acesso total para leitura e edição.</p>
                             </div>
                         </div>
                         <div className="flex items-start gap-3">
                             <div className="mt-1 bg-emerald-500 rounded-full p-0.5"><Star className="h-3 w-3 text-white" /></div>
                             <div className="text-sm">
-                                <p className="font-bold text-slate-800">Exportação de Relatórios</p>
-                                <p className="text-slate-500 text-xs">Gere arquivos Excel e CSV de todas as suas transações.</p>
+                                <p className="font-bold text-foreground">Exportação de Relatórios</p>
+                                <p className="text-muted-foreground text-xs leading-tight">Gere arquivos Excel e CSV de todas as suas transações.</p>
                             </div>
                         </div>
                     </div>
@@ -86,12 +87,12 @@ export const UpgradePlanModal = ({ isOpen, onClose }: { isOpen: boolean; onClose
                     {/* Opções de Planos */}
                     <div className="space-y-3">
                         <div className="relative group">
-                            <div className="absolute -top-2 -right-2 z-10 bg-emerald-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1 shadow-sm">
+                            <div className="absolute -top-2 -right-2 z-10 bg-emerald-600 text-white text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1 shadow-md animate-bounce">
                                 <Sparkles className="h-2 w-2 fill-white" /> ECONOMIZE 20%
                             </div>
 
                             <Button
-                                className="w-full bg-slate-900 hover:bg-slate-800 text-white h-14 rounded-xl flex flex-col items-center justify-center gap-0 transition-all disabled:opacity-80"
+                                className="w-full bg-slate-900 dark:bg-emerald-600 dark:hover:bg-emerald-700 hover:bg-slate-800 text-white h-14 rounded-xl flex flex-col items-center justify-center gap-0 transition-all disabled:opacity-80 border-none"
                                 onClick={() => handlePayment('annual', 129.90)}
                                 disabled={loadingPlan !== null}
                             >
@@ -108,7 +109,7 @@ export const UpgradePlanModal = ({ isOpen, onClose }: { isOpen: boolean; onClose
 
                         <Button
                             variant="outline"
-                            className="w-full border-slate-200 hover:bg-slate-50 text-slate-700 h-14 rounded-xl flex flex-col items-center justify-center gap-0 disabled:opacity-80"
+                            className="w-full border-border hover:bg-muted text-foreground h-14 rounded-xl flex flex-col items-center justify-center gap-0 disabled:opacity-80"
                             onClick={() => handlePayment('premium', 14.90)}
                             disabled={loadingPlan !== null}
                         >
@@ -117,18 +118,18 @@ export const UpgradePlanModal = ({ isOpen, onClose }: { isOpen: boolean; onClose
                             ) : (
                                 <>
                                     <span className="text-sm font-bold">Plano Mensal</span>
-                                    <span className="text-[10px] text-slate-500 font-normal">R$ 14,90 / mês</span>
+                                    <span className="text-[10px] text-muted-foreground font-normal">R$ 14,90 / mês</span>
                                 </>
                             )}
                         </Button>
                     </div>
 
                     {/* Cupom */}
-                    <div className="pt-2 border-t text-left">
+                    <div className="pt-2 border-t dark:border-slate-800 text-left">
                         {!showCouponField ? (
                             <button
                                 onClick={() => setShowCouponField(true)}
-                                className="w-full flex items-center justify-center gap-2 text-xs text-slate-400 hover:text-emerald-600 transition-colors py-2"
+                                className="w-full flex items-center justify-center gap-2 text-xs text-muted-foreground hover:text-emerald-500 transition-colors py-2"
                             >
                                 <Ticket className="h-3 w-3" /> Possui um código de acesso?
                             </button>
@@ -138,10 +139,10 @@ export const UpgradePlanModal = ({ isOpen, onClose }: { isOpen: boolean; onClose
                                     placeholder="CÓDIGO"
                                     value={couponInput}
                                     onChange={(e) => setCouponInput(e.target.value.toUpperCase())}
-                                    className="h-10 uppercase font-mono text-center tracking-widest border-emerald-100 focus-visible:ring-emerald-500"
+                                    className="h-10 uppercase font-mono text-center tracking-widest bg-background border-border focus-visible:ring-emerald-500"
                                 />
                                 <Button
-                                    className="bg-emerald-600 hover:bg-emerald-700 h-10 px-4 font-bold"
+                                    className="bg-emerald-600 hover:bg-emerald-700 h-10 px-4 font-bold text-white"
                                     onClick={handleRedeem}
                                     disabled={isRedeeming || !couponInput}
                                 >

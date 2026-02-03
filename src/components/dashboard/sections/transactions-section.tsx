@@ -263,7 +263,7 @@ export const TransactionsSection = () => {
 
                 <CardFooter className="flex flex-col md:flex-row justify-between gap-4 items-center px-4 md:px-6 py-6 border-t bg-muted/10">
                     <div className="text-[10px] md:text-xs text-muted-foreground order-2 md:order-1 text-center md:text-left">
-                        <p className=" text-slate-700 uppercase tracking-wider">
+                        <p className=" text-foreground uppercase tracking-wider">
                             Mostrando {displayTransactions.length} de {filteredTransactions.length} registros
                         </p>
                     </div>

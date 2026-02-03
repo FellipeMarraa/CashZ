@@ -1,4 +1,6 @@
-import {useEffect, useState} from 'react';
+"use client"
+
+import { useEffect, useState } from 'react';
 import {
     Area,
     AreaChart,
@@ -13,15 +15,15 @@ import {
     XAxis,
     YAxis
 } from 'recharts';
-import {useTheme} from '@/components/theme-provider';
+import { useTheme } from '@/components/theme-provider';
 import { Transaction } from '@/model/types/Transaction';
 import { IMes } from '@/model/IMes';
+import { cn } from '@/lib/utils';
 
 interface ChartData {
     name: string;
     receitas: number;
     despesas: number;
-    investimentos: number;
 }
 
 interface FinanceChartProps {
@@ -51,205 +53,195 @@ export const FinanceChart = ({
     useEffect(() => {
         if (!transactions) return;
 
-        // Processamento dos dados por mês
-        const monthlyData = IMes.map((monthName, monthIndex) => {
-            const monthNumber = monthIndex + 1;
-            const monthTransactions = transactions.filter(t => t.month === monthNumber);
+        if (view === 'year') {
+            const monthlyData = IMes.map((monthName, monthIndex) => {
+                const monthNumber = monthIndex + 1;
+                const monthTransactions = transactions.filter(t => t.month === monthNumber);
 
-            const receitas = monthTransactions
+                return {
+                    name: monthName.substring(0, 3),
+                    receitas: monthTransactions.filter(t => t.type === 'RECEITA').reduce((acc, t) => acc + t.amount, 0),
+                    despesas: monthTransactions.filter(t => t.type === 'DESPESA').reduce((acc, t) => acc + t.amount, 0),
+                };
+            });
+            setChartData(monthlyData);
+        } else {
+            // VISÃO MENSAL: Somatória única do mês selecionado
+            const receitas = transactions
                 .filter(t => t.type === 'RECEITA')
-                .reduce((sum, t) => sum + t.amount, 0);
+                .reduce((acc, t) => acc + t.amount, 0);
 
-            const despesas = monthTransactions
+            const despesas = transactions
                 .filter(t => t.type === 'DESPESA')
-                .reduce((sum, t) => sum + t.amount, 0);
+                .reduce((acc, t) => acc + t.amount, 0);
 
-            return {
-                name: monthName.substring(0, 3),
+            setChartData([{
+                name: month || "Mês Selecionado",
                 receitas,
                 despesas,
-                investimentos: 0 // Para futura implementação
-            };
-        });
-
-        setChartData(monthlyData);
+            }]);
+        }
     }, [transactions, view, month, year]);
 
-    const getColors = () => {
-        return theme === 'dark'
-            ? {
-                receitas: 'hsl(var(--chart-2))',
-                despesas: 'hsl(var(--chart-1))',
-                // investimentos: 'hsl(var(--chart-3))',
-                grid: 'hsl(var(--muted))',
-                text: 'hsl(var(--muted-foreground))'
-            }
-            : {
-                receitas: 'hsl(var(--chart-2))',
-                despesas: 'hsl(var(--chart-1))',
-                // investimentos: 'hsl(var(--chart-3))',
-                grid: 'hsl(var(--muted))',
-                text: 'hsl(var(--muted-foreground))'
-            };
+    const colors = {
+        receitas: 'hsl(var(--success))',
+        despesas: 'hsl(var(--destructive))',
+        grid: theme === 'dark' ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)',
+        text: 'hsl(var(--muted-foreground))'
     };
 
-    const colors = getColors();
+    const CustomTooltip = ({ active, payload, label }: any) => {
+        if (active && payload && payload.length) {
+            return (
+                <div className="rounded-lg border bg-background p-3 shadow-xl dark:bg-[#282a36] dark:border-slate-700 min-w-[160px]">
+                    <p className="mb-2 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+                        {label}
+                    </p>
+                    <div className="space-y-1.5">
+                        {payload.map((entry: any, index: number) => (
+                            <div key={index} className="flex items-center justify-between gap-4">
+                                <div className="flex items-center gap-2">
+                                    <div className="h-2 w-2 rounded-full" style={{ backgroundColor: entry.color }} />
+                                    <span className="text-xs text-foreground">{entry.name}:</span>
+                                </div>
+                                <span className="text-xs font-mono font-bold text-foreground">
+                                    {formatCurrency(entry.value)}
+                                </span>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            );
+        }
+        return null;
+    };
 
     const renderChart = () => {
+        const commonProps = {
+            data: chartData,
+            margin: { top: 10, right: 10, left: -10, bottom: 0 }
+        };
+
+        const axes = (
+            <>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={colors.grid} />
+                <XAxis
+                    dataKey="name"
+                    stroke={colors.text}
+                    fontSize={11}
+                    tickLine={false}
+                    axisLine={false}
+                    dy={10}
+                />
+                <YAxis
+                    stroke={colors.text}
+                    fontSize={11}
+                    tickLine={false}
+                    axisLine={false}
+                    tickFormatter={(value) => `R$${value}`}
+                />
+                <Tooltip content={<CustomTooltip />} cursor={{ fill: 'transparent' }} />
+                <Legend
+                    verticalAlign="top"
+                    align="right"
+                    iconType="circle"
+                    wrapperStyle={{ paddingTop: '0', paddingBottom: '20px' }}
+                    formatter={(value) => <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">{value}</span>}
+                />
+            </>
+        );
+
+        if (view === 'month') {
+            return (
+                <BarChart {...commonProps}>
+                    {axes}
+                    <Bar
+                        name="Receitas"
+                        dataKey="receitas"
+                        fill={colors.receitas}
+                        animationDuration={1500}
+                        radius={[4, 4, 0, 0]}
+                        barSize={60}
+                    />
+                    <Bar
+                        name="Despesas"
+                        dataKey="despesas"
+                        fill={colors.despesas}
+                        animationDuration={1500}
+                        radius={[4, 4, 0, 0]}
+                        barSize={60}
+                    />
+                </BarChart>
+            );
+        }
+
         switch (chartType) {
             case 'area':
                 return (
-                    <AreaChart data={chartData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
+                    <AreaChart {...commonProps}>
                         <defs>
-                            <linearGradient id="colorreceitas" x1="0" y1="0" x2="0" y2="1">
-                                <stop offset="5%" stopColor={colors.receitas} stopOpacity={0.8}/>
-                                <stop offset="95%" stopColor={colors.receitas} stopOpacity={0.2}/>
+                            <linearGradient id="colorRec" x1="0" y1="0" x2="0" y2="1">
+                                <stop offset="5%" stopColor={colors.receitas} stopOpacity={0.3}/>
+                                <stop offset="95%" stopColor={colors.receitas} stopOpacity={0}/>
                             </linearGradient>
-                            <linearGradient id="colordespesas" x1="0" y1="0" x2="0" y2="1">
-                                <stop offset="5%" stopColor={colors.despesas} stopOpacity={0.8}/>
-                                <stop offset="95%" stopColor={colors.despesas} stopOpacity={0.2}/>
+                            <linearGradient id="colorDes" x1="0" y1="0" x2="0" y2="1">
+                                <stop offset="5%" stopColor={colors.despesas} stopOpacity={0.3}/>
+                                <stop offset="95%" stopColor={colors.despesas} stopOpacity={0}/>
                             </linearGradient>
-                            {/*<linearGradient id="colorinvestimentos" x1="0" y1="0" x2="0" y2="1">*/}
-                            {/*    <stop offset="5%" stopColor={colors.investimentos} stopOpacity={0.8}/>*/}
-                            {/*    <stop offset="95%" stopColor={colors.investimentos} stopOpacity={0.2}/>*/}
-                            {/*</linearGradient>*/}
                         </defs>
-                        <XAxis dataKey="name" stroke={colors.text} fontSize={12} />
-                        <YAxis stroke={colors.text} fontSize={12} />
-                        <CartesianGrid strokeDasharray="3 3" stroke={colors.grid} />
-                        <Tooltip
-                            formatter={(value: number) => formatCurrency(value)}
-                            labelFormatter={(label) => `Mês: ${label}`}
-                        />
-                        <Legend />
-                        <Area
-                            type="monotone"
-                            dataKey="receitas"
-                            stroke={colors.receitas}
-                            fillOpacity={1}
-                            fill="url(#colorreceitas)"
-                            animationDuration={1500}
-                        />
-                        <Area
-                            type="monotone"
-                            dataKey="despesas"
-                            stroke={colors.despesas}
-                            fillOpacity={1}
-                            fill="url(#colordespesas)"
-                            animationDuration={1500}
-                        />
-                        {/*<Area*/}
-                        {/*    type="monotone"*/}
-                        {/*    dataKey="investimentos"*/}
-                        {/*    stroke={colors.investimentos}*/}
-                        {/*    fillOpacity={1}*/}
-                        {/*    fill="url(#colorinvestimentos)"*/}
-                        {/*    animationDuration={1500}*/}
-                        {/*/>*/}
+                        {axes}
+                        <Area name="Receitas" type="monotone" dataKey="receitas" stroke={colors.receitas} fill="url(#colorRec)" strokeWidth={2} />
+                        <Area name="Despesas" type="monotone" dataKey="despesas" stroke={colors.despesas} fill="url(#colorDes)" strokeWidth={2} />
                     </AreaChart>
-
-                );
-            case 'bar':
-                return (
-                    <BarChart data={chartData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
-                        <CartesianGrid strokeDasharray="3 3" stroke={colors.grid} />
-                        <XAxis dataKey="name" stroke={colors.text} fontSize={12} />
-                        <YAxis stroke={colors.text} fontSize={12} />
-                        <Tooltip
-                            formatter={(value: number) => formatCurrency(value)}
-                            labelFormatter={(label) => `Mês: ${label}`}
-                        />
-                        <Legend />
-                        <Bar
-                            dataKey="receitas"
-                            fill={colors.receitas}
-                            animationDuration={1500}
-                            radius={[4, 4, 0, 0]}
-                        />
-                        <Bar
-                            dataKey="despesas"
-                            fill={colors.despesas}
-                            animationDuration={1500}
-                            radius={[4, 4, 0, 0]}
-                        />
-                        {/*<Bar*/}
-                        {/*    dataKey="investimentos"*/}
-                        {/*    fill={colors.investimentos}*/}
-                        {/*    animationDuration={1500}*/}
-                        {/*    radius={[4, 4, 0, 0]}*/}
-                        {/*/>*/}
-                    </BarChart>
                 );
             case 'line':
                 return (
-                    <LineChart data={chartData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
-                        <CartesianGrid strokeDasharray="3 3" stroke={colors.grid} />
-                        <XAxis dataKey="name" stroke={colors.text} fontSize={12} />
-                        <YAxis stroke={colors.text} fontSize={12} />
-                        <Tooltip
-                            formatter={(value: number) => formatCurrency(value)}
-                            labelFormatter={(label) => `Mês: ${label}`}
-                        />
-                        <Legend />
-                        <Line
-                            type="monotone"
-                            dataKey="receitas"
-                            stroke={colors.receitas}
-                            activeDot={{ r: 8 }}
-                            animationDuration={1500}
-                        />
-                        <Line
-                            type="monotone"
-                            dataKey="despesas"
-                            stroke={colors.despesas}
-                            animationDuration={1500}
-                        />
-                        {/*<Line*/}
-                        {/*    type="monotone"*/}
-                        {/*    dataKey="investimentos"*/}
-                        {/*    stroke={colors.investimentos}*/}
-                        {/*    animationDuration={1500}*/}
-                        {/*/>*/}
+                    <LineChart {...commonProps}>
+                        {axes}
+                        <Line name="Receitas" type="monotone" dataKey="receitas" stroke={colors.receitas} strokeWidth={3} dot={{ r: 4 }} />
+                        <Line name="Despesas" type="monotone" dataKey="despesas" stroke={colors.despesas} strokeWidth={3} dot={{ r: 4 }} />
                     </LineChart>
+                );
+            case 'bar':
+                return (
+                    <BarChart {...commonProps}>
+                        {axes}
+                        <Bar name="Receitas" dataKey="receitas" fill={colors.receitas} radius={[4, 4, 0, 0]} barSize={15} />
+                        <Bar name="Despesas" dataKey="despesas" fill={colors.despesas} radius={[4, 4, 0, 0]} barSize={15} />
+                    </BarChart>
                 );
             default:
                 return <></>;
-
         }
     };
 
     return (
         <div className="h-full w-full">
-            <div className="mb-3 flex items-center justify-end space-x-2">
-                <div className="text-sm font-medium">Gráfico:</div>
-                <div className="flex items-center rounded-md bg-muted p-1 text-muted-foreground">
-                    <button
-                        onClick={() => setChartType('area')}
-                        className={`rounded px-2 py-1 text-xs transition-colors ${
-                            chartType === 'area' ? 'bg-background text-foreground' : 'hover:text-foreground'
-                        }`}
-                    >
-                        Area
-                    </button>
-                    <button
-                        onClick={() => setChartType('bar')}
-                        className={`rounded px-2 py-1 text-xs transition-colors ${
-                            chartType === 'bar' ? 'bg-background text-foreground' : 'hover:text-foreground'
-                        }`}
-                    >
-                        Bar
-                    </button>
-                    <button
-                        onClick={() => setChartType('line')}
-                        className={`rounded px-2 py-1 text-xs transition-colors ${
-                            chartType === 'line' ? 'bg-background text-foreground' : 'hover:text-foreground'
-                        }`}
-                    >
-                        Line
-                    </button>
+            <div className="mb-4 flex items-center justify-between">
+                <div className="text-xs font-bold uppercase tracking-widest text-muted-foreground">
+                    {view === 'month' ? `Resumo de ${month}` : `Evolução ${year}`}
                 </div>
+
+                {view === 'year' && (
+                    <div className="flex items-center rounded-lg bg-muted/50 p-1">
+                        {(['area', 'bar', 'line'] as const).map((type) => (
+                            <button
+                                key={type}
+                                onClick={() => setChartType(type)}
+                                className={cn(
+                                    "rounded-md px-3 py-1 text-[10px] font-bold uppercase transition-all",
+                                    chartType === type
+                                        ? "bg-background text-foreground shadow-sm"
+                                        : "text-muted-foreground hover:text-foreground"
+                                )}
+                            >
+                                {type}
+                            </button>
+                        ))}
+                    </div>
+                )}
             </div>
-            <div className="h-[250px] w-full animate-in fade-in zoom-in-95 duration-700">
+            <div className="h-[250px] w-full animate-in fade-in zoom-in-95 duration-1000">
                 <ResponsiveContainer width="100%" height="100%">
                     {renderChart()}
                 </ResponsiveContainer>

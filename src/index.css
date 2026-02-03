@@ -31,8 +31,8 @@
     --warning: 38 92% 50%;
 
     /* Cores de Gráficos Shadcn */
-    --chart-1: 142 76% 36%; /* Verde (Receita) */
-    --chart-2: 0 84% 60%;   /* Vermelho (Despesa) */
+    --chart-1: 0 84% 60%;   /* Verde (Receita) */
+    --chart-2: 142 76% 36%; /* Vermelho (Despesa) */
     --chart-3: 199 89% 48%; /* Azul (Outros) */
     --chart-4: 38 92% 50%;  /* Amarelo/Laranja */
     --chart-5: 270 95% 60%; /* Roxo /Purple*/
@@ -76,8 +76,8 @@
     --warning: 65 92% 70%;
 
     /* Gráficos com cores da paleta Dracula */
-    --chart-1: 135 94% 65%;   /* Verde (Receita) */
-    --chart-2: 0 100% 67%;    /* Vermelho (Despesa) */
+    --chart-1: 0 100% 67%;    /* Verde (Receita) */
+    --chart-2: 135 94% 65%;   /* Vermelho (Despesa) */
     --chart-3: 191 97% 77%;   /* Ciano */
     --chart-4: 31 100% 71%;   /* Laranja */
     --chart-5: 265 89% 78%;   /* Red */
