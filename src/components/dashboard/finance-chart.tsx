@@ -242,9 +242,15 @@ export const FinanceChart = ({
                 )}
             </div>
             <div className="h-[250px] w-full animate-in fade-in zoom-in-95 duration-1000">
-                <ResponsiveContainer width="100%" height="100%">
-                    {renderChart()}
-                </ResponsiveContainer>
+                {chartData.length > 0 ? (
+                    <ResponsiveContainer width="100%" height="100%">
+                        {renderChart()}
+                    </ResponsiveContainer>
+                ) : (
+                    <div className="flex h-full items-center justify-center text-sm text-muted-foreground italic">
+                        Nenhuma movimentação neste período.
+                    </div>
+                )}
             </div>
         </div>
     );

@@ -14,7 +14,8 @@ import {
   DialogTrigger
 } from "@/components/ui/dialog.tsx";
 import {useDialogManager} from "@/context/DialogManagerContext.tsx";
-import {login, loginWithGoogle} from "../../firebase"; // Importação restaurada
+import {login, loginWithGoogle} from "../../firebase";
+import {sendNotification} from "@/service/notificationService.ts"; // Importação restaurada
 
 interface LoginFormProps {
   dialogTrigger: React.ReactNode;
@@ -49,7 +50,6 @@ export const LoginForm: React.FC<LoginFormProps> = ({ dialogTrigger, onNavigateT
       setActiveDialog(null);
       onNavigateToDashboard();
     } catch (error: any) {
-      // Erro tratado no firebase.ts
     } finally {
       setIsLoading(false)
     }
@@ -57,11 +57,21 @@ export const LoginForm: React.FC<LoginFormProps> = ({ dialogTrigger, onNavigateT
 
   const handleGoogleLogin = async () => {
     try {
-      await loginWithGoogle();
+      const result = await loginWithGoogle();
+
+      if (result?.isNewUser) {
+        await sendNotification(
+            result.user.uid,
+            "Boas-vindas ao CashZ! 🚀",
+            "Seu cadastro via Google foi concluído. Que tal começar definindo seu orçamento mensal?",
+            "SUCCESS"
+        );
+      }
+
       setActiveDialog(null);
       onNavigateToDashboard();
     } catch (error) {
-      console.error(error);
+      console.error("Falha na autenticação Google");
     }
   }
 

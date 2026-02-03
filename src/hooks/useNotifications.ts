@@ -46,10 +46,13 @@ export const useMarkNotificationAsRead = () => {
     const queryClient = useQueryClient();
     return useMutation({
         mutationFn: async (id: string) => {
+            // No Lite, sempre use doc(db, collection, id) para garantir a ref
             const docRef = doc(db, "notifications", id);
             await updateDoc(docRef, { read: true });
         },
-        onSuccess: () => queryClient.invalidateQueries({ queryKey: ["notifications"] })
+        onSuccess: (_) => {
+            queryClient.invalidateQueries({ queryKey: ["notifications"] });
+        }
     });
 };
 
@@ -59,10 +62,23 @@ export const useMarkAllNotificationsAsRead = () => {
     return useMutation({
         mutationFn: async () => {
             if (!user) return;
-            const q = query(collection(db, "notifications"), where("userId", "==", user.id), where("read", "==", false));
+
+            const q = query(
+                collection(db, "notifications"),
+                where("userId", "==", user.id),
+                where("read", "==", false)
+            );
+
             const snapshot = await getDocs(q);
+            if (snapshot.empty) return;
+
             const batch = writeBatch(db);
-            snapshot.docs.forEach(d => batch.update(d.ref, { read: true }));
+
+            snapshot.docs.forEach(d => {
+                const docRef = doc(db, "notifications", d.id);
+                batch.update(docRef, { read: true });
+            });
+
             await batch.commit();
         },
         onSuccess: () => queryClient.invalidateQueries({ queryKey: ["notifications"] })

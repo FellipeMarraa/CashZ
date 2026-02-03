@@ -9,7 +9,8 @@ import {
     onAuthStateChanged,
     GoogleAuthProvider,
     signInWithPopup,
-    User
+    User,
+    getAdditionalUserInfo
 } from "firebase/auth";
 import { toast } from "@/hooks/use-toast.ts";
 
@@ -66,12 +67,22 @@ export async function login(email: string, password: string) {
 
 export async function loginWithGoogle() {
     try {
-        await signInWithPopup(auth, googleProvider);
+        const result = await signInWithPopup(auth, googleProvider);
+
+        const additionalInfo = getAdditionalUserInfo(result);
+        const isNewUser = additionalInfo?.isNewUser || false;
+
         toast({
-            title: "Login Google bem-sucedido!",
-            description: "Você entrou com sua conta Google.",
-            duration: 1000
+            title: isNewUser ? "Bem-vindo ao CashZ!" : "Bem-vindo de volta!",
+            description: isNewUser ? "Sua conta foi criada com sucesso." : "Você entrou com sua conta Google.",
+            duration: 2000
         });
+
+        return {
+            user: result.user,
+            isNewUser: isNewUser
+        };
+
     } catch (error: any) {
         toast({
             variant: "destructive",
@@ -79,6 +90,7 @@ export async function loginWithGoogle() {
             description: "Erro: " + (error.message || error),
             duration: 3000
         });
+        throw error;
     }
 }
 
