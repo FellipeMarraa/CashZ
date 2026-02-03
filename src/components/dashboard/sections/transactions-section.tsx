@@ -23,7 +23,7 @@ export const TransactionsSection = () => {
     const { user: currentUser } = useAuth();
     const [transactionType, setTransactionType] = useState<TransactionType>('all');
     const [searchQuery, setSearchQuery] = useState('');
-    const [sortOrder, setSortOrder] = useState<'newest' | 'oldest' | 'highest' | 'lowest' | 'paid' | 'pending' | 'parcelada' | 'fixa'>('newest');
+    const [sortOrder, setSortOrder] = useState<'newest' | 'oldest' | 'highest' | 'lowest' | 'paid' | 'pending' | 'parcelada' | 'fixa'>('highest');
     const [selectedUser, setSelectedUser] = useState<string>("all");
     const [month, setMonth] = useState(IMes[new Date().getMonth()]);
     const [year, setYear] = useState(new Date().getFullYear());
@@ -115,8 +115,8 @@ export const TransactionsSection = () => {
                 switch (sortOrder) {
                     case 'highest': return b.amount - a.amount;
                     case 'lowest': return a.amount - b.amount;
-                    case 'oldest': return new Date(a.date).getTime() - new Date(b.date).getTime();
-                    case 'newest':
+                    // case 'oldest': return new Date(a.date).getTime() - new Date(b.date).getTime();
+                    // case 'newest':
                     case 'paid':
                     case 'pending':
                     case 'parcelada':
