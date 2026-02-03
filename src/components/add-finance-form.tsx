@@ -74,7 +74,7 @@ export const AddFinanceForm = () => {
                 year,
                 category: selectedCategory,
                 type,
-                recurrence: recurrence === "UNICO" ? "AVULSO" : recurrence, // Ajuste para bater com o hook se necessário
+                recurrence: recurrence, // Ajuste para bater com o hook se necessário
                 status,
                 numInstallments: numInstallments,
             };
