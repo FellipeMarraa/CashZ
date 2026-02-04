@@ -282,6 +282,7 @@ const api = {
 
         const qChildren = query(
             collection(db, COLLECTION_NAME),
+            where("userId", "==", user.uid),
             where("reference", "==", groupReferenceId)
         );
 
