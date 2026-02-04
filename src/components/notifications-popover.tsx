@@ -1,6 +1,6 @@
 "use client"
 
-import {useState} from 'react';
+import {useEffect, useState} from 'react';
 import {Popover, PopoverContent, PopoverTrigger} from '@/components/ui/popover';
 import {Button} from '@/components/ui/button';
 import {ScrollArea} from '@/components/ui/scroll-area';
@@ -19,7 +19,7 @@ export const NotificationsPopover = () => {
   const { mutate: markAsRead } = useMarkNotificationAsRead();
   const { mutate: markAllAsRead } = useMarkAllNotificationsAsRead();
   const { setActiveDialog } = useDialogManager();
-
+  const [shouldAnimate, setShouldAnimate] = useState(false);
   const getIcon = (type: string) => {
     switch (type) {
       case 'SUCCESS': return <CheckCircle2 className="h-4 w-4 text-emerald-500" />;
@@ -29,13 +29,21 @@ export const NotificationsPopover = () => {
     }
   };
 
+  useEffect(() => {
+    if (unreadCount > 0) {
+      setShouldAnimate(true);
+      const timer = setTimeout(() => setShouldAnimate(false), 2000);
+      return () => clearTimeout(timer);
+    }
+  }, [unreadCount]);
+
   return (
       <>
         <Popover open={open} onOpenChange={setOpen}>
           <PopoverTrigger asChild>
             <Button variant="ghost" size="icon" className="relative outline-none">
-              <BellRing className={cn("h-5 w-5 transition-all", unreadCount > 0 && "animate-tada text-emerald-500")} />
-              {unreadCount > 0 && (
+              <BellRing className={cn("h-5 w-5 transition-all", unreadCount > 0 && shouldAnimate && "animate-tada text-emerald-500")} />
+              {unreadCount > 0 && !shouldAnimate && (
                   <span className="absolute right-1 top-1 flex h-4 w-4 items-center justify-center rounded-full bg-rose-500 text-[10px] font-bold text-white border-2 border-background">
                     {unreadCount}
                   </span>

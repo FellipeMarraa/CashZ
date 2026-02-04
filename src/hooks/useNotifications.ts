@@ -18,7 +18,6 @@ export interface Notification {
 
 export const useNotifications = () => {
     const { user } = useAuth();
-    useQueryClient();
     const queryInfo = useQuery({
         queryKey: ["notifications", user?.id],
         queryFn: async () => {
@@ -32,6 +31,7 @@ export const useNotifications = () => {
             return snapshot.docs.map(d => ({ id: d.id, ...d.data() } as Notification));
         },
         enabled: !!user,
+        refetchInterval: 30000,
     });
 
     return {

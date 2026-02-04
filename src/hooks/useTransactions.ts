@@ -17,6 +17,7 @@ import {
     where,
     writeBatch
 } from 'firebase/firestore/lite';
+import {sendNotification} from "@/service/notificationService.ts";
 
 const COLLECTION_NAME = 'transactions';
 export const FREE_TRANSACTION_LIMIT = 10;
@@ -143,12 +144,10 @@ const api = {
         const userPrefsSnap = await getDoc(userPrefsRef);
         const plan = userPrefsSnap.data()?.plan || "free";
 
-        // --- TRAVA DE RECORRÊNCIA E PARCELAMENTO PARA FREE ---
         if (plan === "free" && data.recurrence !== 'UNICO') {
             throw new Error("RECURRENCE_PREMIUM_ONLY");
         }
 
-        // --- TRAVA DE LIMITE MENSAL ---
         if (plan === "free") {
             const qLimit = query(
                 collection(db, COLLECTION_NAME),
@@ -162,12 +161,46 @@ const api = {
             }
         }
 
-        const ownerData = {
-            id: user.uid,
-            name: user.displayName || "Usuário",
-            email: user.email || ""
-        };
+        if (data.type === 'DESPESA') {
+            const budgetsRef = collection(db, "budgets");
+            const qBudget = query(budgetsRef, where("userId", "==", user.uid), where("categoryId", "==", data.category.id));
+            const budgetSnap = await getDocs(qBudget);
 
+            if (!budgetSnap.empty) {
+                const budgetData = budgetSnap.docs[0].data();
+                const limit = budgetData.amount;
+
+                const qSpent = query(
+                    collection(db, COLLECTION_NAME),
+                    where("userId", "==", user.uid),
+                    where("category.id", "==", data.category.id),
+                    where("month", "==", data.month),
+                    where("year", "==", data.year),
+                    where("type", "==", "DESPESA")
+                );
+                const spentSnap = await getDocs(qSpent);
+                const currentSpent = spentSnap.docs.reduce((acc, d) => acc + d.data().amount, 0);
+                const totalAfterNew = currentSpent + data.amount;
+
+                if (totalAfterNew >= limit) {
+                    await sendNotification(
+                        user.uid,
+                        "Orçamento Esgotado! 🚨",
+                        `Você atingiu o limite de ${new Intl.NumberFormat('pt-BR', {style: 'currency', currency: 'BRL'}).format(limit)} na categoria ${data.category.name}.`,
+                        "ERROR"
+                    );
+                } else if (totalAfterNew >= limit * 0.8) {
+                    await sendNotification(
+                        user.uid,
+                        "Atenção ao Orçamento ⚠️",
+                        `Você já utilizou 80% do limite para ${data.category.name}.`,
+                        "WARNING"
+                    );
+                }
+            }
+        }
+
+        const ownerData = { id: user.uid, name: user.displayName || "Usuário", email: user.email || "" };
         const batch = writeBatch(db);
         const collectionRef = collection(db, COLLECTION_NAME);
         const firstDocRef = doc(collectionRef);
@@ -191,16 +224,7 @@ const api = {
                 const targetYear = data.year + Math.floor(targetMonthIndex / 12);
                 const targetMonth = (targetMonthIndex % 12) + 1;
                 const dateObj = new Date(targetYear, targetMonth - 1, 1, new Date().getHours(), new Date().getMinutes());
-
-                const payload = {
-                    ...basePayload,
-                    amount: installmentValue,
-                    month: targetMonth,
-                    year: targetYear,
-                    numInstallments: data.numInstallments,
-                    currentInstallment: i + 1,
-                    date: dateObj.toISOString()
-                };
+                const payload = { ...basePayload, amount: installmentValue, month: targetMonth, year: targetYear, numInstallments: data.numInstallments, currentInstallment: i + 1, date: dateObj.toISOString() };
                 const currentDocRef = i === 0 ? firstDocRef : doc(collectionRef);
                 batch.set(currentDocRef, sanitizeData(payload));
             }
