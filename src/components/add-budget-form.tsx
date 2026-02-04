@@ -21,6 +21,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { IMes } from "@/model/IMes";
 import { Lock, Loader2, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
+import {NumericFormat} from "react-number-format";
 
 interface AddBudgetFormProps {
     month: string;
@@ -87,14 +88,19 @@ export const AddBudgetForm = ({ month, year }: AddBudgetFormProps) => {
                         </Select>
                     </div>
 
-                    <div className="grid gap-2 text-left">
-                        <Label htmlFor="amount">Valor Limite (Mensal)</Label>
-                        <Input
-                            id="amount"
-                            type="number"
-                            placeholder="R$ 0,00"
+                    <div className="space-y-2">
+                        <Label>Limite Mensal</Label>
+                        <NumericFormat
+                            customInput={Input}
                             value={amount}
-                            onChange={(e) => setAmount(e.target.value)}
+                            onValueChange={(values) => setAmount(values.floatValue?.toString() || '')}
+                            thousandSeparator="."
+                            decimalSeparator=","
+                            decimalScale={2}
+                            fixedDecimalScale
+                            prefix="R$ "
+                            placeholder="R$ 0,00"
+                            className="w-full"
                         />
                     </div>
 
