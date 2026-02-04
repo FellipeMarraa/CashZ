@@ -1,4 +1,6 @@
-import {useMutation, useQuery, useQueryClient} from "@tanstack/react-query";
+"use client"
+
+import {useMutation} from "@tanstack/react-query";
 import {IMes} from "@/model/IMes";
 import {Transaction} from "@/model/types/Transaction";
 import {auth, db} from "../../firebase";
@@ -11,20 +13,21 @@ import {
     doc,
     getDoc,
     getDocs,
+    onSnapshot,
     orderBy,
     query,
     updateDoc,
     where,
     writeBatch
-} from 'firebase/firestore/lite';
+} from 'firebase/firestore';
 import {sendNotification} from "@/service/notificationService.ts";
+import {useEffect, useState} from "react";
 
 const COLLECTION_NAME = 'transactions';
 export const FREE_TRANSACTION_LIMIT = 10;
 
 type TransactionInput = Omit<Transaction, 'id' | 'owner'>;
 
-// --- FUNÇÃO DE LIMPEZA ---
 const sanitizeData = (data: any) => {
     const cleanData = { ...data };
     Object.keys(cleanData).forEach(key => {
@@ -78,64 +81,6 @@ const api = {
         } catch (error) { return [user.uid]; }
     },
 
-    async getTransactions(month: string, year: number): Promise<Transaction[]> {
-        const user = auth.currentUser;
-        if (!user) return [];
-
-        const allowedIds = await this.getAllowedUserIds();
-
-        const monthIndex = IMes.indexOf(month);
-        if (monthIndex === -1) return [];
-
-        const startDate = new Date(year, monthIndex, 1);
-        const endDate = new Date(year, monthIndex + 1, 0, 23, 59, 59, 999);
-
-        try {
-            const q = query(
-                collection(db, COLLECTION_NAME),
-                where("userId", "in", allowedIds),
-                where("date", ">=", startDate.toISOString()),
-                where("date", "<=", endDate.toISOString()),
-                orderBy("date", "desc")
-            );
-
-            const querySnapshot = await getDocs(q);
-            return querySnapshot.docs.map(doc => this.mapDocumentToTransaction(doc));
-        } catch (error) {
-            console.error("Erro ao buscar transações:", error);
-            const qFallback = query(
-                collection(db, COLLECTION_NAME),
-                where("userId", "==", user.uid),
-                where("date", ">=", startDate.toISOString()),
-                where("date", "<=", endDate.toISOString()),
-                orderBy("date", "desc")
-            );
-            const snapFallback = await getDocs(qFallback);
-            return snapFallback.docs.map(doc => this.mapDocumentToTransaction(doc));
-        }
-    },
-
-    async getAllTransactions(): Promise<Transaction[]> {
-        const user = auth.currentUser;
-        if (!user) return [];
-
-        try {
-            const allowedIds = await this.getAllowedUserIds();
-
-            const q = query(
-                collection(db, COLLECTION_NAME),
-                where("userId", "in", allowedIds),
-                orderBy("date", "desc")
-            );
-            const querySnapshot = await getDocs(q);
-            return querySnapshot.docs.map(doc => this.mapDocumentToTransaction(doc));
-        } catch (error) {
-            console.error("Erro ao buscar todas as transações:", error);
-            throw error;
-        }
-    },
-
-    // --- CRIAR TRANSAÇÃO ---
     async createTransaction(data: TransactionInput): Promise<Transaction> {
         const user = auth.currentUser;
         if (!user) throw new Error("Usuário não autenticado");
@@ -297,93 +242,158 @@ const api = {
         });
 
         await batch.commit();
-    },
-
-    async getTransactionsByMonth(month: number): Promise<Transaction[]> {
-        const user = auth.currentUser;
-        if (!user) return [];
-        const allowedIds = await this.getAllowedUserIds();
-
-        const q = query(
-            collection(db, COLLECTION_NAME),
-            where("userId", "in", allowedIds),
-            where("month", "==", month)
-        );
-        const querySnapshot = await getDocs(q);
-        return querySnapshot.docs.map(doc => this.mapDocumentToTransaction(doc));
-    },
-
-    async getTransactionsByYear(year: number): Promise<Transaction[]> {
-        const user = auth.currentUser;
-        if (!user) return [];
-        const allowedIds = await this.getAllowedUserIds();
-        const startDate = new Date(year, 0, 1);
-        const endDate = new Date(year, 11, 31, 23, 59, 59);
-
-        const q = query(
-            collection(db, COLLECTION_NAME),
-            where("userId", "in", allowedIds),
-            where("date", ">=", startDate.toISOString()),
-            where("date", "<=", endDate.toISOString()),
-            orderBy("date", "desc")
-        );
-        const querySnapshot = await getDocs(q);
-        return querySnapshot.docs.map(doc => this.mapDocumentToTransaction(doc));
     }
 };
 
-// --- HOOKS ---
+// --- REAL-TIME HOOKS ---
 
 export const useTransactions = (month: string, year: number) => {
     const { user } = useAuth();
-    return useQuery({
-        queryKey: ['transactions', month, year, user?.id],
-        queryFn: () => api.getTransactions(month, year),
-        staleTime: 5 * 60 * 1000,
-        enabled: !!month && !!year && !!user?.id
-    });
+    const [transactions, setTransactions] = useState<Transaction[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
+
+    useEffect(() => {
+        if (!user?.id || !month || !year) return;
+
+        let unsubscribe: () => void;
+
+        const startListener = async () => {
+            const allowedIds = await api.getAllowedUserIds();
+            const monthIndex = IMes.indexOf(month);
+            const startDate = new Date(year, monthIndex, 1);
+            const endDate = new Date(year, monthIndex + 1, 0, 23, 59, 59, 999);
+
+            const q = query(
+                collection(db, COLLECTION_NAME),
+                where("userId", "in", allowedIds),
+                where("date", ">=", startDate.toISOString()),
+                where("date", "<=", endDate.toISOString()),
+                orderBy("date", "desc")
+            );
+
+            unsubscribe = onSnapshot(q, (snapshot) => {
+                const data = snapshot.docs.map(doc => api.mapDocumentToTransaction(doc));
+                setTransactions(data);
+                setIsLoading(false);
+            });
+        };
+
+        startListener();
+        return () => unsubscribe?.();
+    }, [user?.id, month, year]);
+
+    return { data: transactions, isLoading };
 };
 
 export const useAllTransactions = () => {
     const { user } = useAuth();
-    return useQuery({
-        queryKey: ['transactions', 'all', user?.id],
-        queryFn: () => api.getAllTransactions(),
-        staleTime: 5 * 60 * 1000,
-        enabled: !!user?.id
-    });
+    const [transactions, setTransactions] = useState<Transaction[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
+
+    useEffect(() => {
+        if (!user?.id) return;
+
+        let unsubscribe: () => void;
+
+        const startListener = async () => {
+            const allowedIds = await api.getAllowedUserIds();
+            const q = query(
+                collection(db, COLLECTION_NAME),
+                where("userId", "in", allowedIds),
+                orderBy("date", "desc")
+            );
+
+            unsubscribe = onSnapshot(q, (snapshot) => {
+                const data = snapshot.docs.map(doc => api.mapDocumentToTransaction(doc));
+                setTransactions(data);
+                setIsLoading(false);
+            });
+        };
+
+        startListener();
+        return () => unsubscribe?.();
+    }, [user?.id]);
+
+    return { data: transactions, isLoading };
 };
 
 export const useTransactionsByMonth = (month: number) => {
     const { user } = useAuth();
-    return useQuery({
-        queryKey: ['transactions', 'month', month, user?.id],
-        queryFn: () => api.getTransactionsByMonth(month),
-        staleTime: 5 * 60 * 1000,
-        enabled: !!user?.id
-    });
+    const [transactions, setTransactions] = useState<Transaction[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
+
+    useEffect(() => {
+        if (!user?.id || !month) return;
+
+        let unsubscribe: () => void;
+
+        const startListener = async () => {
+            const allowedIds = await api.getAllowedUserIds();
+            const q = query(
+                collection(db, COLLECTION_NAME),
+                where("userId", "in", allowedIds),
+                where("month", "==", month)
+            );
+
+            unsubscribe = onSnapshot(q, (snapshot) => {
+                const data = snapshot.docs.map(doc => api.mapDocumentToTransaction(doc));
+                setTransactions(data);
+                setIsLoading(false);
+            });
+        };
+
+        startListener();
+        return () => unsubscribe?.();
+    }, [user?.id, month]);
+
+    return { data: transactions, isLoading };
 };
 
 export const useTransactionsByYear = (year: number) => {
     const { user } = useAuth();
-    return useQuery({
-        queryKey: ['transactions', 'year', year, user?.id],
-        queryFn: () => api.getTransactionsByYear(year),
-        staleTime: 5 * 60 * 1000,
-        enabled: !!user?.id
-    });
+    const [transactions, setTransactions] = useState<Transaction[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
+
+    useEffect(() => {
+        if (!user?.id || !year) return;
+
+        let unsubscribe: () => void;
+
+        const startListener = async () => {
+            const allowedIds = await api.getAllowedUserIds();
+            const startDate = new Date(year, 0, 1);
+            const endDate = new Date(year, 11, 31, 23, 59, 59);
+
+            const q = query(
+                collection(db, COLLECTION_NAME),
+                where("userId", "in", allowedIds),
+                where("date", ">=", startDate.toISOString()),
+                where("date", "<=", endDate.toISOString()),
+                orderBy("date", "desc")
+            );
+
+            unsubscribe = onSnapshot(q, (snapshot) => {
+                const data = snapshot.docs.map(doc => api.mapDocumentToTransaction(doc));
+                setTransactions(data);
+                setIsLoading(false);
+            });
+        };
+
+        startListener();
+        return () => unsubscribe?.();
+    }, [user?.id, year]);
+
+    return { data: transactions, isLoading };
 };
 
+// --- MUTATION HOOKS ---
+
 export const useCreateTransaction = () => {
-    const queryClient = useQueryClient();
     const { setActiveDialog } = useDialogManager();
     const { toast } = useToast();
 
     return useMutation({
         mutationFn: (data: TransactionInput) => api.createTransaction(data),
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['transactions'] });
-        },
         onError: (error: any) => {
             if (error.message === "LIMIT_REACHED") {
                 setActiveDialog("upgrade-plan");
@@ -407,24 +417,16 @@ export const useCreateTransaction = () => {
 };
 
 export const useUpdateTransaction = () => {
-    const queryClient = useQueryClient();
     return useMutation({
         mutationFn: ({ id, data }: { id: string; data: Partial<Transaction> }) =>
-            api.updateTransaction(id, data),
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['transactions'] });
-        }
+            api.updateTransaction(id, data)
     });
 };
 
 export const useDeleteTransaction = () => {
-    const queryClient = useQueryClient();
     return useMutation({
         mutationFn: ({ id, deleteAll = false }: { id: string; deleteAll?: boolean }) =>
-            api.deleteTransaction(id, deleteAll),
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['transactions'] });
-        }
+            api.deleteTransaction(id, deleteAll)
     });
 };
 

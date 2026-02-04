@@ -12,7 +12,7 @@ import {
     getDoc,
     serverTimestamp,
     deleteDoc
-} from 'firebase/firestore/lite';
+} from 'firebase/firestore';
 import { InvestmentItem } from "@/components/dashboard/sections/investments-section.tsx";
 
 const COLLECTION_NAME = 'investments';

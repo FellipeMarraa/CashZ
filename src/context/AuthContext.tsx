@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useEffect, useState } from "react";
 import { onAuthChange, logout as firebaseLogout, auth, db } from "../../firebase.ts";
 import { User as FirebaseUser } from "firebase/auth";
-import { collection, query, where, getDocs, writeBatch, doc } from "firebase/firestore/lite";
+import {collection, query, where, getDocs, writeBatch, doc, setDoc} from "firebase/firestore";
 
 interface User {
     id: string;
@@ -27,6 +27,30 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const [user, setUser] = useState<User | null>(null);
     const [loading, setLoading] = useState(true);
 
+    useEffect(() => {
+        const unsubscribe = onAuthChange(async (firebaseUser: FirebaseUser | null) => {
+            if (firebaseUser) {
+                const mapped = mapUser(firebaseUser);
+                setUser(mapped);
+
+                try {
+                    const userRef = doc(db, "user_preferences", firebaseUser.uid);
+                    await setDoc(userRef, {
+                        email: firebaseUser.email?.toLowerCase().trim(),
+                        name: firebaseUser.displayName || "Usuário",
+                        updatedAt: new Date().toISOString()
+                    }, { merge: true });
+                } catch (e) {
+                    console.error("Erro ao sincronizar perfil para convites:", e);
+                }
+            } else {
+                setUser(null);
+            }
+            setLoading(false);
+        });
+
+        return () => unsubscribe();
+    }, []);
     const mapUser = (firebaseUser: FirebaseUser): User => ({
         id: firebaseUser.uid,
         email: firebaseUser.email || "",

@@ -1,6 +1,6 @@
 "use client"
 
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { db, auth } from "../../firebase";
 import {
     collection,
@@ -12,11 +12,13 @@ import {
     getDoc,
     setDoc,
     updateDoc,
-    serverTimestamp
-} from 'firebase/firestore/lite';
+    serverTimestamp,
+    onSnapshot // Adicionado para Tempo Real
+} from 'firebase/firestore'; // REMOVIDO /lite para permitir realtime
 import { useDialogManager } from "@/context/DialogManagerContext";
 import { useToast } from "@/hooks/use-toast";
 import { sendNotification } from "@/service/notificationService";
+import { useEffect, useState } from "react";
 
 export const useSharing = () => {
     const queryClient = useQueryClient();
@@ -24,24 +26,43 @@ export const useSharing = () => {
     const { toast } = useToast();
     const user = auth.currentUser;
 
-    const { data: sharedWith = []} = useQuery({
-        queryKey: ['financial-sharing', user?.uid],
-        queryFn: async () => {
-            if (!user?.uid) return [];
-            const q = query(
-                collection(db, 'sharing'),
-                where("ownerId", "==", user.uid)
-            );
-            const snap = await getDocs(q);
-            return snap.docs.map(d => ({ id: d.id, ...d.data() }));
-        },
-        enabled: !!user?.uid,
-        refetchInterval: 30000 // Real-time polling
-    });
+    const [sharedWith, setSharedWith] = useState<any[]>([]);
+    const [sharedToMe, setSharedToMe] = useState<any[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
+
+    useEffect(() => {
+        if (!user?.uid || !user?.email) return;
+
+        const myEmail = user.email.toLowerCase().trim();
+
+        const qSent = query(
+            collection(db, 'sharing'),
+            where("ownerId", "==", user.uid)
+        );
+
+        const unsubSent = onSnapshot(qSent, (snap) => {
+            setSharedWith(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+        });
+
+        const qReceived = query(
+            collection(db, 'sharing'),
+            where("email", "==", myEmail)
+        );
+
+        const unsubReceived = onSnapshot(qReceived, (snap) => {
+            setSharedToMe(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+            setIsLoading(false);
+        });
+
+        return () => {
+            unsubSent();
+            unsubReceived();
+        };
+    }, [user?.uid, user?.email]);
 
     const shareMutation = useMutation({
         mutationFn: async (data: { email: string, permissions: string[] }) => {
-            if (!user?.uid) throw new Error("Usuário não autenticado");
+            if (!user?.uid) throw new Error("UsuÃ¡rio nÃ£o autenticado");
 
             const userPrefsRef = doc(db, "user_preferences", user.uid);
             const userPrefsSnap = await getDoc(userPrefsRef);
@@ -52,8 +73,9 @@ export const useSharing = () => {
             }
 
             const targetEmail = data.email.trim().toLowerCase();
-            const usersRef = collection(db, "users"); // Assumindo que você tem uma coleção 'users'
-            const qUser = query(usersRef, where("email", "==", targetEmail));
+
+            const userPrefsCol = collection(db, "user_preferences");
+            const qUser = query(userPrefsCol, where("email", "==", targetEmail));
             const userSnap = await getDocs(qUser);
 
             const shareRef = doc(db, 'sharing', targetEmail);
@@ -61,7 +83,7 @@ export const useSharing = () => {
                 email: targetEmail,
                 permissions: data.permissions,
                 ownerId: user.uid,
-                ownerName: user.displayName || "Usuário",
+                ownerName: user.displayName || "UsuÃ¡rio",
                 ownerEmail: user.email?.toLowerCase().trim(),
                 status: 'PENDENTE',
                 updatedAt: serverTimestamp()
@@ -69,36 +91,29 @@ export const useSharing = () => {
 
             if (!userSnap.empty) {
                 const targetUserId = userSnap.docs[0].id;
+                console.log("UsuÃ¡rio encontrado! Enviando notificaÃ§Ã£o para:", targetUserId);
+
                 await sendNotification(
                     targetUserId,
                     "Novo Convite de Acesso ?",
-                    `${user.email} quer compartilhar as finanças com você.`,
+                    `${user.email} quer compartilhar as finanÃ§as com vocÃª.`,
                     "INFO"
                 );
+            } else {
+                console.warn("DestinatÃ¡rio nÃ£o encontrado em user_preferences. Verifique se o e-mail estÃ¡ correto no cadastro dele.");
             }
         },
-        onSuccess: () => queryClient.invalidateQueries({ queryKey: ['financial-sharing'] }),
+        onSuccess: () => {
+            toast({ title: "Convite enviado!", description: "Aguardando o parceiro aceitar." });
+        },
         onError: (error: any) => {
             if (error.message === "PREMIUM_REQUIRED") {
                 setActiveDialog("upgrade-plan");
+            } else {
+                toast({ title: "Erro", description: "Falha ao enviar convite.", variant: "destructive" });
+                console.log(error.message);
             }
         }
-    });
-
-    const { data: sharedToMe = [], isLoading: isLoadingReceived } = useQuery({
-        queryKey: ['financial-sharing-received', user?.email],
-        queryFn: async () => {
-            if (!user?.email) return [];
-            const myEmail = user.email.toLowerCase().trim();
-            const q = query(
-                collection(db, 'sharing'),
-                where("email", "==", myEmail)
-            );
-            const snap = await getDocs(q);
-            return snap.docs.map(d => ({ id: d.id, ...d.data() }));
-        },
-        enabled: !!user?.email,
-        refetchInterval: 30000
     });
 
     const acceptSharingMutation = useMutation({
@@ -116,15 +131,14 @@ export const useSharing = () => {
                 await sendNotification(
                     data.ownerId,
                     "Convite Aceito! ?",
-                    `${user?.email} agora compartilha as finanças com você.`,
+                    `${user?.email} agora compartilha as finanÃ§as com vocÃª.`,
                     "SUCCESS"
                 );
             }
         },
         onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['financial-sharing-received'] });
             queryClient.invalidateQueries({ queryKey: ['transactions'] });
-            toast({ title: "Convite aceito!", description: "Agora você visualiza as finanças compartilhadas." });
+            toast({ title: "Convite aceito!", variant: "success" });
         }
     });
 
@@ -132,7 +146,7 @@ export const useSharing = () => {
         mutationFn: async (shareId: string) => {
             await deleteDoc(doc(db, 'sharing', shareId));
         },
-        onSuccess: () => queryClient.invalidateQueries({ queryKey: ['financial-sharing'] })
+        onSuccess: () => toast({ title: "Acesso revogado." })
     });
 
     const leaveSharingMutation = useMutation({
@@ -145,15 +159,15 @@ export const useSharing = () => {
                 await sendNotification(
                     data.ownerId,
                     "Acesso Removido ?",
-                    `${user?.email} removeu o vínculo de compartilhamento.`,
+                    `${user?.email} removeu o vÃ­nculo de compartilhamento.`,
                     "INFO"
                 );
             }
             await deleteDoc(doc(db, 'sharing', shareId));
         },
         onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['financial-sharing-received'] });
             queryClient.invalidateQueries({ queryKey: ['transactions'] });
+            toast({ title: "VocÃª saiu do compartilhamento." });
         }
     });
 
@@ -164,6 +178,6 @@ export const useSharing = () => {
         revokeMutation,
         acceptSharingMutation,
         leaveSharingMutation,
-        isLoading: isLoadingReceived
+        isLoading
     };
 };

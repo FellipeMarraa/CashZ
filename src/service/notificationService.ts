@@ -1,4 +1,4 @@
-import { collection, addDoc } from "firebase/firestore/lite";
+import { collection, addDoc } from "firebase/firestore";
 import {db} from "../../firebase.ts";
 
 export const sendNotification = async (

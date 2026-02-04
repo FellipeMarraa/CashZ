@@ -1,21 +1,20 @@
-"use client"
-
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { CategoryDTO } from "@/model/CategoryDTO";
-import { db, auth } from "../../firebase";
+import {useMutation} from "@tanstack/react-query";
+import {CategoryDTO} from "@/model/CategoryDTO";
+import {auth, db} from "../../firebase";
 import {
-    collection,
-    getDocs,
     addDoc,
-    updateDoc,
+    collection,
     deleteDoc,
     doc,
+    getDoc,
+    getDocs,
+    onSnapshot,
     query,
-    where,
-    getDoc
-} from 'firebase/firestore/lite';
-import { useMemo } from "react";
-import { useDialogManager } from "@/context/DialogManagerContext";
+    updateDoc,
+    where
+} from 'firebase/firestore';
+import {useEffect, useMemo, useState} from "react";
+import {useDialogManager} from "@/context/DialogManagerContext";
 
 const COLLECTION_NAME = 'categories';
 
@@ -114,111 +113,121 @@ const api = {
 
 export const useCategories = () => {
     const user = auth.currentUser;
-    const categoriesQuery = useQuery({
-        queryKey: ['categories-raw', user?.uid],
-        queryFn: () => api.getCategories(),
-        staleTime: 5 * 60 * 1000,
-        enabled: !!user
-    });
+    const [categories, setCategories] = useState<CategoryDTO[]>([]);
+    const [hiddenIds, setHiddenIds] = useState<string[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
 
-    const hiddenQuery = useQuery({
-        queryKey: ['hidden-categories', user?.uid],
-        queryFn: async () => {
-            if (!user) return [];
-            const q = query(collection(db, 'hidden_categories'), where("userId", "==", user.uid));
-            const snapshot = await getDocs(q);
-            return snapshot.docs.map(doc => doc.data().categoryId) as string[];
-        },
-        enabled: !!user
-    });
+    useEffect(() => {
+        if (!user?.uid) return;
+
+        let unsubUserCats: () => void;
+        let unsubHidden: () => void;
+
+        const setupListeners = async () => {
+            const allowedIds = await api.getAllowedUserIds();
+
+            // Consultas separadas pois o Firestore não suporta OR entre campos diferentes em queries simples
+            const qUserCats = query(collection(db, COLLECTION_NAME), where("userId", "in", allowedIds));
+            const qDefaultCats = query(collection(db, COLLECTION_NAME), where("isDefault", "==", true));
+
+            // Buscamos as categorias padrão (Default) apenas uma vez para economizar leituras
+            const defaultSnap = await getDocs(qDefaultCats);
+            const dCats = defaultSnap.docs.map(d => ({ id: d.id, ...d.data() } as CategoryDTO));
+
+            // Listener em Tempo Real para categorias personalizadas (suas ou do parceiro)
+            unsubUserCats = onSnapshot(qUserCats, (userSnap) => {
+                const uCats = userSnap.docs.map(d => ({ id: d.id, ...d.data() } as CategoryDTO));
+
+                // Unimos e removemos duplicados
+                const combined = [...dCats, ...uCats];
+                const unique = Array.from(new Map(combined.map(item => [item.id, item])).values());
+
+                setCategories(unique);
+                setIsLoading(false);
+            });
+
+            // Listener em Tempo Real para categorias ocultas
+            const qHidden = query(collection(db, 'hidden_categories'), where("userId", "==", user.uid));
+            unsubHidden = onSnapshot(qHidden, (snap) => {
+                setHiddenIds(snap.docs.map(d => d.data().categoryId));
+            });
+        };
+
+        setupListeners();
+        return () => {
+            unsubUserCats?.();
+            unsubHidden?.();
+        };
+    }, [user?.uid]);
 
     const filteredCategories = useMemo(() => {
-        const cats = categoriesQuery.data || [];
-        const hiddenIds = hiddenQuery.data || [];
-        return cats.filter(cat => !hiddenIds.includes(cat.id!));
-    }, [categoriesQuery.data, hiddenQuery.data]);
+        return categories.filter(cat => !hiddenIds.includes(cat.id!));
+    }, [categories, hiddenIds]);
 
     return {
-        ...categoriesQuery,
-        data: filteredCategories,
-        allCategories: categoriesQuery.data || [],
-        isLoading: categoriesQuery.isLoading || hiddenQuery.isLoading
+        data: filteredCategories, // Categorias visíveis
+        allCategories: categories, // Todas (útil para a tela de gerenciamento)
+        hiddenIds, // IDs das ocultas
+        isLoading
     };
 };
 
 export const useCreateCategory = () => {
-    const queryClient = useQueryClient();
     const { setActiveDialog } = useDialogManager();
-
     return useMutation({
         mutationFn: (data: Omit<CategoryDTO, 'id'>) => api.createCategory(data),
-        onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['categories-raw'] }); },
         onError: (error: any) => {
-            if (error.message === "PREMIUM_REQUIRED") {
-                setActiveDialog("upgrade-plan");
-            }
+            if (error.message === "PREMIUM_REQUIRED") setActiveDialog("upgrade-plan");
         }
     });
 };
 
 export const useUpdateCategory = () => {
-    const queryClient = useQueryClient();
     return useMutation({
-        mutationFn: ({ id, data }: { id: string; data: Partial<CategoryDTO> }) => api.updateCategory(id, data),
-        onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['categories-raw'] }); }
+        mutationFn: ({ id, data }: { id: string; data: Partial<CategoryDTO> }) => api.updateCategory(id, data)
     });
 };
 
 export const useDeleteCategory = () => {
-    const queryClient = useQueryClient();
     return useMutation({
-        mutationFn: (id: string) => api.deleteCategory(id),
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['categories-raw'] });
-            queryClient.invalidateQueries({ queryKey: ['budgets'] });
-        }
+        mutationFn: (id: string) => api.deleteCategory(id)
     });
 };
 
 export const useHiddenCategories = () => {
     const user = auth.currentUser;
-    return useQuery({
-        queryKey: ['hidden-categories', user?.uid],
-        queryFn: async () => {
-            if (!user) return [];
-            const q = query(collection(db, 'hidden_categories'), where("userId", "==", user.uid));
-            const snapshot = await getDocs(q);
-            return snapshot.docs.map(doc => doc.data().categoryId) as string[];
-        },
-        enabled: !!user
-    });
+    const [hiddenIds, setHiddenIds] = useState<string[]>([]);
+
+    useEffect(() => {
+        if (!user) return;
+        const q = query(collection(db, 'hidden_categories'), where("userId", "==", user.uid));
+
+        return onSnapshot(q, (snap) => {
+            setHiddenIds(snap.docs.map(doc => doc.data().categoryId));
+        });
+    }, [user]);
+
+    return { data: hiddenIds };
 };
 
 export const useToggleCategoryVisibility = () => {
-    const queryClient = useQueryClient();
     const user = auth.currentUser;
-
     return useMutation({
         mutationFn: async (categoryId: string) => {
             if (!user) return;
-
-            const q = query(collection(db, 'hidden_categories'), where("userId", "==", user.uid));
+            const q = query(collection(db, 'hidden_categories'),
+                where("userId", "==", user.uid),
+                where("categoryId", "==", categoryId));
             const snapshot = await getDocs(q);
 
-            const existingDoc = snapshot.docs.find(doc => doc.data().categoryId === categoryId);
-
-            if (existingDoc) {
-                await deleteDoc(doc(db, 'hidden_categories', existingDoc.id));
+            if (!snapshot.empty) {
+                await deleteDoc(doc(db, 'hidden_categories', snapshot.docs[0].id));
             } else {
                 await addDoc(collection(db, 'hidden_categories'), {
                     userId: user.uid,
                     categoryId: categoryId
                 });
             }
-        },
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['hidden-categories'] });
-            queryClient.invalidateQueries({ queryKey: ['categories-raw'] });
         }
     });
 };

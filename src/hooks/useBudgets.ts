@@ -11,7 +11,7 @@ import {
     doc,
     deleteDoc,
     getDoc, writeBatch
-} from "firebase/firestore/lite";
+} from "firebase/firestore";
 import { useToast } from "@/hooks/use-toast";
 import { useDialogManager } from "@/context/DialogManagerContext";
 

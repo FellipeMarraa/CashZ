@@ -1,5 +1,5 @@
 import { db } from "../../firebase";
-import { doc, getDoc, setDoc, updateDoc, increment } from "firebase/firestore/lite";
+import { doc, getDoc, setDoc, updateDoc, increment } from "firebase/firestore";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import {useMemo} from "react";

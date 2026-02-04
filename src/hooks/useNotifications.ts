@@ -1,10 +1,20 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { db } from "../../firebase";
+"use client"
+
+import {useMutation} from "@tanstack/react-query";
+import {db} from "../../firebase";
+import {useAuth} from "@/context/AuthContext";
+import {useEffect, useState} from 'react';
 import {
-    collection, query, where, getDocs, updateDoc,
-    doc, deleteDoc, orderBy, writeBatch
-} from "firebase/firestore/lite";
-import { useAuth } from "@/context/AuthContext";
+    collection,
+    query,
+    where,
+    orderBy,
+    onSnapshot,
+    doc,
+    updateDoc,
+    getDocs,
+    writeBatch, deleteDoc
+} from 'firebase/firestore';
 
 export interface Notification {
     id: string;
@@ -18,94 +28,67 @@ export interface Notification {
 
 export const useNotifications = () => {
     const { user } = useAuth();
-    const queryInfo = useQuery({
-        queryKey: ["notifications", user?.id],
-        queryFn: async () => {
-            if (!user) return [];
-            const q = query(
-                collection(db, "notifications"),
-                where("userId", "==", user.id),
-                orderBy("createdAt", "desc")
-            );
-            const snapshot = await getDocs(q);
-            return snapshot.docs.map(d => ({ id: d.id, ...d.data() } as Notification));
-        },
-        enabled: !!user,
-        refetchInterval: 30000,
-    });
+    const [notifications, setNotifications] = useState<Notification[]>([]);
+    const [unreadCount, setUnreadCount] = useState(0);
+    const [isLoading, setIsLoading] = useState(true);
 
-    return {
-        notifications: queryInfo.data ?? [],
-        unreadCount: queryInfo.data?.filter(n => !n.read).length ?? 0,
-        isLoading: queryInfo.isLoading,
-        refetch: queryInfo.refetch
-    };
+    useEffect(() => {
+        if (!user?.id) return;
+
+        const q = query(
+            collection(db, "notifications"),
+            where("userId", "==", user.id),
+            orderBy("createdAt", "desc")
+        );
+
+        // Tempo real instantâneo
+        const unsubscribe = onSnapshot(q, (snapshot) => {
+            const docs = snapshot.docs.map(d => ({ id: d.id, ...d.data() } as Notification));
+            setNotifications(docs);
+            setUnreadCount(docs.filter(n => !n.read).length);
+            setIsLoading(false);
+        }, (error) => {
+            console.error("Erro no tempo real das notificações:", error);
+            setIsLoading(false);
+        });
+
+        return () => unsubscribe();
+    }, [user?.id]);
+
+    return { notifications, unreadCount, isLoading };
 };
 
 export const useMarkNotificationAsRead = () => {
-    const queryClient = useQueryClient();
     return useMutation({
         mutationFn: async (id: string) => {
-            // No Lite, sempre use doc(db, collection, id) para garantir a ref
             const docRef = doc(db, "notifications", id);
             await updateDoc(docRef, { read: true });
-        },
-        onSuccess: (_) => {
-            queryClient.invalidateQueries({ queryKey: ["notifications"] });
         }
     });
 };
 
 export const useMarkAllNotificationsAsRead = () => {
     const { user } = useAuth();
-    const queryClient = useQueryClient();
     return useMutation({
         mutationFn: async () => {
             if (!user) return;
-
             const q = query(
                 collection(db, "notifications"),
                 where("userId", "==", user.id),
                 where("read", "==", false)
             );
-
             const snapshot = await getDocs(q);
-            if (snapshot.empty) return;
-
             const batch = writeBatch(db);
-
-            snapshot.docs.forEach(d => {
-                const docRef = doc(db, "notifications", d.id);
-                batch.update(docRef, { read: true });
-            });
-
+            snapshot.docs.forEach(d => batch.update(d.ref, { read: true }));
             await batch.commit();
-        },
-        onSuccess: () => queryClient.invalidateQueries({ queryKey: ["notifications"] })
+        }
     });
 };
 
 export const useDeleteNotification = () => {
-    const queryClient = useQueryClient();
     return useMutation({
         mutationFn: async (id: string) => {
             await deleteDoc(doc(db, "notifications", id));
-        },
-        onSuccess: () => queryClient.invalidateQueries({ queryKey: ["notifications"] })
-    });
-};
-export const useDeleteAllNotifications = () => {
-    const { user } = useAuth();
-    const queryClient = useQueryClient();
-    return useMutation({
-        mutationFn: async () => {
-            if (!user) return;
-            const q = query(collection(db, "notifications"), where("userId", "==", user.id));
-            const snapshot = await getDocs(q);
-            const batch = writeBatch(db);
-            snapshot.docs.forEach(d => batch.delete(d.ref));
-            await batch.commit();
-        },
-        onSuccess: () => queryClient.invalidateQueries({ queryKey: ["notifications"] })
+        }
     });
 };
