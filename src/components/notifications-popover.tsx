@@ -42,7 +42,7 @@ export const NotificationsPopover = () => {
         <Popover open={open} onOpenChange={setOpen}>
           <PopoverTrigger asChild>
             <Button variant="ghost" size="icon" className="relative outline-none">
-              <BellRing className={cn("h-5 w-5 transition-all", unreadCount > 0 && shouldAnimate && "animate-tada text-emerald-500")} />
+              <BellRing className={cn("h-5 w-5 transition-all", unreadCount > 0 && shouldAnimate && "animate-tada")} />
               {unreadCount > 0 && !shouldAnimate && (
                   <span className="absolute right-1 top-1 flex h-4 w-4 items-center justify-center rounded-full bg-rose-500 text-[10px] font-bold text-white border-2 border-background">
                     {unreadCount}
