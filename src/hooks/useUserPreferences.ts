@@ -2,6 +2,7 @@ import { db } from "../../firebase";
 import { doc, getDoc, setDoc, updateDoc, increment } from "firebase/firestore/lite";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
+import {useMemo} from "react";
 
 export type UserPlan = "free" | "premium" | "annual";
 
@@ -25,8 +26,12 @@ export const useUserPreferences = (userId: string | undefined) => {
 
             if (docSnap.exists()) {
                 const data = docSnap.data();
-                if (data.planExpiresAt && new Date(data.planExpiresAt) < new Date()) {
-                    return { ...data, plan: "free", hiddenTutorials: data.hiddenTutorials || [] } as UserPrefs;
+                const now = new Date();
+
+                // Verificação de expiração mais robusta
+                if (data.planExpiresAt && new Date(data.planExpiresAt) < now) {
+                    // Se expirou, o plano volta a ser free internamente na query
+                    return { ...data, plan: "free" } as UserPrefs;
                 }
                 return { hiddenTutorials: [], plan: "free", ...data } as UserPrefs;
             }
@@ -34,6 +39,16 @@ export const useUserPreferences = (userId: string | undefined) => {
         },
         enabled: !!userId,
     });
+
+    const isPremiumFinal = useMemo(() => {
+        if (!preferences) return false;
+        const hasPaidPlan = preferences.plan === "premium" || preferences.plan === "annual";
+        const isNotExpired = preferences.planExpiresAt
+            ? new Date(preferences.planExpiresAt) > new Date()
+            : true;
+
+        return hasPaidPlan && isNotExpired;
+    }, [preferences]);
 
     const hideTutorialMutation = useMutation({
         mutationFn: async (tutorialKey: string) => {
@@ -114,6 +129,6 @@ export const useUserPreferences = (userId: string | undefined) => {
         hideTutorial: hideTutorialMutation.mutateAsync,
         redeemCoupon: redeemCouponMutation.mutateAsync,
         isRedeeming: redeemCouponMutation.isPending,
-        isPremium: (preferences?.plan === "premium" || preferences?.plan === "annual")
+        isPremium: isPremiumFinal
     };
 };

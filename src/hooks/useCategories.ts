@@ -74,6 +74,7 @@ const api = {
         return Array.from(new Map(allCats.map(item => [item.id, item])).values());
     },
 
+    // No arquivo useCategories.ts, dentro do objeto api:
     async createCategory(data: Omit<CategoryDTO, 'id'>): Promise<CategoryDTO> {
         const user = auth.currentUser;
         if (!user) throw new Error("Usuário não autenticado");
@@ -82,7 +83,8 @@ const api = {
         const userPrefsSnap = await getDoc(userPrefsRef);
         const plan = userPrefsSnap.data()?.plan || "free";
 
-        if (plan !== "premium") {
+        const allowedPlans = ["premium", "annual"];
+        if (!allowedPlans.includes(plan)) {
             throw new Error("PREMIUM_REQUIRED");
         }
 

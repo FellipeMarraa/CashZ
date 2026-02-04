@@ -170,14 +170,23 @@ export const SettingsSection = () => {
                 return a.name.localeCompare(b.name);
             });
     }, [categories, searchTerm, currentUser]);
-
     const handleAddCategory = () => {
-        if (!isPremium) { setActiveDialog("upgrade-plan"); return; }
+        if (!isPremium) {
+            setActiveDialog("upgrade-plan");
+            return;
+        }
+
         if (!newCategoryName.trim()) return;
-        createCategoryMutation.mutate({name: newCategoryName.trim()}, {
+
+        createCategoryMutation.mutate({ name: newCategoryName.trim() }, {
             onSuccess: () => {
                 setNewCategoryName("");
-                toast({title: "Sucesso", description: "Categoria criada!", variant: "success"});
+                toast({ title: "Sucesso", description: "Categoria criada!", variant: "success" });
+            },
+            onError: (error: any) => {
+                if (error.message === "PREMIUM_REQUIRED") {
+                    setActiveDialog("upgrade-plan");
+                }
             }
         });
     };
@@ -272,7 +281,13 @@ export const SettingsSection = () => {
                                 <div className="flex items-center justify-between">
                                     <div className="flex items-center gap-2">
                                         {isPremium ? <Crown className="h-5 w-5 text-emerald-600 dark:text-emerald-400" /> : <Zap className="h-5 w-5 text-slate-400" />}
-                                        <CardTitle className="text-lg">Plano: <span className="capitalize text-emerald-600 dark:text-emerald-400">{preferences?.plan || 'Free'}</span></CardTitle>
+                                        <CardTitle className="text-lg">Plano: <span className={cn(
+                                            "capitalize font-bold",
+                                            preferences?.plan === 'annual' ? "text-purple-500" : "text-emerald-600"
+                                        )}>
+                                            {preferences?.plan || 'Free'}
+                                        </span>
+                                        </CardTitle>
                                     </div>
                                     {isPremium && (
                                         <span className="text-[10px] bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 px-2 py-1 rounded-full font-bold uppercase tracking-wider border border-emerald-500/20">
