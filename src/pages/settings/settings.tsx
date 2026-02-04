@@ -281,12 +281,19 @@ export const SettingsSection = () => {
                                 <div className="flex items-center justify-between">
                                     <div className="flex items-center gap-2">
                                         {isPremium ? <Crown className="h-5 w-5 text-emerald-600 dark:text-emerald-400" /> : <Zap className="h-5 w-5 text-slate-400" />}
-                                        <CardTitle className="text-lg">Plano: <span className={cn(
-                                            "capitalize font-bold",
-                                            preferences?.plan === 'annual' ? "text-purple-500" : "text-emerald-600"
-                                        )}>
-                                            {preferences?.plan || 'Free'}
-                                        </span>
+                                        <CardTitle className="text-lg">
+                                            Plano:{" "}
+                                            <span
+                                                className={cn(
+                                                    "capitalize font-bold",
+                                                    preferences?.plan === "annual" ? "text-purple-500" : "text-emerald-600"
+                                                )}>
+                                                {preferences?.plan === "annual"
+                                                    ? "Anual"
+                                                    : preferences?.plan === "premium"
+                                                        ? "Premium"
+                                                        : "Grátis"}
+                                            </span>
                                         </CardTitle>
                                     </div>
                                     {isPremium && (
