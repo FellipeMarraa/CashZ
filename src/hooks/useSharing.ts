@@ -91,7 +91,6 @@ export const useSharing = () => {
 
             if (!userSnap.empty) {
                 const targetUserId = userSnap.docs[0].id;
-                console.log("Usuário encontrado! Enviando notificação para:", targetUserId);
 
                 await sendNotification(
                     targetUserId,

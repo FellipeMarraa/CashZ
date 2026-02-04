@@ -10,7 +10,6 @@ if (!admin.apps.length) {
                 privateKey: process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n'),
             }),
         });
-        console.log("? Firebase Admin conectado");
     } catch (error: any) {
         console.error("? Erro na inicialização:", error.message);
     }
@@ -72,8 +71,6 @@ export default async function handler(req: any, res: any) {
                     lastPaymentId: String(paymentId),
                     lastUpdated: admin.firestore.FieldValue.serverTimestamp()
                 }, { merge: true });
-
-                console.log(`? Plano ${planType} ativado/estendido até ${expirationDate.toISOString()} para: ${userId}`);
             }
         }
 
