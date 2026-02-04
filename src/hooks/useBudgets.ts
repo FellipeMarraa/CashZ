@@ -10,7 +10,7 @@ import {
     setDoc,
     doc,
     deleteDoc,
-    getDoc
+    getDoc, writeBatch
 } from "firebase/firestore/lite";
 import { useToast } from "@/hooks/use-toast";
 import { useDialogManager } from "@/context/DialogManagerContext";
@@ -154,13 +154,42 @@ export const useBudgets = (month?: number, year?: number) => {
     });
 
     const deleteBudgetMutation = useMutation({
-        mutationFn: async (budgetId: string) => {
-            const docRef = doc(db, "budgets", budgetId);
-            await deleteDoc(docRef);
+        mutationFn: async ({ budgetId, deleteAll }: { budgetId: string; deleteAll: boolean }) => {
+            if (!user || !db) throw new Error("Usuário não autenticado");
+
+            const pivotDocRef = doc(db, "budgets", budgetId);
+            const pivotSnap = await getDoc(pivotDocRef);
+
+            if (!pivotSnap.exists()) return;
+
+            const pivotData = pivotSnap.data();
+
+            if (!deleteAll) {
+                await deleteDoc(pivotDocRef);
+                return;
+            }
+
+            const budgetsRef = collection(db, "budgets");
+            const q = query(
+                budgetsRef,
+                where("userId", "==", user.uid),
+                where("categoryId", "==", pivotData.categoryId),
+                where("year", "==", pivotData.year),
+                where("month", ">=", pivotData.month)
+            );
+
+            const querySnapshot = await getDocs(q);
+            const batch = writeBatch(db);
+
+            querySnapshot.docs.forEach((doc) => {
+                batch.delete(doc.ref);
+            });
+
+            await batch.commit();
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ["budgets"] });
-            toast({ title: "Removido!", description: "Meta excluída com sucesso." });
+            toast({ title: "Removido!", description: "Operação realizada com sucesso." });
         }
     });
 

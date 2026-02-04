@@ -120,9 +120,9 @@ export const BudgetSection = () => {
         setActiveDialog("confirm-dialog");
     };
 
-    const handleConfirmDelete = () => {
+    const handleConfirmDelete = (deleteAll: boolean = false) => {
         if (idToDelete) {
-            deleteBudget.mutate(idToDelete, {
+            deleteBudget.mutate({ budgetId: idToDelete, deleteAll }, {
                 onSuccess: () => {
                     setActiveDialog(null);
                     setIdToDelete(null);
@@ -348,10 +348,12 @@ export const BudgetSection = () => {
             {activeDialog === "upgrade-plan" && <UpgradePlanModal isOpen={true} onClose={() => setActiveDialog(null)} />}
 
             <ConfirmDialog
-                title="Excluir Limite?"
-                description="Tem certeza que deseja remover esta meta? Isso afetará os insights de economia do mês."
-                confirmLabel="Sim, excluir"
-                onConfirm={handleConfirmDelete}
+                title="Excluir Orçamento?"
+                description="Deseja remover esta meta de gastos? Você pode excluir apenas este mês ou este e todos os meses seguintes."
+                confirmLabel="Excluir apenas este"
+                onConfirm={() => handleConfirmDelete(false)}
+                onConfirmAll={() => handleConfirmDelete(true)}
+                showConfirmAll={isPremium}
                 isLoading={deleteBudget.isPending}
                 variant="destructive"
             />

@@ -10,8 +10,11 @@ interface ConfirmDialogProps {
     title: string
     description: string
     onConfirm: () => void
+    onConfirmAll?: () => void
+    showConfirmAll?: boolean
     cancelLabel?: string
     confirmLabel?: string
+    confirmAllLabel?: string
     variant?: "default" | "destructive" | "success"
     isLoading?: boolean
 }
@@ -20,8 +23,11 @@ export const ConfirmDialog = ({
                                   title,
                                   description,
                                   onConfirm,
+                                  onConfirmAll,
+                                  showConfirmAll = false,
                                   cancelLabel = "Cancelar",
-                                  confirmLabel = "Confirmar",
+                                  confirmLabel = "Apenas este",
+                                  confirmAllLabel = "Este e próximos meses",
                                   variant = "destructive",
                                   isLoading = false
                               }: ConfirmDialogProps) => {
@@ -36,17 +42,13 @@ export const ConfirmDialog = ({
 
     return (
         <Dialog open={isOpen} onOpenChange={(open) => !open && !isLoading && setActiveDialog(null)}>
-            <DialogContent className="w-[calc(100%-2rem)] sm:max-w-[400px] rounded-xl bg-background dark:bg-[#282a36] p-6 shadow-2xl border-none sm:border outline-none">
+            <DialogContent className="w-[calc(100%-2rem)] sm:max-w-[550px] rounded-xl bg-background dark:bg-[#282a36] p-6 shadow-2xl border-none outline-none">
                 <DialogHeader className="space-y-3">
-                    <DialogTitle className="flex items-center gap-2 text-lg font-bold text-foreground">
+                    <DialogTitle className="flex items-center gap-2 text-lg font-bold">
                         {variant === "destructive" && <AlertTriangle className="h-5 w-5 text-rose-500" />}
-                        {isLoading ? "Processando solicitação..." : title}
+                        {title}
                     </DialogTitle>
-                    <DialogDescription className="text-sm text-muted-foreground leading-relaxed">
-                        {isLoading
-                            ? "Aguarde enquanto limpamos seus dados e finalizamos o processo. Isso pode levar alguns segundos."
-                            : description}
-                    </DialogDescription>
+                    <DialogDescription>{description}</DialogDescription>
                 </DialogHeader>
 
                 <DialogFooter className="mt-6 flex flex-col-reverse sm:flex-row gap-2">
@@ -74,6 +76,15 @@ export const ConfirmDialog = ({
                             </>
                         ) : confirmLabel}
                     </Button>
+                    {showConfirmAll && (
+                        <Button
+                            onClick={onConfirmAll}
+                            disabled={isLoading}
+                            className="w-full font-bold bg-amber-600 hover:bg-amber-700 text-white"
+                        >
+                            {isLoading ? <Loader2 className="animate-spin" /> : confirmAllLabel}
+                        </Button>
+                    )}
                 </DialogFooter>
             </DialogContent>
         </Dialog>
