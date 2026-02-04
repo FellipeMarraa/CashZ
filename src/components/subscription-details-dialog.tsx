@@ -2,7 +2,7 @@
 
 import {Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle} from "@/components/ui/dialog";
 import {Button} from "@/components/ui/button";
-import {ArrowRight, Calendar, CheckCircle2, Crown, History, Loader2, Star} from "lucide-react";
+import {ArrowRight, Calendar, CheckCircle2, Crown, History, Loader2} from "lucide-react";
 import {format} from "date-fns";
 import {ptBR} from "date-fns/locale";
 import {useDialogManager} from "@/context/DialogManagerContext";
@@ -92,17 +92,17 @@ export const SubscriptionDetailsDialog = ({ preferences, userId }: { preferences
                                 {loadingPlan === 'premium' ? <Loader2 className="h-4 w-4 animate-spin" /> : <ArrowRight className="h-4 w-4 text-emerald-500 group-hover:translate-x-1 transition-transform" />}
                             </Button>
 
-                            <Button
-                                className="justify-between h-16 bg-slate-900 dark:bg-emerald-600 hover:opacity-90 group transition-all"
-                                onClick={() => handleDirectPayment('annual', 129.90)}
-                                disabled={loadingPlan !== null}
-                            >
-                                <div className="flex flex-col items-start">
-                                    <span className="text-sm font-bold text-white">Mais 1 ano (Melhor valor)</span>
-                                    <span className="text-[10px] text-white/70">Pagamento Anual - R$ 129,90</span>
-                                </div>
-                                {loadingPlan === 'annual' ? <Loader2 className="h-4 w-4 animate-spin" /> : <Star className="h-4 w-4 fill-amber-400 text-amber-400 animate-pulse" />}
-                            </Button>
+                            {/*<Button*/}
+                            {/*    className="justify-between h-16 bg-slate-900 dark:bg-emerald-600 hover:opacity-90 group transition-all"*/}
+                            {/*    onClick={() => handleDirectPayment('annual', 129.90)}*/}
+                            {/*    disabled={loadingPlan !== null}*/}
+                            {/*>*/}
+                            {/*    <div className="flex flex-col items-start">*/}
+                            {/*        <span className="text-sm font-bold text-white">Mais 1 ano (Melhor valor)</span>*/}
+                            {/*        <span className="text-[10px] text-white/70">Pagamento Anual - R$ 129,90</span>*/}
+                            {/*    </div>*/}
+                            {/*    {loadingPlan === 'annual' ? <Loader2 className="h-4 w-4 animate-spin" /> : <Star className="h-4 w-4 fill-amber-400 text-amber-400 animate-pulse" />}*/}
+                            {/*</Button>*/}
                         </div>
                     </div>
 

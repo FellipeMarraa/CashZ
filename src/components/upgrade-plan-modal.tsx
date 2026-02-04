@@ -4,7 +4,7 @@ import {useState} from "react"
 import {Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle} from "@/components/ui/dialog"
 import {Button} from "@/components/ui/button"
 import {Input} from "@/components/ui/input"
-import {Loader2, ShieldCheck, Sparkles, Star, Ticket, Zap} from "lucide-react"
+import {Loader2, ShieldCheck, Star, Ticket, Zap} from "lucide-react"
 import {useUserPreferences} from "@/hooks/useUserPreferences"
 import {useAuth} from "@/context/AuthContext"
 import {toast} from "@/hooks/use-toast.ts";
@@ -86,26 +86,26 @@ export const UpgradePlanModal = ({ isOpen, onClose }: { isOpen: boolean; onClose
 
                     {/* Opções de Planos */}
                     <div className="space-y-3">
-                        <div className="relative group">
-                            <div className="absolute -top-2 -right-2 z-10 bg-emerald-600 text-white text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1 shadow-md animate-bounce">
-                                <Sparkles className="h-2 w-2 fill-white" /> ECONOMIZE 20%
-                            </div>
+                        {/*<div className="relative group">*/}
+                        {/*    <div className="absolute -top-2 -right-2 z-10 bg-emerald-600 text-white text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1 shadow-md animate-bounce">*/}
+                        {/*        <Sparkles className="h-2 w-2 fill-white" /> ECONOMIZE 20%*/}
+                        {/*    </div>*/}
 
-                            <Button
-                                className="w-full bg-slate-900 dark:bg-emerald-600 dark:hover:bg-emerald-700 hover:bg-slate-800 text-white h-14 rounded-xl flex flex-col items-center justify-center gap-0 transition-all disabled:opacity-80 border-none"
-                                onClick={() => handlePayment('annual', 129.90)}
-                                disabled={loadingPlan !== null}
-                            >
-                                {loadingPlan === 'annual' ? (
-                                    <Loader2 className="h-5 w-5 animate-spin" />
-                                ) : (
-                                    <>
-                                        <span className="text-sm font-bold">Plano Anual</span>
-                                        <span className="text-[10px] opacity-70 font-normal">R$ 129,90 / ano</span>
-                                    </>
-                                )}
-                            </Button>
-                        </div>
+                        {/*    <Button*/}
+                        {/*        className="w-full bg-slate-900 dark:bg-emerald-600 dark:hover:bg-emerald-700 hover:bg-slate-800 text-white h-14 rounded-xl flex flex-col items-center justify-center gap-0 transition-all disabled:opacity-80 border-none"*/}
+                        {/*        onClick={() => handlePayment('annual', 129.90)}*/}
+                        {/*        disabled={loadingPlan !== null}*/}
+                        {/*    >*/}
+                        {/*        {loadingPlan === 'annual' ? (*/}
+                        {/*            <Loader2 className="h-5 w-5 animate-spin" />*/}
+                        {/*        ) : (*/}
+                        {/*            <>*/}
+                        {/*                <span className="text-sm font-bold">Plano Anual</span>*/}
+                        {/*                <span className="text-[10px] opacity-70 font-normal">R$ 129,90 / ano</span>*/}
+                        {/*            </>*/}
+                        {/*        )}*/}
+                        {/*    </Button>*/}
+                        {/*</div>*/}
 
                         <Button
                             variant="outline"
