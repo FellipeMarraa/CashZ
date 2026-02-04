@@ -41,7 +41,7 @@ export const UpgradePlanModal = ({ isOpen, onClose }: { isOpen: boolean; onClose
             const data = await response.json();
 
             if (data.init_point) {
-                window.open(data.init_point, '_blank');
+                window.open(data.init_point);
                 setLoadingPlan(null);
             } else {
                 throw new Error("Ponto de início não encontrado");
