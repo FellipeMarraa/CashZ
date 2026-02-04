@@ -17,6 +17,6 @@ export const sendNotification = async (
             createdAt: new Date().toISOString()
         });
     } catch (e) {
-        console.error("Erro ao enviar notificação: ", e);
+        console.error("Erro ao enviar notificaÃ§Ã£o: ", e);
     }
 };

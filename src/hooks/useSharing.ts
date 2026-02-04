@@ -95,7 +95,7 @@ export const useSharing = () => {
 
                 await sendNotification(
                     targetUserId,
-                    "Novo Convite de Acesso ?",
+                    "Novo Convite de Acesso 🤝",
                     `${user.email} quer compartilhar as finanças com você.`,
                     "INFO"
                 );
@@ -130,7 +130,7 @@ export const useSharing = () => {
                 const data = snap.data();
                 await sendNotification(
                     data.ownerId,
-                    "Convite Aceito! ?",
+                    "Convite Aceito! ✨",
                     `${user?.email} agora compartilha as finanças com você.`,
                     "SUCCESS"
                 );
@@ -158,7 +158,7 @@ export const useSharing = () => {
                 const data = snap.data();
                 await sendNotification(
                     data.ownerId,
-                    "Acesso Removido ?",
+                    "Acesso Removido 🚪",
                     `${user?.email} removeu o vínculo de compartilhamento.`,
                     "INFO"
                 );

@@ -26,7 +26,7 @@ export const ConfirmDialog = ({
                                   onConfirmAll,
                                   showConfirmAll = false,
                                   cancelLabel = "Cancelar",
-                                  confirmLabel = "Apenas este",
+                                  confirmLabel = "Confirmar",
                                   confirmAllLabel = "Este e próximos meses",
                                   variant = "destructive",
                                   isLoading = false
