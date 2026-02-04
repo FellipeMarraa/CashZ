@@ -222,7 +222,7 @@ export const BudgetSection = () => {
                         <CardDescription>Baseado em suas despesas de {activeMonth}.</CardDescription>
                     </CardHeader>
                     <CardContent className="px-4 md:px-6">
-                        <div className="space-y-7">
+                        <div className="space-y-7 max-h-[400px] overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-muted-foreground/20">
                             {budgetAnalysis.length === 0 ? (
                                 <p className="text-center text-muted-foreground py-10">Nenhum limite configurado para este mês.</p>
                             ) : (
