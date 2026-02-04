@@ -9,7 +9,7 @@ import {ArrowDownRight, ArrowUpRight, CreditCard, DollarSign, Filter, PiggyBank,
 import {formatTransactionAmount, useTransactions, useTransactionsByYear} from '@/hooks/useTransactions';
 import {IMes} from '@/model/IMes';
 import {Transaction} from "@/model/types/Transaction.ts";
-import {useMemo, useState} from "react";
+import {useEffect, useMemo, useState} from "react";
 import {Select, SelectContent, SelectItem, SelectTrigger, SelectValue} from "@/components/ui/select.tsx";
 import {TooltipProvider} from "@/components/ui/tooltip.tsx";
 import {useBudgets} from "@/hooks/useBudgets";
@@ -21,6 +21,7 @@ import {useUserPreferences} from "@/hooks/useUserPreferences.ts";
 import {cn} from "@/lib/utils.ts";
 import {UpgradePlanModal} from "@/components/upgrade-plan-modal.tsx";
 import {useDialogManager} from "@/context/DialogManagerContext";
+import {toast} from "@/hooks/use-toast.ts";
 
 export const OverviewSection = () => {
     const { user: currentUser } = useAuth();
@@ -79,6 +80,30 @@ export const OverviewSection = () => {
         }
     ], []);
 
+    useEffect(() => {
+        const queryParams = new URLSearchParams(window.location.search);
+        const status = queryParams.get('status');
+
+        if (status === 'success') {
+            toast({
+                title: "Assinatura Ativada! ✨",
+                description: "Seja bem-vindo ao CashZ Premium. Seus recursos já estão sendo liberados.",
+                variant: "success",
+            });
+
+            const newUrl = window.location.pathname;
+            window.history.replaceState({}, document.title, newUrl);
+        }
+
+        if (status === 'error') {
+            toast({
+                title: "Pagamento não concluído",
+                description: "Houve um problema com a transação. Tente novamente ou mude o método de pagamento.",
+                variant: "destructive",
+            });
+            window.history.replaceState({}, document.title, window.location.pathname);
+        }
+    }, [toast]);
     const transactionUsers = useMemo(() => {
         if (!rawTransactions || !isPremium) return [];
         const usersMap = new Map();

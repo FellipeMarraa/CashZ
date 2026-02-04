@@ -27,7 +27,9 @@ export default async function handler(req: any, res: any) {
                 external_reference: userId,
                 notification_url: "https://cashz.vercel.app/api/webhook",
                 back_urls: {
-                    success: "https://cashz.vercel.app/",
+                    success: "https://cashz.vercel.app/dashboard?status=success",
+                    failure: "https://cashz.vercel.app/settings?status=error",
+                    pending: "https://cashz.vercel.app/dashboard?status=pending"
                 },
                 auto_return: "approved",
             }

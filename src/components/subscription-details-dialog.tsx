@@ -30,7 +30,8 @@ export const SubscriptionDetailsDialog = ({ preferences, userId }: { preferences
             const data = await response.json();
 
             if (data.init_point) {
-                window.location.href = data.init_point;
+                window.open(data.init_point, '_blank');
+                setLoadingPlan(null);
             } else {
                 throw new Error("Ponto de início não encontrado");
             }
