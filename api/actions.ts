@@ -1,5 +1,6 @@
 import admin from "firebase-admin";
 
+// Inicialização necessária para rodar na Vercel
 if (!admin.apps.length) {
     admin.initializeApp({
         credential: admin.credential.cert({
@@ -9,6 +10,7 @@ if (!admin.apps.length) {
         }),
     });
 }
+
 export default async function handler(req: any, res: any) {
     const { action, data, adminId } = req.body;
     const db = admin.firestore();
@@ -66,31 +68,68 @@ export default async function handler(req: any, res: any) {
         if (action === "SEND_GLOBAL_NOTIFICATION") {
             const { title, message, type, scheduledAt } = data;
 
-            // Se não houver data agendada, usamos a data atual (disparo imediato via Cron)
-            const targetDate = scheduledAt ? new Date(scheduledAt).toISOString() : new Date().toISOString();
+            // OPÇÃO A: AGENDAMENTO (Salva na fila para a CRON)
+            if (scheduledAt) {
+                await db.collection("scheduled_notifications").add({
+                    title,
+                    message,
+                    type: type || "INFO",
+                    scheduledAt: new Date(scheduledAt).toISOString(),
+                    status: "PENDING",
+                    adminId,
+                    createdAt: new Date().toISOString()
+                });
 
-            // Apenas criamos um documento na fila. Isso é instantâneo e evita Erro 500/Timeout.
-            await db.collection("scheduled_notifications").add({
-                title,
-                message,
-                type: type || "INFO",
-                scheduledAt: targetDate,
-                status: "PENDING",
-                adminId,
-                createdAt: new Date().toISOString(),
-                isImmediate: !scheduledAt // Identifica que você clicou em "Disparar Agora"
-            });
+                await db.collection("admin_logs").add({
+                    action: "NOTIFICAÇÃO AGENDADA",
+                    details: `Agendada para ${new Date(scheduledAt).toLocaleString('pt-BR')}: "${title}"`,
+                    adminId,
+                    createdAt: new Date().toISOString()
+                });
+
+                return res.status(200).json({ success: true, message: "Notificação agendada com sucesso." });
+            }
+
+            // OPÇÃO B: ENVIO IMEDIATO (Loop direto)
+            const usersSnap = await db.collection("user_preferences").get();
+            let batch = db.batch();
+            let count = 0;
+            const totalUsers = usersSnap.docs.length;
+
+            for (const userDoc of usersSnap.docs) {
+                const notificationRef = db.collection("notifications").doc();
+                batch.set(notificationRef, {
+                    userId: userDoc.id,
+                    title,
+                    message,
+                    type: type || "INFO",
+                    read: false,
+                    createdAt: new Date().toISOString()
+                });
+
+                count++;
+
+                if (count === 500) {
+                    await batch.commit();
+                    batch = db.batch();
+                    count = 0;
+                }
+            }
+
+            if (count > 0) {
+                await batch.commit();
+            }
 
             await db.collection("admin_logs").add({
-                action: scheduledAt ? "NOTIFICAÇÃO AGENDADA" : "NOTIFICAÇÃO IMEDIATA (FILA)",
-                details: `Título: "${title}" enviado para a fila de processamento.`,
+                action: "NOTIFICAÇÃO GLOBAL",
+                details: `Título: "${title}" enviado IMEDIATAMENTE para ${totalUsers} usuários.`,
                 adminId,
                 createdAt: new Date().toISOString()
             });
 
             return res.status(200).json({
                 success: true,
-                message: "Notificação enviada para a fila com sucesso."
+                message: `Notificação enviada para ${totalUsers} usuários.`
             });
         }
 
@@ -99,44 +138,24 @@ export default async function handler(req: any, res: any) {
             const userRef = db.collection("user_preferences").doc(targetUserId);
             const userSnap = await userRef.get();
             const isCurrentlyBanned = userSnap.data()?.isBanned || false;
-
             await userRef.update({ isBanned: !isCurrentlyBanned });
-
-            await db.collection("admin_logs").add({
-                action: isCurrentlyBanned ? "DESBANIMENTO" : "BANIMENTO",
-                details: `Usuário ID: ${targetUserId} foi ${isCurrentlyBanned ? 'liberado' : 'bloqueado'}.`,
-                adminId,
-                createdAt: new Date().toISOString()
-            });
-
             return res.status(200).json({ success: true });
         }
 
         if (action === "RESET_CATEGORIES") {
             const { targetUserId } = data;
             const categoriesSnap = await db.collection("categories").where("userId", "==", targetUserId).get();
-
             const batch = db.batch();
             categoriesSnap.docs.forEach(doc => batch.delete(doc.ref));
             await batch.commit();
-
-            await db.collection("admin_logs").add({
-                action: "RESET DADOS",
-                details: `Categorias do usuário ID: ${targetUserId} foram resetadas para o padrão.`,
-                adminId,
-                createdAt: new Date().toISOString()
-            });
-
             return res.status(200).json({ success: true });
         }
 
         if (action === "CLEAR_ERROR_LOGS") {
             const logsSnap = await db.collection("client_logs").get();
             if (logsSnap.empty) return res.status(200).json({ success: true });
-
             let batch = db.batch();
             let count = 0;
-
             for (const logDoc of logsSnap.docs) {
                 batch.delete(logDoc.ref);
                 count++;
@@ -147,14 +166,6 @@ export default async function handler(req: any, res: any) {
                 }
             }
             if (count > 0) await batch.commit();
-
-            await db.collection("admin_logs").add({
-                action: "LIMPEZA DE ERROS",
-                details: `${logsSnap.size} registros de erro apagados.`,
-                adminId,
-                createdAt: new Date().toISOString()
-            });
-
             return res.status(200).json({ success: true });
         }
     } catch (e: any) {

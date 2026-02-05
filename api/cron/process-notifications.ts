@@ -12,7 +12,7 @@ if (!admin.apps.length) {
 export default async function handler(req: any, res: any) {
     const db = admin.firestore();
 
-    // 1. VerificaÁ„o de Interruptor Manual
+    // 1. Verifica√ß√£o de Interruptor Manual
     const configRef = db.collection("system_configs").doc("notifications");
     const configSnap = await configRef.get();
 
@@ -23,7 +23,7 @@ export default async function handler(req: any, res: any) {
     const now = new Date().toISOString();
 
     try {
-        // 2. Busca TODOS os agendamentos que j· deveriam ter sido enviados
+        // 2. Busca TODOS os agendamentos que j√° deveriam ter sido enviados
         const pendingSnap = await db.collection("scheduled_notifications")
             .where("status", "==", "PENDING")
             .where("scheduledAt", "<=", now)
@@ -40,7 +40,7 @@ export default async function handler(req: any, res: any) {
                 // Marcar como processando para evitar duplicidade
                 await jobDoc.ref.update({ status: "PROCESSING" });
 
-                // Buscar todos os usu·rios para envio
+                // Buscar todos os usu√°rios para envio
                 const usersSnap = await db.collection("user_preferences").get();
 
                 let batch = db.batch();
@@ -59,7 +59,7 @@ export default async function handler(req: any, res: any) {
 
                     count++;
 
-                    // Firestore suporta no m·ximo 500 operaÁıes por batch
+                    // Firestore suporta no m√°ximo 500 opera√ß√µes por batch
                     if (count === 500) {
                         await batch.commit();
                         batch = db.batch();
@@ -78,8 +78,8 @@ export default async function handler(req: any, res: any) {
 
                 // Registrar na auditoria
                 await db.collection("admin_logs").add({
-                    action: "DISPARO CONCLUÕDO",
-                    details: `NotificaÁ„o "${title}" enviada para ${usersSnap.docs.length} usu·rios via Cron.`,
+                    action: "DISPARO CONCLU√çDO",
+                    details: `Notifica√ß√£o "${title}" enviada para ${usersSnap.docs.length} usu√°rios via Cron.`,
                     createdAt: new Date().toISOString(),
                     adminId: "SYSTEM_CRON"
                 });
@@ -93,10 +93,10 @@ export default async function handler(req: any, res: any) {
             }
         }
 
-        return res.status(200).send(`Processamento concluÌdo. ${pendingSnap.size} agendamento(s) tratado(s).`);
+        return res.status(200).send(`Processamento conclu√≠do. ${pendingSnap.size} agendamento(s) tratado(s).`);
 
     } catch (e: any) {
-        console.error("Erro CrÌtico na Cron:", e.message);
+        console.error("Erro Cr√≠tico na Cron:", e.message);
         return res.status(500).send(e.message);
     }
 }

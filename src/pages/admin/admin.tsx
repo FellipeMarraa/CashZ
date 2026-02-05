@@ -514,7 +514,7 @@ export const AdminSection = () => {
                 <TabsContent value="audit" className="space-y-6">
                     {scheduledQueue.length > 0 && (
                         <Card className="border-amber-200 bg-amber-50/30 text-left overflow-hidden">
-                            <CardHeader className="p-3 bg-amber-100/50"><CardTitle className="text-[10px] uppercase font-black flex items-center gap-2 text-amber-700"><CalendarClock className="h-3 w-3" /> Fila de Envio</CardTitle></CardHeader>
+                            <CardHeader className="p-3 "><CardTitle className="text-[10px] uppercase font-black flex items-center gap-2 text-amber-700"><CalendarClock className="h-3 w-3" /> Fila de Envio</CardTitle></CardHeader>
                             <CardContent className="p-0 overflow-x-auto">
                                 <Table><TableBody>{scheduledQueue.map(item => (<TableRow key={item.id} className="text-[10px] border-amber-100"><TableCell className="font-bold">{item.title}</TableCell><TableCell className="whitespace-nowrap italic text-amber-700">{new Date(item.scheduledAt).toLocaleString('pt-BR')}</TableCell><TableCell className="text-right"><Button variant="ghost" size="sm" onClick={() => handleDeleteScheduled(item.id)}><Trash2 className="h-3 w-3 text-destructive" /></Button></TableCell></TableRow>))}</TableBody></Table>
                             </CardContent>
