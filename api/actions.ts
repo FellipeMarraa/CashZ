@@ -58,6 +58,7 @@ export default async function handler(req: any, res: any) {
         if (action === "SEND_GLOBAL_NOTIFICATION") {
             const {title, message, type, scheduledAt} = data;
 
+            // MODO AGENDADO
             if (scheduledAt) {
                 await db.collection("scheduled_notifications").add({
                     title,
@@ -78,6 +79,47 @@ export default async function handler(req: any, res: any) {
 
                 return res.status(200).json({success: true, message: "Notificação agendada."});
             }
+
+            const usersSnap = await db.collection("user_preferences").get();
+            let batch = db.batch();
+            let count = 0;
+            const totalUsers = usersSnap.docs.length;
+
+            for (const userDoc of usersSnap.docs) {
+                const notificationRef = db.collection("notifications").doc();
+                batch.set(notificationRef, {
+                    userId: userDoc.id,
+                    title,
+                    message,
+                    type: type || "INFO",
+                    read: false,
+                    createdAt: new Date().toISOString()
+                });
+
+                count++;
+
+                if (count === 500) {
+                    await batch.commit();
+                    batch = db.batch();
+                    count = 0;
+                }
+            }
+
+            if (count > 0) {
+                await batch.commit();
+            }
+
+            await db.collection("admin_logs").add({
+                action: "NOTIFICAÇÃO GLOBAL",
+                details: `Título: "${title}" enviado para ${totalUsers} usuários (Imediato).`,
+                adminId,
+                createdAt: new Date().toISOString()
+            });
+
+            return res.status(200).json({
+                success: true,
+                message: `Notificação enviada para ${totalUsers} usuários.`
+            });
         }
 
         if (action === "BAN_USER") {
@@ -108,9 +150,6 @@ export default async function handler(req: any, res: any) {
 
             const batch = db.batch();
             categoriesSnap.docs.forEach(doc => batch.delete(doc.ref));
-
-            // 3. Opcional: Se você tiver um documento de "metadata" de categorias, resetar aqui também
-            // batch.update(db.collection("user_preferences").doc(targetUserId), { hasInitialized: false });
 
             await batch.commit();
 
