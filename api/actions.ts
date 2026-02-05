@@ -79,6 +79,81 @@ export default async function handler(req: any, res: any) {
                 return res.status(200).json({success: true, message: "Notificação agendada."});
             }
         }
+
+        if (action === "BAN_USER") {
+            const { targetUserId } = data;
+            const userRef = db.collection("user_preferences").doc(targetUserId);
+            const userSnap = await userRef.get();
+
+            const isCurrentlyBanned = userSnap.data()?.isBanned || false;
+
+            await userRef.update({ isBanned: !isCurrentlyBanned });
+
+            await db.collection("admin_logs").add({
+                action: isCurrentlyBanned ? "DESBANIMENTO" : "BANIMENTO",
+                details: `Usuário ID: ${targetUserId} foi ${isCurrentlyBanned ? 'liberado' : 'bloqueado'}.`,
+                adminId,
+                createdAt: new Date().toISOString()
+            });
+
+            return res.status(200).json({ success: true });
+        }
+
+        if (action === "RESET_CATEGORIES") {
+            const { targetUserId } = data;
+
+            const categoriesSnap = await db.collection("categories")
+                .where("userId", "==", targetUserId)
+                .get();
+
+            const batch = db.batch();
+            categoriesSnap.docs.forEach(doc => batch.delete(doc.ref));
+
+            // 3. Opcional: Se você tiver um documento de "metadata" de categorias, resetar aqui também
+            // batch.update(db.collection("user_preferences").doc(targetUserId), { hasInitialized: false });
+
+            await batch.commit();
+
+            await db.collection("admin_logs").add({
+                action: "RESET DADOS",
+                details: `Categorias do usuário ID: ${targetUserId} foram resetadas para o padrão.`,
+                adminId,
+                createdAt: new Date().toISOString()
+            });
+
+            return res.status(200).json({ success: true });
+        }
+
+        if (action === "CLEAR_ERROR_LOGS") {
+            const logsSnap = await db.collection("client_logs").get();
+
+            if (logsSnap.empty) return res.status(200).json({ success: true });
+
+            let batch = db.batch();
+            let count = 0;
+
+            for (const logDoc of logsSnap.docs) {
+                batch.delete(logDoc.ref);
+                count++;
+
+                if (count === 500) {
+                    await batch.commit();
+                    batch = db.batch();
+                    count = 0;
+                }
+            }
+
+            if (count > 0) await batch.commit();
+
+            await db.collection("admin_logs").add({
+                action: "LIMPEZA DE ERROS",
+                details: `${logsSnap.size} registros de erro foram apagados do sistema.`,
+                adminId,
+                createdAt: new Date().toISOString()
+            });
+
+            return res.status(200).json({ success: true });
+        }
     } catch (e: any) {
         console.error("Erro Admin Action:", e.message);
         return res.status(500).json({ error: e.message });

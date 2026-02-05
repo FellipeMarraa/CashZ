@@ -6,6 +6,7 @@ import {AuthProvider} from "@/context/AuthContext.tsx";
 import {QueryClient, QueryClientProvider} from "@tanstack/react-query";
 import {ReactQueryDevtools} from "@tanstack/react-query-devtools";
 import {TooltipProvider} from "@/components/ui/tooltip.tsx";
+import {GlobalErrorInterceptor} from "@/components/provider/GlobalErrorInterceptor.tsx";
 
 const queryClient = new QueryClient();
 
@@ -15,10 +16,12 @@ function App() {
         <QueryClientProvider client={queryClient}>
             <TooltipProvider>
                 <ThemeProvider defaultTheme="light">
-                    <AuthProvider>
-                        <Routes />
-                        <Toaster />
-                    </AuthProvider>
+                        <AuthProvider>
+                            <GlobalErrorInterceptor>
+                                <Routes />
+                                <Toaster />
+                            </GlobalErrorInterceptor>
+                        </AuthProvider>
                 </ThemeProvider>
                 <ReactQueryDevtools initialIsOpen={false} />
             </TooltipProvider>
