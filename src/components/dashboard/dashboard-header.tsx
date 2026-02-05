@@ -5,7 +5,7 @@ import {AnimatePresence, motion} from 'framer-motion';
 import {ThemeToggle} from "@/components/theme-toggle.tsx";
 import {NotificationsPopover} from "@/components/notifications-popover.tsx";
 
-type DashboardSection = 'overview' | 'transactions' | 'budget' | 'investments' | 'profile' | 'settings';
+type DashboardSection = 'overview' | 'transactions' | 'budget' | 'investments' | 'profile' | 'settings' | 'admin';
 
 interface DashboardHeaderProps {
     collapsed: boolean;

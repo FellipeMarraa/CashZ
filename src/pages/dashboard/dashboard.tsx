@@ -10,6 +10,7 @@ import {BudgetSection} from '@/components/dashboard/sections/budget-section';
 import {InvestmentsSection} from '@/components/dashboard/sections/investments-section';
 import {ProfileSection} from "@/pages/profile/profile.tsx";
 import {SettingsSection} from "@/pages/settings/settings.tsx";
+import {AdminSection} from "@/pages/admin/admin.tsx";
 
 interface DashboardProps {
   onNavigateToLanding: () => void;
@@ -18,7 +19,7 @@ interface DashboardProps {
 export const Dashboard = ({ onNavigateToLanding }: DashboardProps) => {
   // Inicializamos como true (colapsado) para que a barra comece oculta
   const [collapsed, setCollapsed] = useState(true);
-  const [activeSection, setActiveSection] = useState<'overview' | 'transactions' | 'budget' | 'investments' | 'profile' | 'settings'>('overview');
+  const [activeSection, setActiveSection] = useState<'overview' | 'transactions' | 'budget' | 'investments' | 'profile' | 'settings' | 'admin'>('overview');
   const sidebarRef = useRef<HTMLDivElement>(null);
 
   const sectionMeta = {
@@ -57,6 +58,11 @@ export const Dashboard = ({ onNavigateToLanding }: DashboardProps) => {
       subtitle: "Acesse suas configurações e preferências",
       active: true,
     },
+    admin: {
+      title: "Painel de administração",
+      subtitle: "Acesse o painel de administração",
+      active: true,
+    },
   };
 
   const currentMeta = sectionMeta[activeSection];
@@ -93,6 +99,8 @@ export const Dashboard = ({ onNavigateToLanding }: DashboardProps) => {
         return <ProfileSection />;
       case 'settings':
         return <SettingsSection />;
+      case 'admin':
+        return <AdminSection />;
       default:
         return <OverviewSection />;
     }

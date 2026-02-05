@@ -8,10 +8,11 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import {Avatar, AvatarFallback, AvatarImage} from '@/components/ui/avatar';
-import {HelpCircle, LogOut, Settings, UserCircle} from 'lucide-react';
+import {HelpCircle, LogOut, MonitorCog, Settings, UserCircle} from 'lucide-react';
 import {useAuth} from "@/context/AuthContext.tsx";
+import {useUserPreferences} from "@/hooks/useUserPreferences.ts";
 
-type DashboardSection = 'overview' | 'transactions' | 'budget' | 'investments' | 'profile' | 'settings';
+type DashboardSection = 'overview' | 'transactions' | 'budget' | 'investments' | 'profile' | 'settings' | 'admin';
 
 export const UserMenu = ({
                            onNavigateToLanding,
@@ -22,6 +23,8 @@ export const UserMenu = ({
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const {user, logout} = useAuth();
+  const { preferences } = useUserPreferences(user?.id);
+  const isAdmin = preferences?.isAdmin === true;
 
   return (
     <DropdownMenu open={isOpen} onOpenChange={setIsOpen}>
@@ -78,6 +81,19 @@ export const UserMenu = ({
           <HelpCircle className="mr-2 h-4 w-4" />
           <span>Ajuda & Suporte</span>
         </DropdownMenuItem>
+
+        {isAdmin && (
+            <>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem
+                  className="cursor-pointer hover:bg-muted/50 focus:bg-muted/50 focus:text-primary font-bold text-blue-600 dark:text-blue-400"
+                  onClick={() => onSectionChange("admin")}
+              >
+                <MonitorCog className="mr-2 h-4 w-4" />
+                <span>Painel de administração</span>
+              </DropdownMenuItem>
+            </>
+        )}
 
         <DropdownMenuSeparator />
 

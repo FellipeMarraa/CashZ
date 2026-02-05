@@ -11,6 +11,7 @@ interface UserPrefs {
     plan: UserPlan;
     planExpiresAt?: string;
     couponUsed?: string;
+    isAdmin?: boolean;
 }
 
 export const useUserPreferences = (userId: string | undefined) => {

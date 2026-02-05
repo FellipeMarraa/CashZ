@@ -7,7 +7,7 @@ import {ArrowLeftRight, LayoutDashboard, LineChart, PieChart} from 'lucide-react
 import {forwardRef} from "react";
 import {Tooltip, TooltipContent, TooltipTrigger} from "@/components/ui/tooltip.tsx";
 
-type DashboardSection = 'overview' | 'transactions' | 'budget' | 'investments' | 'profile' | 'settings';
+type DashboardSection = 'overview' | 'transactions' | 'budget' | 'investments' | 'profile' | 'settings' | 'admin';
 
 interface DashboardSidebarProps {
     collapsed: boolean;

@@ -22,6 +22,7 @@ import {cn} from "@/lib/utils.ts";
 import {UpgradePlanModal} from "@/components/upgrade-plan-modal.tsx";
 import {useDialogManager} from "@/context/DialogManagerContext";
 import {toast} from "@/hooks/use-toast.ts";
+import {ReferralAnnouncementModal} from "@/components/referral-announcement-modal.tsx";
 
 export const OverviewSection = () => {
     const { user: currentUser } = useAuth();
@@ -79,6 +80,18 @@ export const OverviewSection = () => {
             side: "left" as const
         }
     ], []);
+
+    useEffect(() => {
+        const hasSeenPersistent = localStorage.getItem("cashz_referral_announcement_seen");
+        const hasSeenInSession = sessionStorage.getItem("cashz_referral_opened_session");
+
+        if (!hasSeenPersistent && !hasSeenInSession && !activeDialog) {
+            const timer = setTimeout(() => {
+                setActiveDialog("referral-announcement");
+            }, 2000);
+            return () => clearTimeout(timer);
+        }
+    }, [activeDialog, setActiveDialog]);
 
     useEffect(() => {
         const queryParams = new URLSearchParams(window.location.search);
@@ -299,6 +312,9 @@ export const OverviewSection = () => {
 
             {activeDialog === "upgrade-plan" && (
                 <UpgradePlanModal isOpen={true} onClose={() => setActiveDialog(null)} />
+            )}
+            {activeDialog === "referral-announcement" && (
+                <ReferralAnnouncementModal isOpen={true} onClose={() => setActiveDialog(null)} />
             )}
         </div>
     );
