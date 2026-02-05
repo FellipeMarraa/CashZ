@@ -20,7 +20,7 @@ export const ReferralAnnouncementModal = ({ isOpen, onClose }: { isOpen: boolean
     return (
         <Dialog open={isOpen}>
             <DialogContent
-                className="sm:max-w-[420px] p-0 overflow-hidden border-none bg-background dark:bg-[#282a36] outline-none [&>button]:hidden"
+                className="w-[92vw] sm:max-w-[420px] p-0 overflow-hidden border-none bg-background dark:bg-[#282a36] outline-none [&>button]:hidden rounded-2xl sm:rounded-lg"
                 onPointerDownOutside={(e) => e.preventDefault()}
                 onEscapeKeyDown={(e) => e.preventDefault()}
             >
@@ -45,7 +45,7 @@ export const ReferralAnnouncementModal = ({ isOpen, onClose }: { isOpen: boolean
                         <div className="text-xs space-y-1 text-left">
                             <p className="font-bold">Onde acessar?</p>
                             <p className="text-muted-foreground text-[11px] leading-relaxed">
-                                No seu <strong>Perfil</strong>, aba <strong>Indicações</strong>. Compartilhe seu e-mail ou via WhatsApp!
+                                No seu <strong>Perfil</strong>, aba <strong>Indicações</strong>. Compartilhe seu e-mail!
                             </p>
                         </div>
                     </div>
