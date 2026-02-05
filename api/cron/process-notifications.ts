@@ -3,9 +3,7 @@ import admin from "firebase-admin";
 export default async function handler(req: any, res: any) {
     const db = admin.firestore();
 
-    // Proteção básica para garantir que apenas a cron autorizada chame
-    // if (req.headers['authorization'] !== `Bearer ${process.env.CRON_SECRET}`) { return res.status(401).end(); }
-
+    // 1. Verificação de Interruptor Manual
     const configRef = db.collection("system_configs").doc("notifications");
     const configSnap = await configRef.get();
 
@@ -16,56 +14,80 @@ export default async function handler(req: any, res: any) {
     const now = new Date().toISOString();
 
     try {
+        // 2. Busca TODOS os agendamentos que já deveriam ter sido enviados
         const pendingSnap = await db.collection("scheduled_notifications")
             .where("status", "==", "PENDING")
             .where("scheduledAt", "<=", now)
-            .limit(1)
+            .orderBy("scheduledAt", "asc")
             .get();
 
-        if (pendingSnap.empty) return res.status(200).send("Sem agendamentos para agora.");
+        if (pendingSnap.empty) return res.status(200).send("Sem agendamentos pendentes para este momento.");
 
-        const jobDoc = pendingSnap.docs[0];
-        const { title, message, type } = jobDoc.data();
+        // 3. Processa cada agendamento da fila
+        for (const jobDoc of pendingSnap.docs) {
+            const { title, message, type } = jobDoc.data();
 
-        await jobDoc.ref.update({ status: "PROCESSING" });
+            try {
+                // Marcar como processando para evitar duplicidade
+                await jobDoc.ref.update({ status: "PROCESSING" });
 
-        const usersSnap = await db.collection("user_preferences").get();
-        let batch = db.batch();
-        let count = 0;
+                // Buscar todos os usuários para envio
+                const usersSnap = await db.collection("user_preferences").get();
 
-        for (const userDoc of usersSnap.docs) {
-            const notificationRef = db.collection("notifications").doc();
-            batch.set(notificationRef, {
-                userId: userDoc.id,
-                title,
-                message,
-                type: type || "INFO",
-                read: false,
-                createdAt: new Date().toISOString()
-            });
-            count++;
-            if (count === 500) {
-                await batch.commit();
-                batch = db.batch();
-                count = 0;
+                let batch = db.batch();
+                let count = 0;
+
+                for (const userDoc of usersSnap.docs) {
+                    const notificationRef = db.collection("notifications").doc();
+                    batch.set(notificationRef, {
+                        userId: userDoc.id,
+                        title,
+                        message,
+                        type: type || "INFO",
+                        read: false,
+                        createdAt: new Date().toISOString()
+                    });
+
+                    count++;
+
+                    // Firestore suporta no máximo 500 operações por batch
+                    if (count === 500) {
+                        await batch.commit();
+                        batch = db.batch();
+                        count = 0;
+                    }
+                }
+
+                if (count > 0) await batch.commit();
+
+                // Finalizar o Job com sucesso
+                await jobDoc.ref.update({
+                    status: "COMPLETED",
+                    completedAt: new Date().toISOString(),
+                    totalUsersNotified: usersSnap.docs.length
+                });
+
+                // Registrar na auditoria
+                await db.collection("admin_logs").add({
+                    action: "DISPARO CONCLUÍDO",
+                    details: `Notificação "${title}" enviada para ${usersSnap.docs.length} usuários via Cron.`,
+                    createdAt: new Date().toISOString(),
+                    adminId: "SYSTEM_CRON"
+                });
+
+            } catch (jobError: any) {
+                console.error(`Erro ao processar job ${jobDoc.id}:`, jobError);
+                await jobDoc.ref.update({
+                    status: "ERROR",
+                    errorDetails: jobError.message
+                });
             }
         }
-        if (count > 0) await batch.commit();
 
-        await jobDoc.ref.update({
-            status: "COMPLETED",
-            completedAt: new Date().toISOString()
-        });
+        return res.status(200).send(`Processamento concluído. ${pendingSnap.size} agendamento(s) tratado(s).`);
 
-        await db.collection("admin_logs").add({
-            action: "CRON EXECUTADA",
-            details: `Agendamento "${title}" disparado para ${usersSnap.docs.length} usuários.`,
-            createdAt: new Date().toISOString(),
-            adminId: "SYSTEM_CRON"
-        });
-
-        return res.status(200).send("Notificação enviada.");
     } catch (e: any) {
+        console.error("Erro Crítico na Cron:", e.message);
         return res.status(500).send(e.message);
     }
 }
