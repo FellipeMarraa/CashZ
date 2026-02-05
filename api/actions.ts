@@ -1,6 +1,6 @@
 import admin from "firebase-admin";
 
-// InicializaÁ„o necess·ria para rodar na Vercel
+// Inicializa√ß√£o necess√°ria para rodar na Vercel
 if (!admin.apps.length) {
     admin.initializeApp({
         credential: admin.credential.cert({
@@ -29,13 +29,13 @@ export default async function handler(req: any, res: any) {
             const refSnap = await refDoc.get();
             const refData = refSnap.data();
 
-            if (!refData || refData.status === 'COMPLETED') throw new Error("J· concluÌdo ou inexistente");
+            if (!refData || refData.status === 'COMPLETED') throw new Error("J√° conclu√≠do ou inexistente");
 
             await db.runTransaction(async (transaction) => {
                 const referrerQuery = await db.collection("user_preferences")
                     .where("email", "==", refData.referrerEmail).limit(1).get();
 
-                if (referrerQuery.empty) throw new Error("Padrinho n„o encontrado");
+                if (referrerQuery.empty) throw new Error("Padrinho n√£o encontrado");
 
                 const referrerDoc = referrerQuery.docs[0];
                 const currentExp = new Date(referrerDoc.data().planExpiresAt || new Date());
@@ -55,8 +55,8 @@ export default async function handler(req: any, res: any) {
 
                 const logRef = db.collection("admin_logs").doc();
                 transaction.set(logRef, {
-                    action: "B‘NUS MANUAL",
-                    details: `BÙnus ativado para ${refData.referrerEmail} (ReferÍncia: ${referralId})`,
+                    action: "B√îNUS MANUAL",
+                    details: `B√¥nus ativado para ${refData.referrerEmail} (Refer√™ncia: ${referralId})`,
                     adminId,
                     createdAt: new Date().toISOString()
                 });
@@ -68,7 +68,7 @@ export default async function handler(req: any, res: any) {
         if (action === "SEND_GLOBAL_NOTIFICATION") {
             const { title, message, type, scheduledAt } = data;
 
-            // OP«√O A: AGENDAMENTO (Salva na fila para a CRON)
+            // OP√á√ÉO A: AGENDAMENTO (Salva na fila para a CRON)
             if (scheduledAt) {
                 await db.collection("scheduled_notifications").add({
                     title,
@@ -81,16 +81,16 @@ export default async function handler(req: any, res: any) {
                 });
 
                 await db.collection("admin_logs").add({
-                    action: "NOTIFICA«√O AGENDADA",
+                    action: "NOTIFICA√á√ÉO AGENDADA",
                     details: `Agendada para ${new Date(scheduledAt).toLocaleString('pt-BR')}: "${title}"`,
                     adminId,
                     createdAt: new Date().toISOString()
                 });
 
-                return res.status(200).json({ success: true, message: "NotificaÁ„o agendada com sucesso." });
+                return res.status(200).json({ success: true, message: "Notifica√ß√£o agendada com sucesso." });
             }
 
-            // OP«√O B: ENVIO IMEDIATO (Loop direto)
+            // OP√á√ÉO B: ENVIO IMEDIATO (Loop direto)
             const usersSnap = await db.collection("user_preferences").get();
             let batch = db.batch();
             let count = 0;
@@ -121,15 +121,15 @@ export default async function handler(req: any, res: any) {
             }
 
             await db.collection("admin_logs").add({
-                action: "NOTIFICA«√O GLOBAL",
-                details: `TÌtulo: "${title}" enviado IMEDIATAMENTE para ${totalUsers} usu·rios.`,
+                action: "NOTIFICA√á√ÉO GLOBAL",
+                details: `T√≠tulo: "${title}" enviado IMEDIATAMENTE para ${totalUsers} usu√°rios.`,
                 adminId,
                 createdAt: new Date().toISOString()
             });
 
             return res.status(200).json({
                 success: true,
-                message: `NotificaÁ„o enviada para ${totalUsers} usu·rios.`
+                message: `Notifica√ß√£o enviada para ${totalUsers} usu√°rios.`
             });
         }
 

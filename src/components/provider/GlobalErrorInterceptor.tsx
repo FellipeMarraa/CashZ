@@ -31,12 +31,12 @@ export const GlobalErrorInterceptor = ({ children }: { children: React.ReactNode
             }
         };
 
-        // 1. Captura erros de lógica e exceções não tratadas
+        // 1. Captura erros de lÃ³gica e exceÃ§Ãµes nÃ£o tratadas
         const handleGlobalError = (event: ErrorEvent) => {
             reportError(event.message, event.error?.stack);
         };
 
-        // 2. Captura Promises rejeitadas e não tratadas (Ex: erro em fetch/Firebase)
+        // 2. Captura Promises rejeitadas e nÃ£o tratadas (Ex: erro em fetch/Firebase)
         const handlePromiseRejection = (event: PromiseRejectionEvent) => {
             const msg = event.reason?.message || JSON.stringify(event.reason);
             reportError(`Promise Rejection: ${msg}`, event.reason?.stack);
