@@ -11,6 +11,7 @@ import {DeleteFinanceDialog} from "@/components/delete-finance-dialog.tsx";
 import {Tooltip, TooltipContent, TooltipProvider, TooltipTrigger} from "@/components/ui/tooltip.tsx";
 import {useAuth} from "@/context/AuthContext";
 import {cn} from "@/lib/utils";
+import {usePrivacy} from "@/context/PrivacyContext"; // IMPORTADO
 
 interface TransactionListProps {
     transactions: Transaction[];
@@ -18,6 +19,7 @@ interface TransactionListProps {
 
 export const TransactionList = ({ transactions }: TransactionListProps) => {
     const { user: currentUser } = useAuth();
+    const { isPrivate } = usePrivacy(); // HOOK ADICIONADO
     const { activeDialog, setActiveDialog } = useDialogManager();
     const { mutate: deleteTransaction, isPending: isDeleting } = useDeleteTransaction();
     const { mutate: updateTransaction } = useUpdateTransaction();
@@ -37,6 +39,9 @@ export const TransactionList = ({ transactions }: TransactionListProps) => {
     }, [transactions, currentUser?.id]);
 
     const formatCurrency = (value: number, type: 'RECEITA' | 'DESPESA') => {
+        // LÓGICA DE MÁSCARA ADICIONADA
+        if (isPrivate) return type === 'RECEITA' ? '+ R$ •••••' : '- R$ •••••';
+
         const formatted = new Intl.NumberFormat('pt-BR', {
             style: 'currency',
             currency: 'BRL',

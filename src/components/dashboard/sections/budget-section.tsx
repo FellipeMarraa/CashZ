@@ -18,10 +18,12 @@ import {TutorialWizard} from "@/components/tutorial-wizard";
 import {useAuth} from "@/context/AuthContext";
 import {useUserPreferences} from "@/hooks/useUserPreferences.ts";
 import {UpgradePlanModal} from "@/components/upgrade-plan-modal.tsx";
+import {usePrivacy} from "@/context/PrivacyContext"; // IMPORTADO
 
 export const BudgetSection = () => {
     const { user: currentUser } = useAuth();
     const { isPremium } = useUserPreferences(currentUser?.id);
+    const { isPrivate } = usePrivacy(); // HOOK ADICIONADO
     const currentDate = new Date();
     const [activeMonth, setActiveMonth] = useState(IMes[currentDate.getMonth()]);
     const [activeYear, setActiveYear] = useState(currentDate.getFullYear());
@@ -33,6 +35,9 @@ export const BudgetSection = () => {
     const { data: categories = [] } = useCategories();
 
     const [idToDelete, setIdToDelete] = useState<string | null>(null);
+
+    // Lógica auxiliar para máscara de privacidade
+    const mask = (val: number) => isPrivate ? "R$ •••••" : formatTransactionAmount(val);
 
     // --- PASSOS DO TUTORIAL DIDÁTICO ---
     const budgetSteps = useMemo(() => [
@@ -187,13 +192,13 @@ export const BudgetSection = () => {
                 <Card className="border-none shadow-sm md:border text-left">
                     <CardHeader className="pb-2">
                         <CardDescription className="text-xs uppercase font-bold text-muted-foreground">Total Planejado</CardDescription>
-                        <CardTitle className="text-2xl font-bold">{formatTransactionAmount(totalAllocated)}</CardTitle>
+                        <CardTitle className="text-2xl font-bold">{mask(totalAllocated)}</CardTitle>
                     </CardHeader>
                 </Card>
                 <Card className="border-none shadow-sm md:border text-left">
                     <CardHeader className="pb-2">
                         <CardDescription className="text-xs uppercase font-bold text-muted-foreground">Total Gasto Real</CardDescription>
-                        <CardTitle className="text-2xl font-bold">{formatTransactionAmount(totalSpent)}</CardTitle>
+                        <CardTitle className="text-2xl font-bold">{mask(totalSpent)}</CardTitle>
                     </CardHeader>
                 </Card>
                 <Card className={cn(
@@ -251,17 +256,17 @@ export const BudgetSection = () => {
                                                     </div>
                                                     <p className={cn("text-[10px]", item.spent > item.allocated ? "text-red-500 font-bold" : "text-muted-foreground")}>
                                                         {item.spent > item.allocated
-                                                            ? `Excedeu em ${formatTransactionAmount(item.spent - item.allocated)}`
-                                                            : `Restam ${formatTransactionAmount(item.remaining)}`}
+                                                            ? `Excedeu em ${mask(item.spent - item.allocated)}`
+                                                            : `Restam ${mask(item.remaining)}`}
                                                     </p>
                                                 </div>
                                             </div>
                                             <div className="text-right">
                                                 <span className={cn("text-sm font-bold", item.spent > item.allocated ? "text-red-600" : "text-foreground")}>
-                                                    {formatTransactionAmount(item.spent)}
+                                                    {mask(item.spent)}
                                                 </span>
                                                 <span className="text-[10px] text-muted-foreground block">
-                                                    de {formatTransactionAmount(item.allocated)}
+                                                    de {mask(item.allocated)}
                                                 </span>
                                             </div>
                                         </div>
@@ -305,7 +310,7 @@ export const BudgetSection = () => {
                                             <span className="font-bold text-sm text-amber-900 dark:text-amber-400">Atenção em {insights.critical.name}</span>
                                         </div>
                                         <p className="text-xs text-amber-800/80 dark:text-amber-500/80">
-                                            Orçamento excedido em {formatTransactionAmount(insights.critical.spent - insights.critical.allocated)}.
+                                            Orçamento excedido em {mask(insights.critical.spent - insights.critical.allocated)}.
                                         </p>
                                     </div>
                                 )}
@@ -325,7 +330,7 @@ export const BudgetSection = () => {
                                 <div className="p-4 rounded-xl bg-blue-50 dark:bg-blue-900/10 border border-blue-100 dark:border-blue-900/50">
                                     <div className="flex items-center gap-3 mb-2">
                                         <CheckCircle2 className="h-5 w-5 text-blue-600" />
-                                        <span className="font-bold text-sm text-blue-900 dark:text-blue-400">Status Geral</span>
+                                        <span className="font-bold text-sm text-blue-900 dark:text-amber-400">Status Geral</span>
                                     </div>
                                     <p className="text-xs text-blue-800/80 dark:text-blue-500/80">
                                         {insights.overBudgetCount > 0

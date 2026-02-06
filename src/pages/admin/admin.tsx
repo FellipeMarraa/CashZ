@@ -26,26 +26,25 @@ import {
 } from "firebase/firestore";
 import {useAuth} from "@/context/AuthContext";
 import {
+    AlertCircle,
+    Ban,
     CalendarClock,
     Edit2,
     History,
     Info,
+    LayoutDashboard,
     Loader2,
     Plus,
     Power,
+    RefreshCcw,
     Search,
     Send,
     ShieldAlert,
+    Star,
     Ticket,
     Trash2,
     Users,
-    X,
-    LayoutDashboard,
-    TrendingUp,
-    Star,
-    Ban,
-    RefreshCcw,
-    AlertCircle
+    X
 } from "lucide-react";
 import {toast} from "@/hooks/use-toast";
 import {db} from "../../../firebase.ts";
@@ -282,16 +281,16 @@ export const AdminSection = () => {
                                 <p className="text-[10px] text-muted-foreground mt-1">Cadastrados</p>
                             </CardContent>
                         </Card>
-                        <Card className="border-none shadow-sm md:border">
-                            <CardContent className="p-6">
-                                <div className="flex items-center justify-between space-y-0 pb-2">
-                                    <p className="text-xs font-bold uppercase text-muted-foreground tracking-wider">Novos Hoje</p>
-                                    <TrendingUp className="h-4 w-4 text-emerald-500" />
-                                </div>
-                                <div className="text-2xl font-black text-emerald-600">+{stats.today}</div>
-                                <p className="text-[10px] text-muted-foreground mt-1">Registros hoje</p>
-                            </CardContent>
-                        </Card>
+                        {/*<Card className="border-none shadow-sm md:border">*/}
+                        {/*    <CardContent className="p-6">*/}
+                        {/*        <div className="flex items-center justify-between space-y-0 pb-2">*/}
+                        {/*            <p className="text-xs font-bold uppercase text-muted-foreground tracking-wider">Novos Hoje</p>*/}
+                        {/*            <TrendingUp className="h-4 w-4 text-emerald-500" />*/}
+                        {/*        </div>*/}
+                        {/*        <div className="text-2xl font-black text-emerald-600">+{stats.today}</div>*/}
+                        {/*        <p className="text-[10px] text-muted-foreground mt-1">Registros hoje</p>*/}
+                        {/*    </CardContent>*/}
+                        {/*</Card>*/}
                         <Card className="border-none shadow-sm md:border">
                             <CardContent className="p-6">
                                 <div className="flex items-center justify-between space-y-0 pb-2">

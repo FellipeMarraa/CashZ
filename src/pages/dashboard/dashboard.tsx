@@ -107,7 +107,8 @@ export const Dashboard = ({ onNavigateToLanding }: DashboardProps) => {
   };
 
   return (
-      <div className="flex min-h-screen w-full overflow-hidden bg-background">
+      <div className="flex h-screen w-full overflow-hidden bg-background">
+        {/* A Sidebar agora ocupa espaço fixo no desktop (md:block) */}
         <DashboardSidebar
             ref={sidebarRef}
             collapsed={collapsed}
@@ -117,8 +118,10 @@ export const Dashboard = ({ onNavigateToLanding }: DashboardProps) => {
             onToggleSidebar={() => setCollapsed(!collapsed)}
         />
 
-        <div className="flex flex-1 flex-col overflow-hidden transition-all duration-300 ease-in-out ml-0">
+        {/* O container de conteúdo preenche o resto da tela */}
+        <div className="flex flex-1 flex-col min-w-0 overflow-hidden">
           <DashboardHeader
+              // Passamos o collapsed apenas para o header saber se mostra o botão hambúrguer no mobile
               collapsed={collapsed}
               toggleSidebar={() => setCollapsed(prev => !prev)}
               onNavigateToLanding={onNavigateToLanding}

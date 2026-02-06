@@ -23,11 +23,13 @@ import {UpgradePlanModal} from "@/components/upgrade-plan-modal.tsx";
 import {useDialogManager} from "@/context/DialogManagerContext";
 import {toast} from "@/hooks/use-toast.ts";
 import {ReferralAnnouncementModal} from "@/components/referral-announcement-modal.tsx";
+import {usePrivacy} from "@/context/PrivacyContext"; // IMPORTADO AQUI
 
 export const OverviewSection = () => {
     const { user: currentUser } = useAuth();
     const { isPremium } = useUserPreferences(currentUser?.id);
     const { activeDialog, setActiveDialog } = useDialogManager();
+    const { isPrivate } = usePrivacy(); // HOOK DO MODO ESPIÃO
     const currentDate = new Date();
 
     const [selectedMonth, setSelectedMonth] = useState(IMes[currentDate.getMonth()]);
@@ -268,12 +270,12 @@ export const OverviewSection = () => {
                     </div>
 
                     <TabsContent value="month" className="space-y-4 outline-none">
-                        <div id="overview-stats"><StatsGrid transactions={transactions} /></div>
+                        <div id="overview-stats"><StatsGrid transactions={transactions} isPrivate={isPrivate} /></div>
                         <div id="overview-chart"><ChartSection transactions={transactions} view={selectedView} month={selectedMonth} year={selectedYear} /></div>
                     </TabsContent>
 
                     <TabsContent value="year" className="space-y-4 outline-none">
-                        <div id="overview-stats-year"><StatsGrid transactions={transactions} /></div>
+                        <div id="overview-stats-year"><StatsGrid transactions={transactions} isPrivate={isPrivate} /></div>
                         <div id="overview-chart-year"><ChartSection transactions={transactions} view={selectedView} year={selectedYear} /></div>
                     </TabsContent>
                 </Tabs>
@@ -288,7 +290,7 @@ export const OverviewSection = () => {
                         </CardDescription>
                     </CardHeader>
                     <CardContent className="max-h-[320px] overflow-y-auto pr-2 scrollbar-thin">
-                        <RecentTransactionsList transactions={transactions} isLoading={isLoading} currentUserId={currentUser?.id} />
+                        <RecentTransactionsList transactions={transactions} isLoading={isLoading} currentUserId={currentUser?.id} isPrivate={isPrivate} />
                     </CardContent>
                 </Card>
 
@@ -305,6 +307,7 @@ export const OverviewSection = () => {
                             selectedUser={selectedUser}
                             currentUserId={currentUser?.id}
                             isPremium={isPremium}
+                            isPrivate={isPrivate}
                         />
                     </CardContent>
                 </Card>
@@ -320,7 +323,7 @@ export const OverviewSection = () => {
     );
 };
 
-const StatsGrid = ({ transactions }: { transactions?: Transaction[] }) => {
+const StatsGrid = ({ transactions, isPrivate }: { transactions?: Transaction[], isPrivate: boolean }) => {
     if (!transactions) return null;
     const pendingTransactions = transactions.filter(t => t.status === 'PENDENTE');
     const completedTransactions = transactions.filter(t => t.status === 'PAGA' || t.status === 'RECEBIDA');
@@ -332,12 +335,14 @@ const StatsGrid = ({ transactions }: { transactions?: Transaction[] }) => {
     const balance = pendingIncome - pendingExpenses;
     const totalCommitted = realExpenses + pendingExpenses;
 
+    const mask = (val: number) => isPrivate ? "R$ •••••" : formatTransactionAmount(val);
+
     return (
         <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 text-left">
-            <StatCard title="Balanço Previsto" value={formatTransactionAmount(balance)} description="Restante das pendências" icon={<Wallet className="h-4 w-4 text-blue-400" />} trend={balance >= 0 ? "up" : "down"} />
-            <StatCard title="A Receber" value={formatTransactionAmount(pendingIncome)} description="Entradas futuras" icon={<ArrowUpRight className="h-4 w-4 text-green-400" />} trend="up" />
-            <StatCard title="Gasto Real" value={formatTransactionAmount(realExpenses)} description="Já pago no período" icon={<ArrowDownRight className="h-4 w-4 text-rose-500" />} trend="down" />
-            <StatCard title="Comprometimento" value={formatTransactionAmount(totalCommitted)} description="Total Realizado + Pendente" icon={<DollarSign className="h-4 w-4 text-yellow-500" />} trend="warning" />
+            <StatCard title="Balanço Previsto" value={mask(balance)} description="Restante das pendências" icon={<Wallet className="h-4 w-4 text-blue-400" />} trend={balance >= 0 ? "up" : "down"} />
+            <StatCard title="A Receber" value={mask(pendingIncome)} description="Entradas futuras" icon={<ArrowUpRight className="h-4 w-4 text-green-400" />} trend="up" />
+            <StatCard title="Gasto Real" value={mask(realExpenses)} description="Já pago no período" icon={<ArrowDownRight className="h-4 w-4 text-rose-500" />} trend="down" />
+            <StatCard title="Comprometimento" value={mask(totalCommitted)} description="Total Realizado + Pendente" icon={<DollarSign className="h-4 w-4 text-yellow-500" />} trend="warning" />
         </div>
     );
 };
@@ -355,7 +360,7 @@ const ChartSection = ({ transactions, view, month, year }: { transactions?: Tran
     );
 };
 
-const RecentTransactionsList = ({ transactions, isLoading, currentUserId }: { transactions?: Transaction[], isLoading: boolean, currentUserId?: string }) => {
+const RecentTransactionsList = ({ transactions, isLoading, currentUserId, isPrivate }: { transactions?: Transaction[], isLoading: boolean, currentUserId?: string, isPrivate: boolean }) => {
     if (isLoading) return <div className="py-8 text-center text-sm text-muted-foreground animate-pulse">Carregando transações...</div>;
     if (!transactions?.length) return <div className="py-12 text-center text-sm text-muted-foreground italic">Nenhuma transação encontrada.</div>;
 
@@ -391,7 +396,7 @@ const RecentTransactionsList = ({ transactions, isLoading, currentUserId }: { tr
                         </div>
                         <div className="text-right shrink-0">
                             <p className={cn("text-sm font-medium", transaction.type === 'RECEITA' ? 'text-emerald-600' : 'text-rose-600')}>
-                                {transaction.type === 'RECEITA' ? '+' : '-'}{formatTransactionAmount(transaction.amount)}
+                                {isPrivate ? "•••••" : (transaction.type === 'RECEITA' ? '+' : '-') + formatTransactionAmount(transaction.amount)}
                             </p>
                         </div>
                     </div>
@@ -407,14 +412,16 @@ const BudgetProgress = ({
                             filterId,
                             selectedUser,
                             currentUserId,
-                            isPremium
+                            isPremium,
+                            isPrivate
                         }: {
     transactions?: Transaction[],
     budgets: Budget[],
     filterId: string,
     selectedUser: string,
     currentUserId?: string,
-    isPremium: boolean
+    isPremium: boolean,
+    isPrivate: boolean
 }) => {
     const analysis = useMemo(() => {
         if (!budgets || budgets.length === 0) return [];
@@ -473,7 +480,9 @@ const BudgetProgress = ({
                             <PiggyBank className={cn("h-4 w-4 shrink-0", item.isOver ? 'text-red-500' : 'text-foreground')} />
                             <span className="text-sm text-foreground truncate">{item.name}</span>
                         </div>
-                        <span className="text-[10px] text-muted-foreground font-mono">{formatTransactionAmount(item.spent)}</span>
+                        <span className="text-[10px] text-muted-foreground font-mono">
+                            {isPrivate ? "•••••" : formatTransactionAmount(item.spent)}
+                        </span>
                     </div>
                     <Progress value={item.percent} className="h-1.5" indicatorClassName={item.isOver ? "bg-red-500" : "bg-emerald-500"} />
                 </div>

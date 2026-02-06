@@ -36,14 +36,25 @@ export const AddInvestmentForm = ({ onAdd, initialData }: { onAdd: (data: any) =
     const watchPrice = useWatch({ control, name: 'averagePrice' });
     const watchIndexador = useWatch({ control, name: 'indexador' });
     const watchTaxa = useWatch({ control, name: 'taxa' });
+    const watchAmountInvested = useWatch({ control, name: 'amountInvested' });
 
-    // Automação: Quantidade * Preço = Valor Aplicado
+    // Automação 1: Quantidade * Preço = Valor Aplicado (Ações/Internacional/Cripto)
     useEffect(() => {
         if (selectedCategory !== 'fixed' && watchQty > 0 && watchPrice > 0) {
             const calculatedTotal = Number(watchQty) * Number(watchPrice);
             setValue("amountInvested", calculatedTotal);
         }
     }, [watchQty, watchPrice, selectedCategory, setValue]);
+
+    // Automação 2: Valor do Aporte + Saldo Atual Antigo = Novo Saldo Atual Total
+    useEffect(() => {
+        if (isAporte && watchAmountInvested >= 0) {
+            // Valor que já existia no ativo + o que está sendo aportado agora
+            const baseValue = Number(initialData?.currentValue || 0);
+            const newValue = baseValue + Number(watchAmountInvested);
+            setValue("currentValue", newValue);
+        }
+    }, [watchAmountInvested, isAporte, initialData, setValue]);
 
     useEffect(() => {
         if (initialData && activeDialog === "add-investment") {
@@ -53,10 +64,10 @@ export const AddInvestmentForm = ({ onAdd, initialData }: { onAdd: (data: any) =
                 institution: initialData.institution,
                 indexador: initialData.indexador || '',
                 taxa: initialData.taxa || undefined,
-                quantity: undefined, // Zera para o novo aporte
+                quantity: undefined,
                 averagePrice: initialData.averagePrice || undefined,
                 amountInvested: undefined,
-                currentValue: initialData.currentValue
+                currentValue: initialData.currentValue // Começa com o valor atual do banco
             });
         } else if (!initialData) {
             reset({
@@ -76,7 +87,6 @@ export const AddInvestmentForm = ({ onAdd, initialData }: { onAdd: (data: any) =
     const onSubmit = async (data: any) => {
         setIsSubmitting(true);
         try {
-            // Aguarda a execução da função de salvamento que vem por props
             await onAdd({
                 ...data,
                 amountInvested: Number(data.amountInvested || 0),
@@ -85,8 +95,6 @@ export const AddInvestmentForm = ({ onAdd, initialData }: { onAdd: (data: any) =
                 quantity: Number(data.quantity || 0),
                 averagePrice: Number(data.averagePrice || 0)
             });
-
-            // SÓ FECHA após o sucesso do onAdd
             setActiveDialog(null);
         } catch (error) {
             console.error("Erro no formulário:", error);
@@ -222,7 +230,7 @@ export const AddInvestmentForm = ({ onAdd, initialData }: { onAdd: (data: any) =
                                 <NumericFormat
                                     customInput={Input}
                                     className="h-10 bg-emerald-50/10 border-emerald-500/20"
-                                    value={useWatch({ control, name: 'amountInvested' })}
+                                    value={watchAmountInvested}
                                     onValueChange={(values) => setValue("amountInvested", values.floatValue)}
                                     thousandSeparator="."
                                     decimalSeparator=","
@@ -246,6 +254,11 @@ export const AddInvestmentForm = ({ onAdd, initialData }: { onAdd: (data: any) =
                                     prefix="R$ "
                                     placeholder="R$ 0,00"
                                 />
+                                {isAporte && (
+                                    <p className="text-[9px] text-muted-foreground italic">
+                                        Sugerido: (Saldo anterior + Aporte)
+                                    </p>
+                                )}
                             </div>
                         </div>
                     </div>

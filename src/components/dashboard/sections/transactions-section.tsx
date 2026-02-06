@@ -115,8 +115,6 @@ export const TransactionsSection = () => {
                 switch (sortOrder) {
                     case 'highest': return b.amount - a.amount;
                     case 'lowest': return a.amount - b.amount;
-                    // case 'oldest': return new Date(a.date).getTime() - new Date(b.date).getTime();
-                    // case 'newest':
                     case 'paid':
                     case 'pending':
                     case 'parcelada':
@@ -228,8 +226,6 @@ export const TransactionsSection = () => {
                                             </div>
                                         </SelectTrigger>
                                         <SelectContent>
-                                            {/*<SelectItem value="newest">Mais recentes</SelectItem>*/}
-                                            {/*<SelectItem value="oldest">Mais antigas</SelectItem>*/}
                                             <SelectItem value="highest">Maior valor</SelectItem>
                                             <SelectItem value="lowest">Menor valor</SelectItem>
                                             <SelectItem value="paid">Pagas/Recebidas</SelectItem>
@@ -289,10 +285,22 @@ export const TransactionsSection = () => {
                     </div>
 
                     <div id="trans-export-btns" className="flex gap-2 order-3 w-full md:w-auto">
-                        <Button variant="outline" size="sm" className="flex-1 md:flex-none text-[10px] gap-2" onClick={() => exportData('csv')} disabled={filteredTransactions.length === 0}>
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            className="flex-1 md:flex-none text-[10px] gap-2 border-muted hover:bg-muted/50 dark:border-muted/30"
+                            onClick={() => exportData('csv')}
+                            disabled={filteredTransactions.length === 0}
+                        >
                             CSV
                         </Button>
-                        <Button variant="outline" size="sm" className="flex-1 md:flex-none text-[10px] gap-2 border-emerald-200 text-emerald-700" onClick={() => exportData('excel')} disabled={filteredTransactions.length === 0}>
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            className="flex-1 md:flex-none text-[10px] gap-2 border-emerald-500/20 text-emerald-700 hover:bg-emerald-50 dark:border-emerald-500/10 dark:text-emerald-500 dark:hover:bg-emerald-950/20"
+                            onClick={() => exportData('excel')}
+                            disabled={filteredTransactions.length === 0}
+                        >
                             EXCEL
                         </Button>
                     </div>

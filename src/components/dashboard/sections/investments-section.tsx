@@ -40,6 +40,7 @@ import {ConfirmDialog} from "@/components/confirm-dialog";
 import {useToast} from "@/hooks/use-toast";
 import {useUserPreferences} from "@/hooks/useUserPreferences.ts";
 import {UpgradePlanModal} from "@/components/upgrade-plan-modal.tsx";
+import {usePrivacy} from "@/context/PrivacyContext"; // IMPORTADO
 
 type InvestmentClass = 'fixed' | 'stocks' | 'international' | 'crypto';
 
@@ -90,6 +91,7 @@ const CATEGORY_LABELS: Record<InvestmentClass, string> = {
 export const InvestmentsSection = () => {
     const { user } = useAuth();
     const { isPremium } = useUserPreferences(user?.id);
+    const { isPrivate } = usePrivacy(); // HOOK ADICIONADO
     const { toast } = useToast();
     const { activeDialog, setActiveDialog } = useDialogManager();
     const { data: investmentsList = [], isLoading } = useInvestments();
@@ -102,6 +104,9 @@ export const InvestmentsSection = () => {
 
     const [aiAnalysis, setAiAnalysis] = useState<string | null>(null);
     const [isAnalyzing, setIsAnalyzing] = useState(false);
+
+    // Lógica auxiliar para máscara de privacidade
+    const mask = (val: number) => isPrivate ? "R$ •••••" : formatTransactionAmount(val);
 
     const investmentSteps = useMemo(() => [
         {
@@ -283,7 +288,6 @@ export const InvestmentsSection = () => {
 
                     <TabsContent value="overview" className="space-y-6">
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                            {/* AREA DE IA AJUSTADA PARA O TEMA DARK */}
                             <Card id="agent-insight-card" className="md:col-span-2 border-emerald-500/20 bg-emerald-500/5 dark:bg-emerald-500/10 shadow-none text-left overflow-hidden relative">
                                 <CardHeader className="flex flex-row items-center justify-between gap-4 space-y-0 pb-4">
                                     <div className="flex items-center gap-4">
@@ -321,7 +325,7 @@ export const InvestmentsSection = () => {
                                             <div>
                                                 <p className="text-sm font-bold text-emerald-900 dark:text-emerald-400">Sugestão de Aporte</p>
                                                 <p className="text-xs text-emerald-800 dark:text-emerald-100 leading-relaxed text-balance italic">
-                                                    Considere alocar <strong>{formatTransactionAmount(agentInsight.amount)}</strong> em <strong>{agentInsight.class}</strong>. {agentInsight.reason}
+                                                    Considere alocar <strong>{mask(agentInsight.amount)}</strong> em <strong>{agentInsight.class}</strong>. {agentInsight.reason}
                                                 </p>
                                             </div>
                                         </div>
@@ -389,7 +393,8 @@ export const InvestmentsSection = () => {
                                     <CardTitle className="text-white/70 text-sm font-medium">Patrimônio Investido</CardTitle>
                                 </CardHeader>
                                 <CardContent className="flex flex-col items-center p-0 text-center">
-                                    <p className="text-4xl font-bold tracking-tighter mb-6">{formatTransactionAmount(totalPortfolio)}</p>
+                                    {/* MÁSCARA APLICADA AO TOTAL DO PORTFÓLIO */}
+                                    <p className="text-4xl font-bold tracking-tighter mb-6">{mask(totalPortfolio)}</p>
                                     <div className="flex gap-2">
                                         <div className="flex items-center gap-1 text-emerald-400 text-[10px] bg-emerald-400/10 px-2 py-1 rounded-full border border-emerald-400/20">
                                             <TrendingUp className="h-3 w-3" />
@@ -445,10 +450,11 @@ export const InvestmentsSection = () => {
                                                             {CATEGORY_LABELS[inv.category]}
                                                         </span>
                                                         </td>
-                                                        <td className="px-2 text-right text-muted-foreground whitespace-nowrap">{formatTransactionAmount(inv.amountInvested)}</td>
-                                                        <td className="px-2 text-right font-bold whitespace-nowrap text-foreground">{formatTransactionAmount(inv.currentValue)}</td>
+                                                        {/* MÁSCARAS APLICADAS AOS VALORES DA TABELA */}
+                                                        <td className="px-2 text-right text-muted-foreground whitespace-nowrap">{mask(inv.amountInvested)}</td>
+                                                        <td className="px-2 text-right font-bold whitespace-nowrap text-foreground">{mask(inv.currentValue)}</td>
                                                         <td className={cn("px-2 text-right font-bold whitespace-nowrap", profit >= 0 ? "text-emerald-600" : "text-rose-600")}>
-                                                            <span>{profitPct > 0 ? "+" : ""}{profitPct.toFixed(2)}%</span>
+                                                            <span>{isPrivate ? "•••" : (profitPct > 0 ? "+" : "") + profitPct.toFixed(2) + "%"}</span>
                                                         </td>
                                                         <td className="px-2 text-right">
                                                             <div className="flex justify-end gap-1">
@@ -514,7 +520,8 @@ export const InvestmentsSection = () => {
                                                 <div className="grid grid-cols-2 gap-4 pt-2 border-t border-dashed dark:border-slate-800">
                                                     <div className="text-left">
                                                         <p className="text-[9px] uppercase font-bold text-muted-foreground tracking-tighter">Valor Atual</p>
-                                                        <p className="text-sm font-bold text-foreground">{formatTransactionAmount(inv.currentValue)}</p>
+                                                        {/* MÁSCARA APLICADA AO CARD MOBILE */}
+                                                        <p className="text-sm font-bold text-foreground">{mask(inv.currentValue)}</p>
                                                     </div>
                                                     <div className="text-right flex flex-col justify-end">
                                                     <span className="text-[9px] bg-white dark:bg-slate-800 border dark:border-slate-700 px-2 py-0.5 rounded-full font-bold uppercase text-muted-foreground inline-block">

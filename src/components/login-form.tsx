@@ -80,14 +80,17 @@ export const LoginForm: React.FC<LoginFormProps> = ({ dialogTrigger, onNavigateT
         <DialogTrigger asChild>
           <div className="cursor-pointer" onClick={() => setActiveDialog("login")}>{dialogTrigger}</div>
         </DialogTrigger>
-        <DialogContent className="w-[calc(100%-2rem)] sm:max-w-[425px] max-h-[95vh] overflow-y-auto bg-white rounded-lg">
+
+        {/* Usamos !bg-white e !text-slate-900 para forçar independente do tema */}
+        <DialogContent className="w-[calc(100%-2rem)] sm:max-w-[425px] !bg-white !text-slate-900 rounded-lg border-none shadow-2xl">
           <DialogHeader>
-            <DialogTitle className="dark:text-gray-600">Entrar</DialogTitle>
-            <DialogDescription className="dark:text-gray-600">Acesse sua conta para gerenciar suas finanças</DialogDescription>
+            <DialogTitle className="!text-slate-900 text-xl ">Entrar</DialogTitle>
+            <DialogDescription className="!text-slate-500">Acesse sua conta para gerenciar suas finanças</DialogDescription>
           </DialogHeader>
-          <form onSubmit={handleSubmit} className="space-y-2 py-2">
-            <div className="space-y-1 dark:text-gray-600">
-              <Label htmlFor="email">Email</Label>
+
+          <form onSubmit={handleSubmit} className="space-y-4 py-2">
+            <div className="space-y-1">
+              <Label htmlFor="email" className="!text-slate-700 font-semibold">Email</Label>
               <Input
                   id="email"
                   name="email"
@@ -96,15 +99,17 @@ export const LoginForm: React.FC<LoginFormProps> = ({ dialogTrigger, onNavigateT
                   value={formData.email}
                   onChange={handleChange}
                   required
+                  className="!bg-white !border-slate-200 !text-slate-900 !placeholder-slate-400 focus:!ring-emerald-500 h-11"
               />
             </div>
-            <div className="space-y-2 dark:text-gray-600 pb-2">
+
+            <div className="space-y-2 pb-2">
               <div className="flex justify-between items-center">
-                <Label htmlFor="password">Senha</Label>
+                <Label htmlFor="password" className="!text-slate-700 font-semibold">Senha</Label>
                 <button
                     type="button"
                     onClick={() => setActiveDialog("forgot-password")}
-                    className="text-sm text-emerald-600 hover:text-emerald-500 font-medium bg-transparent border-none p-0 cursor-pointer"
+                    className="text-sm text-emerald-600 hover:text-emerald-700  bg-transparent border-none p-0 cursor-pointer"
                 >
                   Esqueceu a senha?
                 </button>
@@ -118,12 +123,13 @@ export const LoginForm: React.FC<LoginFormProps> = ({ dialogTrigger, onNavigateT
                     value={formData.password}
                     onChange={handleChange}
                     required
+                    className="!bg-white !border-slate-200 !text-slate-900 !placeholder-slate-400 focus:!ring-emerald-500 h-11"
                 />
                 <Button
                     type="button"
                     variant="ghost"
                     size="icon"
-                    className="absolute right-0 top-0 h-full px-3 py-2 text-gray-400 hover:text-gray-600"
+                    className="absolute right-0 top-0 h-full px-3 text-slate-400 hover:!text-slate-600 hover:!bg-transparent"
                     onClick={() => setShowPassword(!showPassword)}
                 >
                   {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
@@ -131,33 +137,30 @@ export const LoginForm: React.FC<LoginFormProps> = ({ dialogTrigger, onNavigateT
               </div>
             </div>
 
-            {/*<div className="flex items-center space-x-2 py-1">*/}
-            {/*  <Checkbox id="remember" checked={formData.rememberMe} onCheckedChange={handleCheckboxChange} />*/}
-            {/*  <Label htmlFor="remember" className="text-sm font-normal dark:text-gray-600 cursor-pointer">*/}
-            {/*    Lembrar de mim*/}
-            {/*  </Label>*/}
-            {/*</div>*/}
-
-            <Button variant="outline" type="submit" className="w-full bg-gradient-to-r from-emerald-500 to-teal-500 py-6 text-white font-semibold" disabled={isLoading}>
-              {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : "Entrar"}
+            <Button
+                type="submit"
+                className="w-full !bg-emerald-600 hover:!bg-emerald-700 !text-white  h-12 shadow-lg shadow-emerald-100 border-none"
+                disabled={isLoading}
+            >
+              {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : "Acessar Plataforma"}
             </Button>
 
             <div className="relative py-2">
               <div className="absolute inset-0 flex items-center">
-                <span className="w-full border-t" />
+                <span className="w-full border-t border-slate-200" />
               </div>
               <div className="relative flex justify-center text-xs uppercase">
-                <span className="bg-white px-2 text-muted-foreground font-medium italic">Ou</span>
+                <span className="!bg-white px-2 !text-slate-400  italic">Ou acessar com</span>
               </div>
             </div>
 
             <Button
                 type="button"
                 variant="outline"
-                className="w-full py-6 font-medium"
+                className="w-full h-12  !border-slate-200 !text-slate-700 hover:!bg-slate-50 !bg-white"
                 onClick={handleGoogleLogin}
             >
-              <svg className="mr-2 h-4 w-4" viewBox="0 0 24 24">
+              <svg className="mr-3 h-5 w-5" viewBox="0 0 24 24">
                 <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
                 <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
                 <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
@@ -167,9 +170,9 @@ export const LoginForm: React.FC<LoginFormProps> = ({ dialogTrigger, onNavigateT
             </Button>
 
             <div className="text-center text-sm pt-4">
-              <span className="text-gray-500">Não tem uma conta? </span>
-              <span onClick={() => setActiveDialog("register")} className="inline-block font-medium text-emerald-600 cursor-pointer">
-                Registre-se
+              <span className="!text-slate-500">Ainda não tem conta? </span>
+              <span onClick={() => setActiveDialog("register")} className="inline-block  text-emerald-600 hover:text-emerald-700 cursor-pointer underline">
+                Crie uma grátis
               </span>
             </div>
           </form>

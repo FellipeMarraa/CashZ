@@ -5,7 +5,6 @@ import {Button} from '@/components/ui/button';
 import {ScrollArea} from '@/components/ui/scroll-area';
 import {ArrowLeftRight, LayoutDashboard, LineChart, PieChart} from 'lucide-react';
 import {forwardRef} from "react";
-import {Tooltip, TooltipContent, TooltipTrigger} from "@/components/ui/tooltip.tsx";
 
 type DashboardSection = 'overview' | 'transactions' | 'budget' | 'investments' | 'profile' | 'settings' | 'admin';
 
@@ -29,10 +28,10 @@ export const DashboardSidebar = forwardRef<HTMLDivElement, DashboardSidebarProps
 
         return (
             <>
-                {/* Backdrop: Fecha a barra ao clicar fora (apenas quando aberta) */}
+                {/* Backdrop: APENAS MOBILE */}
                 {!collapsed && (
                     <div
-                        className="fixed inset-0 z-40 bg-black/20 backdrop-blur-[2px]"
+                        className="fixed inset-0 z-40 bg-black/20 backdrop-blur-[2px] md:hidden"
                         onClick={onToggleSidebar}
                     />
                 )}
@@ -40,44 +39,51 @@ export const DashboardSidebar = forwardRef<HTMLDivElement, DashboardSidebarProps
                 <aside
                     ref={ref}
                     className={cn(
-                        // Mudança para fixed garante que não empurre os itens
-                        "fixed inset-y-0 left-0 z-50 flex flex-col border-r bg-card transition-all duration-300 ease-in-out",
-                        // Oculta completamente se colapsado
-                        collapsed ? "-translate-x-full" : "translate-x-0 w-64 shadow-2xl"
+                        "flex flex-col border-r transition-all duration-300 ease-in-out h-full",
+                        // MUDANÇA: trocado bg-card por bg-background para igualar a tonalidade
+                        // e garantido que a borda seja sutil (border-muted/50)
+                        "bg-background border-muted/50",
+
+                        // MOBILE: Flutuante
+                        "fixed inset-y-0 left-0 z-50 w-64 md:sticky md:z-0",
+
+                        // DESKTOP: Sempre visível
+                        collapsed ? "-translate-x-full md:translate-x-0" : "translate-x-0",
+                        "md:translate-x-0 md:w-64 md:block"
                     )}
                 >
-                    <div className="flex h-16 items-center border-b px-4">
+                    <div className="flex h-16 items-center border-b border-muted/50 px-6 shrink-0">
                         <div className="flex items-center">
-                            <img src="/cashz.svg" className="h-8 w-8 mr-2"/>
-                            <span className="text-xl font-bold text-gray-900 dark:text-white">CashZ</span>
+                            <img src="/cashz.svg" className="h-8 w-8 mr-2" alt="Logo"/>
+                            <span className="text-xl font-bold text-foreground">CashZ</span>
                         </div>
                     </div>
 
-                    <ScrollArea className="flex-1 py-4">
-                        <nav className="px-2 space-y-1">
+                    <ScrollArea className="flex-1 py-6 px-3">
+                        <nav className="space-y-1">
                             {navItems.map((item) => (
                                 <Button
                                     key={item.id}
                                     variant={activeSection === item.id ? "secondary" : "ghost"}
                                     size="lg"
                                     className={cn(
-                                        "flex w-full items-center space-x-3 px-3 justify-start mb-1 transition-all duration-200",
-                                        activeSection === item.id ? "bg-secondary text-secondary-foreground" : "hover:bg-secondary/50"
+                                        "flex w-full items-center space-x-3 px-4 justify-start mb-1 transition-all duration-200 rounded-xl",
+                                        activeSection === item.id
+                                            ? "bg-primary/10 text-primary hover:bg-primary/15"
+                                            : "text-muted-foreground hover:text-foreground"
                                     )}
                                     onClick={() => {
                                         onSectionChange(item.id);
-                                        onToggleSidebar(); // Fecha ao selecionar
+                                        if (window.innerWidth < 768) onToggleSidebar();
                                     }}
                                 >
-                                    <Tooltip>
-                                        <TooltipTrigger asChild>
-                                            {item.icon}
-                                        </TooltipTrigger>
-                                        <TooltipContent side="right">
-                                            <p>{item.label}</p>
-                                        </TooltipContent>
-                                    </Tooltip>
-                                    <span>{item.label}</span>
+                                    <span className={cn(
+                                        "shrink-0",
+                                        activeSection === item.id ? "text-primary" : "text-muted-foreground"
+                                    )}>
+                                        {item.icon}
+                                    </span>
+                                    <span className="font-medium">{item.label}</span>
                                 </Button>
                             ))}
                         </nav>
@@ -86,3 +92,5 @@ export const DashboardSidebar = forwardRef<HTMLDivElement, DashboardSidebarProps
             </>
         );
     });
+
+DashboardSidebar.displayName = "DashboardSidebar";

@@ -90,7 +90,7 @@ export const LandingPage = ({ onNavigateToDashboard }: LandingPageProps) => {
     ]
 
     return (
-        <div className="light min-h-screen bg-white overflow-x-hidden">
+        <div className="light min-h-screen bg-white text-slate-900 overflow-x-hidden selection:bg-emerald-100">
             {/* Header */}
             <header className="fixed top-0 left-0 right-0 bg-white/80 backdrop-blur-md z-50 border-b border-gray-100">
                 <div className="container mx-auto px-4 py-4 flex justify-between items-center text-left">
