@@ -79,7 +79,7 @@ interface AdminUserData {
     plan?: string;
     planExpiresAt?: string;
     lastPaymentId?: string;
-    couponUsed?: string;
+    couponsUsed?: string[];
     isBanned?: boolean;
     [key: string]: any;
 }
@@ -336,6 +336,24 @@ export const AdminSection = () => {
                                         </div>
                                         <p className="flex justify-between gap-2"><strong>ID:</strong> <span className="text-[9px] font-mono break-all">{foundUser.id}</span></p>
                                         <p className="flex justify-between"><strong>Expira:</strong> <span>{foundUser.planExpiresAt ? new Date(foundUser.planExpiresAt).toLocaleDateString('pt-BR') : 'N/A'}</span></p>
+
+                                        {/* EXIBIÇÃO DO HISTÓRICO DE CUPONS (ARRAY) */}
+                                        <div className="pt-2 border-t mt-2">
+                                            <p className="text-[10px] font-bold uppercase text-muted-foreground mb-2 flex items-center gap-1">
+                                                <Ticket className="h-3 w-3" /> Histórico de Cupons
+                                            </p>
+                                            <div className="flex flex-wrap gap-1">
+                                                {foundUser.couponsUsed && foundUser.couponsUsed.length > 0 ? (
+                                                    foundUser.couponsUsed.map((c: string, i: number) => (
+                                                        <Badge key={i} variant="secondary" className="bg-emerald-500/10 text-emerald-600 border-emerald-500/20 text-[9px]">
+                                                            {c}
+                                                        </Badge>
+                                                    ))
+                                                ) : (
+                                                    <span className="text-[10px] italic opacity-50">Nenhum cupom utilizado</span>
+                                                )}
+                                            </div>
+                                        </div>
 
                                         <div className="pt-4 grid grid-cols-2 gap-2 border-t">
                                             <Button

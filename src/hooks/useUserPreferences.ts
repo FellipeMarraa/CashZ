@@ -1,5 +1,5 @@
 import { db } from "../../firebase";
-import { doc, getDoc, setDoc, updateDoc, increment } from "firebase/firestore";
+import { doc, getDoc, setDoc, updateDoc, increment, arrayUnion } from "firebase/firestore"; // Adicionado arrayUnion
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import {useMemo} from "react";
@@ -10,7 +10,7 @@ interface UserPrefs {
     hiddenTutorials: string[];
     plan: UserPlan;
     planExpiresAt?: string;
-    couponUsed?: string;
+    couponsUsed?: string[]; // Alterado para array
     isAdmin?: boolean;
 }
 
@@ -103,7 +103,7 @@ export const useUserPreferences = (userId: string | undefined) => {
             await setDoc(userPrefsRef, {
                 plan: couponData.planType || "premium",
                 planExpiresAt: expirationDate.toISOString(),
-                couponUsed: code,
+                couponsUsed: arrayUnion(code), // Modificado para adicionar ao array
                 lastUpdated: new Date().toISOString()
             }, { merge: true });
 
