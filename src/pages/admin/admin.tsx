@@ -44,7 +44,8 @@ import {
     Ticket,
     Trash2,
     Users,
-    X
+    X,
+    Link as LinkIcon
 } from "lucide-react";
 import {toast} from "@/hooks/use-toast";
 import {db} from "../../../firebase.ts";
@@ -88,7 +89,7 @@ export const AdminSection = () => {
     const { user } = useAuth();
     const [referrals, setReferrals] = useState<any[]>([]);
     const [adminLogs, setAdminLogs] = useState<any[]>([]);
-    const [clientErrors, setClientErrors] = useState<any[]>([]); // Novo: Logs de Erros
+    const [clientErrors, setClientErrors] = useState<any[]>([]);
     const [scheduledQueue, setScheduledQueue] = useState<any[]>([]);
     const [isCronActive, setIsCronActive] = useState(false);
     const [totalUsers, setTotalUsers] = useState(0);
@@ -110,6 +111,10 @@ export const AdminSection = () => {
     const [showUserList, setShowUserList] = useState(false);
     const [allUsersList, setAllUsersList] = useState<any[]>([]);
     const [loadingAllUsers, setLoadingAllUsers] = useState(false);
+
+    // Estados para comunicação
+    const [notifLinkTo, setNotifLinkTo] = useState("none"); // "none" como padrão inicial
+    const [notifTargetUser, setNotifTargetUser] = useState("ALL");
 
     const fetchAllUsers = async () => {
         if (showUserList) {
@@ -153,7 +158,6 @@ export const AdminSection = () => {
         const qLogs = query(collection(db, "admin_logs"), orderBy("createdAt", "desc"), limit(50));
         const unsubLogs = onSnapshot(qLogs, (snap) => setAdminLogs(snap.docs.map(d => ({ id: d.id, ...d.data() }))));
 
-        // Novo: Listener de Erros do Cliente
         const qErrors = query(collection(db, "client_logs"), orderBy("createdAt", "desc"), limit(30));
         const unsubErrors = onSnapshot(qErrors, (snap) => setClientErrors(snap.docs.map(d => ({ id: d.id, ...d.data() }))));
 
@@ -210,7 +214,7 @@ export const AdminSection = () => {
             });
             if (res.ok) {
                 toast({ title: "Operação realizada com sucesso!", variant: "success" });
-                handleSearchUser(); // Atualiza os dados do usuário na tela
+                handleSearchUser();
             } else throw new Error();
         } catch (e) {
             toast({ title: "Erro na operação", variant: "destructive" });
@@ -252,7 +256,13 @@ export const AdminSection = () => {
             const res = await fetch('/api/actions', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action, data, adminId: user?.id }) });
             if (res.ok) {
                 toast({ title: "Sucesso!", variant: "success" });
-                if(action === 'SEND_GLOBAL_NOTIFICATION') { setNotifTitle(""); setNotifMsg(""); setScheduledDate(""); }
+                if(action === 'SEND_GLOBAL_NOTIFICATION') {
+                    setNotifTitle("");
+                    setNotifMsg("");
+                    setScheduledDate("");
+                    setNotifLinkTo("none");
+                    setNotifTargetUser("ALL");
+                }
             } else throw new Error();
         } catch (e) { toast({ title: "Erro na operação", variant: "destructive" }); }
         finally { setIsProcessing(null); }
@@ -291,6 +301,7 @@ export const AdminSection = () => {
                     </TabsList>
                 </div>
 
+                {/* Métricas Section */}
                 <TabsContent value="metrics" className="space-y-4">
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                         <Card
@@ -370,6 +381,7 @@ export const AdminSection = () => {
                     )}
                 </TabsContent>
 
+                {/* Auditoria Section */}
                 <TabsContent value="users" className="space-y-4">
                     <Card className="border-none shadow-sm md:border text-left overflow-hidden">
                         <CardHeader className="p-4 md:p-6"><CardTitle className="text-sm uppercase font-bold">Auditoria de Assinante</CardTitle></CardHeader>
@@ -393,7 +405,6 @@ export const AdminSection = () => {
                                         <p className="flex justify-between gap-2"><strong>ID:</strong> <span className="text-[9px] font-mono break-all">{foundUser.id}</span></p>
                                         <p className="flex justify-between"><strong>Expira:</strong> <span>{foundUser.planExpiresAt ? new Date(foundUser.planExpiresAt).toLocaleDateString('pt-BR') : 'N/A'}</span></p>
 
-                                        {/* EXIBIÇÃO DO HISTÓRICO DE CUPONS (ARRAY) */}
                                         <div className="pt-2 border-t mt-2">
                                             <p className="text-[10px] font-bold uppercase text-muted-foreground mb-2 flex items-center gap-1">
                                                 <Ticket className="h-3 w-3" /> Histórico de Cupons
@@ -451,6 +462,7 @@ export const AdminSection = () => {
                     </Card>
                 </TabsContent>
 
+                {/* Error Logs Section */}
                 <TabsContent value="error_logs">
                     <Card className="border-none shadow-sm md:border text-left overflow-hidden">
                         <CardHeader className="p-4 md:p-6 flex flex-row items-center justify-between bg-rose-50/30 dark:bg-rose-900/10">
@@ -510,7 +522,7 @@ export const AdminSection = () => {
                     </Card>
                 </TabsContent>
 
-                {/* ABA COUPO_TAB, NOTIFICATIONS, REFERRALS E AUDIT PRESERVADAS COM O LAYOUT MOBILE */}
+                {/* Cupons Section */}
                 <TabsContent value="coupons_tab" className="space-y-4">
                     <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 text-left">
                         <Card className="lg:col-span-1 border-none shadow-sm md:border">
@@ -551,23 +563,108 @@ export const AdminSection = () => {
                     </div>
                 </TabsContent>
 
+                {/* Comunicação Section */}
                 <TabsContent value="notifications">
                     <Card className="border-none shadow-sm md:border max-w-2xl text-left overflow-hidden">
                         <CardHeader className="p-4 md:p-6"><CardTitle className="text-sm uppercase font-bold flex gap-2"><Info className="h-4 w-4 text-blue-500" /> Comunicado</CardTitle></CardHeader>
                         <CardContent className="p-4 md:p-6 space-y-4">
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                                <div className="md:col-span-2"><Input placeholder="Título" value={notifTitle} onChange={e => setNotifTitle(e.target.value)} className="h-11" /></div>
-                                <Select value={notifType} onValueChange={(v: any) => setNotifType(v)}><SelectTrigger className="h-11"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="INFO">🔵 INFO</SelectItem><SelectItem value="SUCCESS">🟢 SUCESSO</SelectItem><SelectItem value="WARNING">🟡 AVISO</SelectItem><SelectItem value="ERROR">🔴 ERRO</SelectItem></SelectContent></Select>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                <div className="space-y-1">
+                                    <label className="text-[10px] font-bold uppercase text-muted-foreground flex items-center gap-1">
+                                        <Users className="h-3 w-3" /> Público Alvo
+                                    </label>
+                                    <Select value={notifTargetUser} onValueChange={setNotifTargetUser}>
+                                        <SelectTrigger className="h-11">
+                                            <SelectValue />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="ALL">Todos os Usuários</SelectItem>
+                                            <SelectItem value="SPECIFIC">Usuário Específico</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                                <div className="space-y-1">
+                                    <label className="text-[10px] font-bold uppercase text-muted-foreground flex items-center gap-1">
+                                        <Info className="h-3 w-3" /> Tipo de Aviso
+                                    </label>
+                                    <Select value={notifType} onValueChange={(v: any) => setNotifType(v)}>
+                                        <SelectTrigger className="h-11">
+                                            <SelectValue />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="INFO">🔵 INFO</SelectItem>
+                                            <SelectItem value="SUCCESS">🟢 SUCESSO</SelectItem>
+                                            <SelectItem value="WARNING">🟡 AVISO</SelectItem>
+                                            <SelectItem value="ERROR">🔴 ERRO</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                </div>
                             </div>
-                            <textarea className="w-full h-32 p-3 rounded-md bg-muted/50 text-xs md:text-sm border outline-none focus:ring-1 focus:ring-primary" placeholder="Mensagem..." value={notifMsg} onChange={e => setNotifMsg(e.target.value)} />
-                            <Input type="datetime-local" value={scheduledDate} onChange={(e) => setScheduledDate(e.target.value)} className="h-11" />
-                            <Button className="w-full h-11 bg-blue-600" onClick={() => handleAction("SEND_GLOBAL_NOTIFICATION", { title: notifTitle, message: notifMsg, type: notifType, scheduledAt: scheduledDate || null })} disabled={!notifTitle || !notifMsg || !!isProcessing}>
-                                {isProcessing === "SEND_GLOBAL_NOTIFICATION" ? <Loader2 className="animate-spin h-4 w-4 mr-2" /> : <Send className="h-4 w-4 mr-2" />} Disparar
+
+                            {notifTargetUser === "SPECIFIC" && (
+                                <div className="animate-in fade-in slide-in-from-top-1 duration-200">
+                                    <Input
+                                        placeholder="E-mail do usuário alvo"
+                                        value={searchEmail}
+                                        onChange={e => setSearchEmail(e.target.value)}
+                                        className="h-11"
+                                    />
+                                </div>
+                            )}
+
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                <Input placeholder="Título da Notificação" value={notifTitle} onChange={e => setNotifTitle(e.target.value)} className="h-11" />
+                                <div className="space-y-1">
+                                    <Select value={notifLinkTo} onValueChange={setNotifLinkTo}>
+                                        <SelectTrigger className="h-11">
+                                            <div className="flex items-center gap-2">
+                                                <LinkIcon className="h-4 w-4 text-muted-foreground" />
+                                                <SelectValue placeholder="Atalho de destino" />
+                                            </div>
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="none">Nenhum Atalho</SelectItem>
+                                            <SelectItem value="help">Ajuda & Suporte</SelectItem>
+                                            <SelectItem value="overview">Visão Geral</SelectItem>
+                                            <SelectItem value="transactions">Transações</SelectItem>
+                                            <SelectItem value="budget">Orçamentos</SelectItem>
+                                            <SelectItem value="investments">Investimentos</SelectItem>
+                                            <SelectItem value="profile">Perfil</SelectItem>
+                                            <SelectItem value="settings">Configurações</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                            </div>
+
+                            <textarea className="w-full h-32 p-3 rounded-md bg-muted/50 text-xs md:text-sm border outline-none focus:ring-1 focus:ring-primary" placeholder="Mensagem do comunicado..." value={notifMsg} onChange={e => setNotifMsg(e.target.value)} />
+
+                            <div className="space-y-1">
+                                <label className="text-[10px] font-bold uppercase text-muted-foreground flex items-center gap-1">
+                                    <CalendarClock className="h-3 w-3" /> Agendar Envio (Opcional)
+                                </label>
+                                <Input type="datetime-local" value={scheduledDate} onChange={(e) => setScheduledDate(e.target.value)} className="h-11" />
+                            </div>
+
+                            <Button
+                                className="w-full h-11 bg-blue-600 font-bold"
+                                onClick={() => handleAction("SEND_GLOBAL_NOTIFICATION", {
+                                    title: notifTitle,
+                                    message: notifMsg,
+                                    type: notifType,
+                                    linkTo: notifLinkTo === "none" ? null : notifLinkTo,
+                                    targetEmail: notifTargetUser === "SPECIFIC" ? searchEmail : null,
+                                    scheduledAt: scheduledDate || null
+                                })}
+                                disabled={!notifTitle || !notifMsg || !!isProcessing || (notifTargetUser === "SPECIFIC" && !searchEmail)}
+                            >
+                                {isProcessing === "SEND_GLOBAL_NOTIFICATION" ? <Loader2 className="animate-spin h-4 w-4 mr-2" /> : <Send className="h-4 w-4 mr-2" />}
+                                {notifTargetUser === "ALL" ? "Disparar para Todos" : "Enviar para Usuário"}
                             </Button>
                         </CardContent>
                     </Card>
                 </TabsContent>
 
+                {/* Indicações Section */}
                 <TabsContent value="referrals">
                     <Card className="border-none shadow-sm md:border text-left overflow-hidden">
                         <CardHeader className="p-4 md:p-6"><CardTitle className="text-sm uppercase font-bold tracking-tighter">Indicações Pendentes</CardTitle></CardHeader>
@@ -584,6 +681,7 @@ export const AdminSection = () => {
                     </Card>
                 </TabsContent>
 
+                {/* Auditoria Logs Section */}
                 <TabsContent value="audit" className="space-y-6">
                     {scheduledQueue.length > 0 && (
                         <Card className=" text-left overflow-hidden">

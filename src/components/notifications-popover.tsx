@@ -13,7 +13,11 @@ import {useDialogManager} from "@/context/DialogManagerContext.tsx";
 import {useMarkAllNotificationsAsRead, useMarkNotificationAsRead, useNotifications} from "@/hooks/useNotifications";
 import {NotificationsDialog} from "./all-notifications";
 
-export const NotificationsPopover = () => {
+interface NotificationsPopoverProps {
+  onSectionChange?: (section: any) => void;
+}
+
+export const NotificationsPopover = ({ onSectionChange }: NotificationsPopoverProps) => {
   const [open, setOpen] = useState(false);
   const { notifications, unreadCount } = useNotifications();
   const { mutate: markAsRead } = useMarkNotificationAsRead();
@@ -36,6 +40,23 @@ export const NotificationsPopover = () => {
       return () => clearTimeout(timer);
     }
   }, [unreadCount]);
+
+  const handleNotificationClick = (n: any) => {
+    markAsRead(n.id);
+
+    // Lógica de redirecionamento para Ajuda
+    const isHelpRelated =
+        n.title.toLowerCase().includes("termos") ||
+        n.title.toLowerCase().includes("ajuda") ||
+        n.message.toLowerCase().includes("privacidade");
+
+    if (isHelpRelated && onSectionChange) {
+      onSectionChange("help");
+      setOpen(false);
+    } else if (window.innerWidth < 640) {
+      setOpen(false);
+    }
+  };
 
   return (
       <>
@@ -69,10 +90,7 @@ export const NotificationsPopover = () => {
                     {notifications.slice(0, 10).map((n) => (
                         <button
                             key={n.id}
-                            onClick={() => {
-                              markAsRead(n.id);
-                              if (window.innerWidth < 640) setOpen(false);
-                            }}
+                            onClick={() => handleNotificationClick(n)}
                             className={cn(
                                 "flex flex-col gap-1 p-4 text-left transition-colors border-b last:border-0 outline-none",
                                 !n.read ? "bg-emerald-500/5 dark:bg-emerald-500/10" : "hover:bg-muted/50"

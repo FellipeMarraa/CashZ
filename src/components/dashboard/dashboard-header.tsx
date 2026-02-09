@@ -9,7 +9,7 @@ import {Button} from "@/components/ui/button";
 import {Eye, EyeOff, LogIn} from "lucide-react";
 import {usePrivacy} from "@/context/PrivacyContext.tsx";
 
-type DashboardSection = 'overview' | 'transactions' | 'budget' | 'investments' | 'profile' | 'settings' | 'admin';
+type DashboardSection = 'overview' | 'transactions' | 'budget' | 'investments' | 'profile' | 'settings' | 'admin' | 'help';
 
 interface DashboardHeaderProps {
     collapsed: boolean;
@@ -76,7 +76,7 @@ export const DashboardHeader = ({
                     <>
                         {user ? (
                             <>
-                                <NotificationsPopover />
+                                <NotificationsPopover onSectionChange={onSectionChange} />
                                 <UserMenu
                                     onNavigateToLanding={onNavigateToLanding}
                                     onSectionChange={onSectionChange}

@@ -97,13 +97,12 @@ export const LegalModal = ({ isOpen, onClose, type }: LegalModalProps) => {
                     <DialogDescription>{activeContent.description}</DialogDescription>
                 </DialogHeader>
 
-                {/* Área de Scroll com altura flexível para preencher o Dialog */}
                 <ScrollArea className="flex-grow px-6 py-4 border-y border-slate-100">
                     {activeContent.text}
                 </ScrollArea>
 
                 <div className="p-4 bg-slate-50 flex justify-end shrink-0">
-                    <Button onClick={onClose} className="bg-emerald-600 hover:bg-emerald-700 px-8 font-bold">
+                    <Button onClick={onClose} className="bg-emerald-600 hover:bg-emerald-700 px-8 text-foreground">
                         Compreendi
                     </Button>
                 </div>

@@ -6,7 +6,7 @@ import {ScrollArea} from '@/components/ui/scroll-area';
 import {ArrowLeftRight, LayoutDashboard, LineChart, PieChart} from 'lucide-react';
 import {forwardRef} from "react";
 
-type DashboardSection = 'overview' | 'transactions' | 'budget' | 'investments' | 'profile' | 'settings' | 'admin';
+type DashboardSection = 'overview' | 'transactions' | 'budget' | 'investments' | 'profile' | 'settings' | 'admin' | 'help';
 
 interface DashboardSidebarProps {
     collapsed: boolean;
