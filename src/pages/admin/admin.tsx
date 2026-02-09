@@ -647,14 +647,16 @@ export const AdminSection = () => {
 
                             <Button
                                 className="w-full h-11 bg-blue-600 font-bold"
-                                onClick={() => handleAction("SEND_GLOBAL_NOTIFICATION", {
-                                    title: notifTitle,
-                                    message: notifMsg,
-                                    type: notifType,
-                                    linkTo: notifLinkTo === "none" ? null : notifLinkTo,
-                                    targetEmail: notifTargetUser === "SPECIFIC" ? searchEmail : null,
-                                    scheduledAt: scheduledDate || null
-                                })}
+                                onClick={() => {
+                                    handleAction("SEND_GLOBAL_NOTIFICATION", {
+                                        title: notifTitle,
+                                        message: notifMsg,
+                                        type: notifType,
+                                        linkTo: notifLinkTo === "none" ? null : notifLinkTo,
+                                        targetEmail: notifTargetUser === "SPECIFIC" ? searchEmail.trim().toLowerCase() : null,
+                                        scheduledAt: scheduledDate || null
+                                    })
+                                }}
                                 disabled={!notifTitle || !notifMsg || !!isProcessing || (notifTargetUser === "SPECIFIC" && !searchEmail)}
                             >
                                 {isProcessing === "SEND_GLOBAL_NOTIFICATION" ? <Loader2 className="animate-spin h-4 w-4 mr-2" /> : <Send className="h-4 w-4 mr-2" />}
