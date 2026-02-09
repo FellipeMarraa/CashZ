@@ -66,35 +66,55 @@ export default async function handler(req: any, res: any) {
         }
 
         if (action === "SEND_GLOBAL_NOTIFICATION") {
-            const { title, message, type, scheduledAt } = data;
+            const { title, message, type, scheduledAt, linkTo, targetEmail } = data;
 
-            // OPÇÃO A: AGENDAMENTO (Salva na fila para a CRON)
             if (scheduledAt) {
                 await db.collection("scheduled_notifications").add({
                     title,
                     message,
                     type: type || "INFO",
+                    linkTo: linkTo || null, // Incluído linkTo no agendamento
+                    targetEmail: targetEmail || null, // Incluído para a CRON saber se é específico
                     scheduledAt: new Date(scheduledAt).toISOString(),
                     status: "PENDING",
                     adminId,
                     createdAt: new Date().toISOString()
                 });
 
-                await db.collection("admin_logs").add({
-                    action: "NOTIFICAÇÃO AGENDADA",
-                    details: `Agendada para ${new Date(scheduledAt).toLocaleString('pt-BR')}: "${title}"`,
-                    adminId,
+                return res.status(200).json({ success: true, message: "Notificação agendada." });
+            }
+
+            // 2. LÓGICA DE ENVIO IMEDIATO
+
+            // SE FOR PARA USUÁRIO ESPECÍFICO
+            if (targetEmail) {
+                const userQuery = await db.collection("user_preferences")
+                    .where("email", "==", targetEmail.toLowerCase().trim())
+                    .limit(1)
+                    .get();
+
+                if (userQuery.empty) {
+                    return res.status(404).json({ message: "Usuário não encontrado para este e-mail." });
+                }
+
+                const targetUserDoc = userQuery.docs[0];
+
+                await db.collection("notifications").add({
+                    userId: targetUserDoc.id,
+                    title,
+                    message,
+                    type: type || "INFO",
+                    linkTo: linkTo || null,
+                    read: false,
                     createdAt: new Date().toISOString()
                 });
 
-                return res.status(200).json({ success: true, message: "Notificação agendada com sucesso." });
+                return res.status(200).json({ success: true, message: "Notificação enviada ao usuário específico." });
             }
 
-            // OPÇÃO B: ENVIO IMEDIATO (Loop direto)
             const usersSnap = await db.collection("user_preferences").get();
             let batch = db.batch();
             let count = 0;
-            const totalUsers = usersSnap.docs.length;
 
             for (const userDoc of usersSnap.docs) {
                 const notificationRef = db.collection("notifications").doc();
@@ -103,12 +123,12 @@ export default async function handler(req: any, res: any) {
                     title,
                     message,
                     type: type || "INFO",
+                    linkTo: linkTo || null,
                     read: false,
                     createdAt: new Date().toISOString()
                 });
 
                 count++;
-
                 if (count === 500) {
                     await batch.commit();
                     batch = db.batch();
@@ -116,20 +136,11 @@ export default async function handler(req: any, res: any) {
                 }
             }
 
-            if (count > 0) {
-                await batch.commit();
-            }
-
-            await db.collection("admin_logs").add({
-                action: "NOTIFICAÇÃO GLOBAL",
-                details: `Título: "${title}" enviado IMEDIATAMENTE para ${totalUsers} usuários.`,
-                adminId,
-                createdAt: new Date().toISOString()
-            });
+            if (count > 0) await batch.commit();
 
             return res.status(200).json({
                 success: true,
-                message: `Notificação enviada para ${totalUsers} usuários.`
+                message: `Notificação enviada para ${usersSnap.size} usuários.`
             });
         }
 
