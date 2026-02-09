@@ -15,9 +15,10 @@ import {HelpSection} from "@/pages/help/help.tsx";
 
 interface DashboardProps {
   onNavigateToLanding: () => void;
+  onSectionChange: (section: any) => void;
 }
 
-export const Dashboard = ({ onNavigateToLanding }: DashboardProps) => {
+export const Dashboard = ({ onNavigateToLanding, onSectionChange }: DashboardProps) => {
   // Inicializamos como true (colapsado) para que a barra comece oculta
   const [collapsed, setCollapsed] = useState(true);
   const [activeSection, setActiveSection] = useState<'overview' | 'transactions' | 'budget' | 'investments' | 'profile' | 'settings' | 'admin' | 'help'>('overview');
@@ -104,7 +105,7 @@ export const Dashboard = ({ onNavigateToLanding }: DashboardProps) => {
   const renderSection = () => {
     switch (activeSection) {
       case 'overview':
-        return <OverviewSection />;
+        return <OverviewSection onSectionChange={onSectionChange} />;
       case 'transactions':
         return <TransactionsSection />;
       case 'budget':
@@ -120,7 +121,7 @@ export const Dashboard = ({ onNavigateToLanding }: DashboardProps) => {
       case 'help':
         return <HelpSection />;
       default:
-        return <OverviewSection />;
+        return <OverviewSection onSectionChange={onSectionChange} />;
     }
   };
 

@@ -25,7 +25,10 @@ import {toast} from "@/hooks/use-toast.ts";
 import {ReferralAnnouncementModal} from "@/components/referral-announcement-modal.tsx";
 import {usePrivacy} from "@/context/PrivacyContext"; // IMPORTADO AQUI
 
-export const OverviewSection = () => {
+interface OverviewSectionProps {
+    onSectionChange: (section: any) => void;
+}
+export const OverviewSection = ({ onSectionChange }: OverviewSectionProps) => {
     const { user: currentUser } = useAuth();
     const { isPremium } = useUserPreferences(currentUser?.id);
     const { activeDialog, setActiveDialog } = useDialogManager();
@@ -317,7 +320,7 @@ export const OverviewSection = () => {
                 <UpgradePlanModal isOpen={true} onClose={() => setActiveDialog(null)} />
             )}
             {activeDialog === "referral-announcement" && (
-                <ReferralAnnouncementModal isOpen={true} onClose={() => setActiveDialog(null)} />
+                <ReferralAnnouncementModal onSectionChange={onSectionChange} isOpen={true} onClose={() => setActiveDialog(null)} />
             )}
         </div>
     );

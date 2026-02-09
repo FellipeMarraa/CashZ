@@ -96,7 +96,8 @@ export const useSharing = () => {
                     targetUserId,
                     "Novo Convite de Acesso 🤝",
                     `${user.email} quer compartilhar as finanças com você.`,
-                    "INFO"
+                    "INFO",
+                    "settings"
                 );
             } else {
                 console.warn("Destinatário não encontrado em user_preferences. Verifique se o e-mail está correto no cadastro dele.");

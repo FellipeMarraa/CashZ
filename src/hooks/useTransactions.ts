@@ -132,14 +132,16 @@ const api = {
                         user.uid,
                         "Orçamento Esgotado! 🚨",
                         `Você atingiu o limite de ${new Intl.NumberFormat('pt-BR', {style: 'currency', currency: 'BRL'}).format(limit)} na categoria ${data.category.name}.`,
-                        "ERROR"
+                        "ERROR",
+                        "budget"
                     );
                 } else if (totalAfterNew >= limit * 0.8) {
                     await sendNotification(
                         user.uid,
                         "Atenção ao Orçamento ⚠️",
                         `Você já utilizou 80% do limite para ${data.category.name}.`,
-                        "WARNING"
+                        "WARNING",
+                        "budget"
                     );
                 }
             }

@@ -5,7 +5,8 @@ export const sendNotification = async (
     userId: string,
     title: string,
     message: string,
-    type: 'INFO' | 'SUCCESS' | 'WARNING' | 'ERROR' = 'INFO'
+    type: 'INFO' | 'SUCCESS' | 'WARNING' | 'ERROR' = 'INFO',
+    linkTo: string | null = null
 ) => {
     try {
         await addDoc(collection(db, "notifications"), {
@@ -13,6 +14,7 @@ export const sendNotification = async (
             title,
             message,
             type,
+            linkTo,
             read: false,
             createdAt: new Date().toISOString()
         });

@@ -90,7 +90,8 @@ export const SettingsSection = () => {
                     currentUser!.id,
                     "Premium Ativado! ✨",
                     "Seu pagamento foi confirmado. Agora você tem acesso a relatórios e compartilhamento ilimitado.",
-                    "SUCCESS"
+                    "SUCCESS",
+                    "settings"
                 );
                 localStorage.setItem(`premium_welcome_${currentUser?.id}`, "true");
             }
@@ -109,7 +110,8 @@ export const SettingsSection = () => {
                         currentUser!.id,
                         "Assinatura expirando! ⚠️",
                         `Seu plano Premium vence em ${diffInDays} ${diffInDays === 1 ? 'dia' : 'dias'}. Renove agora para manter seus recursos ativos!`,
-                        "WARNING"
+                        "WARNING",
+                        "settings"
                     );
                     localStorage.setItem(`notify_exp_${currentUser?.id}`, new Date().toLocaleDateString());
                 }

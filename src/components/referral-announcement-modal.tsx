@@ -6,14 +6,24 @@ import {Checkbox} from "@/components/ui/checkbox"
 import {ArrowRight, Gift, Megaphone} from "lucide-react"
 import {useState} from "react"
 
-export const ReferralAnnouncementModal = ({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) => {
+export const ReferralAnnouncementModal = ({
+                                              isOpen,
+                                              onClose,
+                                              onSectionChange
+                                          }: {
+    isOpen: boolean;
+    onClose: () => void;
+    onSectionChange: (section: any) => void;
+}) => {
     const [dontShowAgain, setDontShowAgain] = useState(false);
 
-    const handleClose = () => {
+    const handleAction = () => {
         if (dontShowAgain) {
             localStorage.setItem("cashz_referral_announcement_seen", "true");
         }
         sessionStorage.setItem("cashz_referral_opened_session", "true");
+
+        onSectionChange("profile");
         onClose();
     };
 
@@ -25,7 +35,6 @@ export const ReferralAnnouncementModal = ({ isOpen, onClose }: { isOpen: boolean
                 onEscapeKeyDown={(e) => e.preventDefault()}
             >
                 <div className="bg-gradient-to-br from-emerald-500 to-emerald-700 p-2 flex justify-center relative">
-                    {/*<Sparkles className="absolute top-4 right-4 text-white/30 h-6 w-6" />*/}
                     <div className="bg-white/20 backdrop-blur-md rounded-full p-4 border border-white/30">
                         <Gift className="h-8 w-8 text-white" />
                     </div>
@@ -61,8 +70,11 @@ export const ReferralAnnouncementModal = ({ isOpen, onClose }: { isOpen: boolean
                         </label>
                     </div>
 
-                    <Button className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold h-12" onClick={handleClose}>
-                        Entendido! <ArrowRight className="ml-2 h-4 w-4" />
+                    <Button
+                        className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold h-12"
+                        onClick={handleAction}
+                    >
+                        Ver Indicações <ArrowRight className="ml-2 h-4 w-4" />
                     </Button>
                 </div>
             </DialogContent>
