@@ -107,6 +107,28 @@ export const AdminSection = () => {
     const [editingCoupon, setEditingCoupon] = useState<string | null>(null);
     const [newCoupon, setNewCoupon] = useState({ code: "", days: 30, usageLimit: -1, planType: "premium" });
 
+    const [showUserList, setShowUserList] = useState(false);
+    const [allUsersList, setAllUsersList] = useState<any[]>([]);
+    const [loadingAllUsers, setLoadingAllUsers] = useState(false);
+
+    const fetchAllUsers = async () => {
+        if (showUserList) {
+            setShowUserList(false);
+            return;
+        }
+
+        setLoadingAllUsers(true);
+        try {
+            const q = query(collection(db, "user_preferences"), orderBy("email", "asc"));
+            const snap = await getDocs(q);
+            setAllUsersList(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+            setShowUserList(true);
+        } catch (e) {
+            toast({ title: "Erro ao carregar lista", variant: "destructive" });
+        } finally {
+            setLoadingAllUsers(false);
+        }
+    };
     useEffect(() => {
         getCountFromServer(collection(db, "user_preferences")).then(snap => setTotalUsers(snap.data().count));
 
@@ -271,26 +293,19 @@ export const AdminSection = () => {
 
                 <TabsContent value="metrics" className="space-y-4">
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                        <Card className="border-none shadow-sm md:border">
+                        <Card
+                            className="border-none shadow-sm md:border cursor-pointer hover:bg-muted/50 transition-colors"
+                            onClick={fetchAllUsers}
+                        >
                             <CardContent className="p-6">
                                 <div className="flex items-center justify-between space-y-0 pb-2">
                                     <p className="text-xs font-bold uppercase text-muted-foreground tracking-wider">Total Geral</p>
-                                    <Users className="h-4 w-4 text-blue-500" />
+                                    {loadingAllUsers ? <Loader2 className="h-4 w-4 animate-spin text-blue-500" /> : <Users className="h-4 w-4 text-blue-500" />}
                                 </div>
                                 <div className="text-2xl font-black">{totalUsers}</div>
-                                <p className="text-[10px] text-muted-foreground mt-1">Cadastrados</p>
+                                <p className="text-[10px] text-muted-foreground mt-1">Clique para ver detalhes</p>
                             </CardContent>
                         </Card>
-                        {/*<Card className="border-none shadow-sm md:border">*/}
-                        {/*    <CardContent className="p-6">*/}
-                        {/*        <div className="flex items-center justify-between space-y-0 pb-2">*/}
-                        {/*            <p className="text-xs font-bold uppercase text-muted-foreground tracking-wider">Novos Hoje</p>*/}
-                        {/*            <TrendingUp className="h-4 w-4 text-emerald-500" />*/}
-                        {/*        </div>*/}
-                        {/*        <div className="text-2xl font-black text-emerald-600">+{stats.today}</div>*/}
-                        {/*        <p className="text-[10px] text-muted-foreground mt-1">Registros hoje</p>*/}
-                        {/*    </CardContent>*/}
-                        {/*</Card>*/}
                         <Card className="border-none shadow-sm md:border">
                             <CardContent className="p-6">
                                 <div className="flex items-center justify-between space-y-0 pb-2">
@@ -312,6 +327,47 @@ export const AdminSection = () => {
                             </CardContent>
                         </Card>
                     </div>
+                    {showUserList && (
+                        <Card className="mt-4 border-none shadow-sm md:border animate-in slide-in-from-top-2 duration-300">
+                            <CardHeader className="p-4 border-b flex flex-row items-center justify-between">
+                                <CardTitle className="text-sm font-bold uppercase">Usuários Cadastrados</CardTitle>
+                                <Button variant="ghost" size="sm" onClick={() => setShowUserList(false)}><X className="h-4 w-4" /></Button>
+                            </CardHeader>
+                            <CardContent className="p-0">
+                                <div className="max-h-[400px] overflow-y-auto scrollbar-thin">
+                                    <Table>
+                                        <TableHeader className="bg-muted/50">
+                                            <TableRow>
+                                                <TableHead className="text-[10px]">NOME / E-MAIL</TableHead>
+                                                <TableHead className="text-[10px]">PLANO</TableHead>
+                                                <TableHead className="text-[10px] text-right">ÚLTIMA ATUALIZAÇÃO</TableHead>
+                                            </TableRow>
+                                        </TableHeader>
+                                        <TableBody>
+                                            {allUsersList.map((u) => (
+                                                <TableRow key={u.id} className="hover:bg-muted/30">
+                                                    <TableCell className="py-2">
+                                                        <div className="flex flex-col">
+                                                            <span className="text-xs font-bold">{u.displayName || u.name || 'Sem Nome'}</span>
+                                                            <span className="text-[10px] text-muted-foreground">{u.email}</span>
+                                                        </div>
+                                                    </TableCell>
+                                                    <TableCell className="py-2">
+                                                        <Badge variant={u.plan !== 'free' ? 'default' : 'secondary'} className="text-[9px] uppercase">
+                                                            {u.plan || 'free'}
+                                                        </Badge>
+                                                    </TableCell>
+                                                    <TableCell className="py-2 text-right text-[10px] opacity-70">
+                                                        {u.updatedAt ? new Date(u.updatedAt).toLocaleDateString('pt-BR') : '---'}
+                                                    </TableCell>
+                                                </TableRow>
+                                            ))}
+                                        </TableBody>
+                                    </Table>
+                                </div>
+                            </CardContent>
+                        </Card>
+                    )}
                 </TabsContent>
 
                 <TabsContent value="users" className="space-y-4">

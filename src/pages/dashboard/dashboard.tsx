@@ -68,6 +68,16 @@ export const Dashboard = ({ onNavigateToLanding }: DashboardProps) => {
   const currentMeta = sectionMeta[activeSection];
 
   useEffect(() => {
+    const isMobile = window.innerWidth < 768;
+
+    if (isMobile) {
+      const timer = setTimeout(() => {
+        setCollapsed(false);
+      }, 500);
+      return () => clearTimeout(timer);
+    }
+  }, []);
+  useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (
           sidebarRef.current &&

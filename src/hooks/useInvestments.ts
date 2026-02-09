@@ -61,7 +61,7 @@ const api = {
         const plan = userPrefsSnap.data()?.plan || "free";
 
         // Se não houver ID, é uma tentativa de criação de novo ativo
-        if (!id && plan !== "premium") {
+        if (!id && plan !== "premium" && plan !== "annual") {
             throw new Error("PREMIUM_REQUIRED");
         }
         // --------------------------------------------

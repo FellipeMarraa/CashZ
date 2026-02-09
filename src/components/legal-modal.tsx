@@ -8,7 +8,7 @@ import {
     DialogDescription,
 } from "@/components/ui/dialog"
 import { ScrollArea } from "@/components/ui/scroll-area"
-import {Button} from "@/components/ui/button.tsx";
+import { Button } from "@/components/ui/button.tsx";
 
 interface LegalModalProps {
     isOpen: boolean
@@ -22,46 +22,65 @@ export const LegalModal = ({ isOpen, onClose, type }: LegalModalProps) => {
             title: "Termos de Uso",
             description: "Última atualização: Fevereiro de 2026",
             text: (
-                <div className="space-y-4 text-sm text-slate-600">
+                <div className="space-y-4 text-sm text-slate-600 pr-4 text-left">
                     <section>
-                        <h4 className="font-bold text-slate-900">1. Aceitação dos Termos</h4>
-                        <p>Ao acessar o CashZ, você concorda em cumprir estes termos de serviço, todas as leis e regulamentos aplicáveis.</p>
+                        <h4 className="font-bold text-slate-900">1. Aceitação e Elegibilidade</h4>
+                        <p>Ao acessar o CashZ, você declara ter mais de 18 anos ou ser emancipado, e concorda com estes termos e todas as leis aplicáveis.</p>
                     </section>
                     <section>
-                        <h4 className="font-bold text-slate-900">2. Uso de Licença</h4>
-                        <p>O plano gratuito permite uso pessoal limitado (10 transações e 2 metas). O plano Premium é individual e intransferível, exceto pela funcionalidade de compartilhamento por convite.</p>
+                        <h4 className="font-bold text-slate-900">2. Isenção de Consultoria Financeira</h4>
+                        <p>O CashZ fornece ferramentas de organização e análises via Inteligência Artificial. **Não realizamos consultoria de investimentos.** Toda decisão financeira tomada com base nas informações da plataforma é de inteira responsabilidade do usuário.</p>
                     </section>
                     <section>
-                        <h4 className="font-bold text-slate-900">3. Responsabilidade Financeira</h4>
-                        <p>O CashZ é uma ferramenta de auxílio organizacional. Não nos responsabilizamos por decisões financeiras tomadas com base nos dados ou análises de IA fornecidos pela plataforma.</p>
+                        <h4 className="font-bold text-slate-900">3. Uso de Licença e Limites</h4>
+                        <p>O plano Gratuito é limitado. O plano Premium é para uso pessoal e familiar (via compartilhamento). É proibida a revenda de acesso ou o uso da plataforma para fins comerciais sem autorização prévia.</p>
                     </section>
                     <section>
-                        <h4 className="font-bold text-slate-900">4. Pagamentos e Assinaturas</h4>
-                        <p>Assinaturas Premium são processadas via parceiros de pagamento seguros. O cancelamento interrompe a renovação, mas não gera estorno de períodos já utilizados.</p>
+                        <h4 className="font-bold text-slate-900">4. Compartilhamento de Conta</h4>
+                        <p>Ao utilizar o sistema de convites, você autoriza que o parceiro visualize e edite dados. O CashZ não intervém em disputas entre usuários que compartilham contas.</p>
+                    </section>
+                    <section>
+                        <h4 className="font-bold text-slate-900">5. Assinaturas e Reembolsos</h4>
+                        <p>Assinaturas podem ser canceladas a qualquer momento. Estornos são garantidos em até 7 dias após a compra inicial. Após esse prazo, o serviço será mantido até o final do período contratado sem devolução de valores.</p>
+                    </section>
+                    <section>
+                        <h4 className="font-bold text-slate-900">6. Integridade e Backup de Dados</h4>
+                        <p>
+                            O usuário é o único responsável pela precisão e veracidade dos dados inseridos.
+                            O CashZ **não realiza serviços de backup individualizado** ou restauração de dados deletados acidentalmente pelo usuário.
+                            Embora utilizemos infraestrutura de nuvem segura, recomendamos que o usuário realize exportações periódicas (CSV/Excel) de seus dados para segurança pessoal.
+                        </p>
+                    </section>
+                    <section>
+                        <h4 className="font-bold text-slate-900">7. Limitação de Responsabilidade</h4>
+                        <p>
+                            Em nenhuma circunstância o CashZ será responsável por perdas financeiras, lucros cessantes ou danos decorrentes da perda de dados ou instabilidade técnica da plataforma.
+                            O serviço é fornecido "como está" (as is), sem garantias de disponibilidade ininterrupta.
+                        </p>
                     </section>
                 </div>
             ),
         },
         privacy: {
             title: "Política de Privacidade",
-            description: "Como protegemos seus dados financeiros",
+            description: "Conformidade com a LGPD e Segurança de Dados",
             text: (
-                <div className="space-y-4 text-sm text-slate-600">
+                <div className="space-y-4 text-sm text-slate-600 pr-4 text-left">
                     <section>
-                        <h4 className="font-bold text-slate-900">1. Coleta de Dados</h4>
-                        <p>Coletamos seu e-mail para autenticação e os dados financeiros que você insere voluntariamente para fins de organização pessoal.</p>
+                        <h4 className="font-bold text-slate-900">1. Dados Coletados</h4>
+                        <p>Coletamos seu nome e e-mail (via Google Auth ou Cadastro) para identificação, e dados de transações/ativos inseridos por você para o funcionamento das métricas.</p>
                     </section>
                     <section>
-                        <h4 className="font-bold text-slate-900">2. Segurança (LGPD)</h4>
-                        <p>Seus dados são armazenados em nuvem com criptografia de ponta a ponta. Não vendemos seus dados para terceiros ou instituições financeiras.</p>
+                        <h4 className="font-bold text-slate-900">2. Uso de Dados e IA</h4>
+                        <p>Seus dados financeiros são processados de forma anonimizada por modelos de IA para gerar insights. **Nunca vendemos seus dados para anunciantes ou bancos.**</p>
                     </section>
                     <section>
-                        <h4 className="font-bold text-slate-900">3. Compartilhamento entre Usuários</h4>
-                        <p>Seus dados só serão visíveis para outros usuários se você enviar e eles aceitarem explicitamente um convite de compartilhamento.</p>
+                        <h4 className="font-bold text-slate-900">3. Retenção e Exclusão</h4>
+                        <p>Os dados permanecem em nossos servidores enquanto sua conta estiver ativa. Ao solicitar a exclusão da conta, todos os seus dados financeiros são apagados permanentemente de nossos bancos de dados em até 30 dias.</p>
                     </section>
                     <section>
-                        <h4 className="font-bold text-slate-900">4. Seus Direitos</h4>
-                        <p>Você pode excluir sua conta e todos os dados vinculados a ela a qualquer momento através das configurações do perfil.</p>
+                        <h4 className="font-bold text-slate-900">4. Cookies e Rastreamento</h4>
+                        <p>Utilizamos apenas cookies essenciais para manter sua sessão ativa e ferramentas de análise de performance (como logs de erro) para garantir a estabilidade do app.</p>
                     </section>
                 </div>
             ),
@@ -72,19 +91,19 @@ export const LegalModal = ({ isOpen, onClose, type }: LegalModalProps) => {
 
     return (
         <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-            <DialogContent className="w-[95vw] sm:max-w-[600px] max-h-[85vh] flex flex-col p-0 overflow-hidden bg-white border-none shadow-2xl rounded-2xl">
-                <DialogHeader className="p-6 pb-2 text-left">
+            <DialogContent className="w-[95vw] sm:max-w-[600px] h-[85vh] flex flex-col p-0 overflow-hidden bg-white border-none shadow-2xl rounded-2xl">
+                <DialogHeader className="p-6 pb-2 text-left shrink-0">
                     <DialogTitle className="text-2xl font-bold text-slate-900">{activeContent.title}</DialogTitle>
                     <DialogDescription>{activeContent.description}</DialogDescription>
                 </DialogHeader>
 
-                <ScrollArea className="flex-1 p-6 pt-2">
+                {/* Área de Scroll com altura flexível para preencher o Dialog */}
+                <ScrollArea className="flex-grow px-6 py-4 border-y border-slate-100">
                     {activeContent.text}
-                    <div className="h-4" />
                 </ScrollArea>
 
-                <div className="p-4 border-t bg-slate-50 flex justify-end">
-                    <Button onClick={onClose} className="bg-emerald-600 hover:bg-emerald-700">
+                <div className="p-4 bg-slate-50 flex justify-end shrink-0">
+                    <Button onClick={onClose} className="bg-emerald-600 hover:bg-emerald-700 px-8 font-bold">
                         Compreendi
                     </Button>
                 </div>
